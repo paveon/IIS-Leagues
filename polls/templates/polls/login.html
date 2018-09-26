@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Leagues|Login</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% load staticfiles %}
+
+    <script src="{% static 'polls/js/jquery-3.3.1.min.js'%}"></script>
+    <link rel="stylesheet" href="{% static 'polls/css/w3.css' %}">
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide" >
+
+    <style>
+        html,body,h1,h2,h3,h4,h5 {font-family: "Open Sans", sans-serif}
+
+        .logoText {
+            font-family: 'Audiowide', cursive;
+            text-shadow: 3px 3px 5px gray
+        }
+    </style>
+
+    <script>
+        $(document).ready(function(){
+            let username = $('#id_username')
+            if (username) {
+                username.va
+            }
+        });
+    </script>
+</head>
+<body>
+    {% load widget_tweaks %}
+    <div class="w3-container w3-content" style="max-width:600px">
+        <div class="w3-card-4 w3-round-xlarge" style="margin-top:100px">
+            <div class="w3-center"><br>
+                <h1 class="logoText">Leagues</h1>
+                <p>Please log in to access all features of <b>Leagues</b>!</p>
+
+                {% if next %}
+                    {% if user.is_authenticated %}
+                        <p>Your account doesn't have access to this page. To proceed,
+                        please login with an account that has access.</p>
+                    {% else %}
+                        <p>Please login to see this page.</p>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <form method="post" class="w3-container" action="{% url 'polls:login' %}">
+                {% csrf_token %}
+                <div class="w3-section w3-border-top" style="padding-top: 20px">
+                         {% if form.username.errors %}
+                            <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                                {{ form.username.errors }}
+                            </div>
+                        {% endif %}
+
+                        {% if form.password1.errors %}
+                            <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                                {{ form.password1.errors }}
+                            </div>
+                        {% endif %}
+
+                        {% if form.password2.errors %}
+                            <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                                {{ form.password2.errors }}
+                            </div>
+                        {% endif %}
+
+                    <label><b>{{ form.username.label_tag }}</b></label>
+                    {% render_field form.username class+="w3-input w3-border w3-margin-bottom" placeholder="Enter Username" value="test"%}
+                    <label><b>{{ form.password.label_tag }}</b></label>
+                    {% render_field form.password class+="w3-input w3-border" placeholder="Enter Password" value="test_password_123" %}
+                    <input class="w3-button w3-block w3-green w3-section w3-padding" type="submit" value="Login">
+                    <input type="hidden" name="next" value="{{ next }}">
+                </div>
+            </form>
+
+            <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                <span class="w3-right w3-padding w3-hide-small">Don't have <a href="{% url 'polls:signup' %}">account</a> yet?</span>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
