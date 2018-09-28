@@ -38,6 +38,59 @@ class SignupView(View):
 class GamesView(generic.TemplateView):
     template_name = "polls/games.html"
 
+    def get_form(self, request, form_class, prefix):
+        data = request.POST if prefix in request.POST else None
+        return form_class(data, prefix=prefix)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        games = Game.objects.all()
+        context['game_list'] = games
+        edit_forms = []
+        for game in games:
+            edit_forms.append(GameForm(instance=game, prefix='game_edit_' + str(game.id)))
+        context['edit_forms'] = edit_forms
+        context['game_form'] = GameForm(prefix='game_create')
+        return context
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['game_form'] = GameForm(prefix='game_create')
+        return render(request, self.template_name, context)
+
+    def post(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        if 'game_create' in request.POST:
+            create_form = GameForm(request.POST, prefix='game_create')
+            if create_form.is_bound and create_form.is_valid():
+                game_name = create_form.cleaned_data['name']
+                if not Game.objects.filter(name=game_name).exists():
+                    # commit=False doesn't save new model object directly into the DB
+                    # so we can do additional processing before storing it in the DB with save method of model object
+                    game_object = create_form.save(commit=False)
+
+                    # ... do additional processing
+
+                    game_object.save()  # save object do DB
+                    create_form.save_m2m()  # need to save relations manually with commit=False
+                    return HttpResponseRedirect(reverse('polls:games'))
+            context['game_form'] = create_form
+
+        elif 'game_id' in request.POST:
+            try:
+                game = Game.objects.get(pk=request.POST['game_id'])
+                edit_form = GameForm(request.POST, instance=game, prefix='game_edit_' + str(game.id))
+                if edit_form.is_bound and edit_form.is_valid():
+                    edit_form.save()
+                    return HttpResponseRedirect(reverse('polls:games'))
+                form_list = context['edit_forms']
+                form_list[:] = [edit_form if x.instance == game else x for x in form_list]
+
+            except Game.DoesNotExist as err:
+                return None
+
+        return render(request, self.template_name, context)
+
 
 class IndexView(generic.ListView):
     template_name = 'polls/index.html'

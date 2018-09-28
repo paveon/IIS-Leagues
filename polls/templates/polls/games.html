@@ -1,30 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Leagues|Games</title>
+    <title>Leagues | Games</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% load staticfiles %}
-
     <script src="{% static 'polls/js/jquery-3.3.1.min.js' %}"></script>
     <link rel="stylesheet" href="{% static 'polls/css/w3.css' %}">
+    <link rel="stylesheet" href="{% static 'polls/css/style.css' %}">
+
     <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <style>
-        html, body, h1, h2, h3, h4, h5 {
-            font-family: "Open Sans", sans-serif
-        }
 
-        .gameCard {
-            overflow: hidden;
-            width: 300px;
-        }
-
-        .gameImg {
-            width: 300px;
-        }
-    </style>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    {{ game_form.media }}
 
     <script>
         // Accordion
@@ -34,6 +25,12 @@
                 block.toggleClass('w3-show');
                 block.prev().toggleClass('w3-theme-d1');
             }
+        }
+
+        function showGameInfo(event, id) {
+            $(event.target).children().first().toggleClass('fa-angle-double-down');
+            $(event.target).children().first().toggleClass('fa-angle-double-up');
+            $("#" + id).toggleClass('accordion_open');
         }
 
         // Used to toggle the menu on smaller screens when clicking on the menu button
@@ -87,10 +84,12 @@
 <!-- Page Container -->
 <div class="w3-container w3-content" style="max-width:1400px;margin-top:80px">
     <!-- The Grid -->
-    <div class="w3-cell-row">
+    <div class="w3-row">
         <!-- Left Column -->
-        <div class="w3-cell" style="width: 25%">
-            {% if user.is_authenticated %}
+
+        {% if user.is_authenticated %}
+            <div class="w3-col m3">
+
                 <!-- Profile -->
                 <div class="w3-card w3-round w3-white">
                     <div class="w3-container">
@@ -184,102 +183,62 @@
                 </div>
 
                 <!-- End Left Column -->
-            {% endif %}
-        </div>
+            </div>
+        {% endif %}
 
         <!-- Middle Column -->
-        <div class="w3-cell">
-            <div class="w3-row">
-                <div class="w3-coll m6 l6 s6">
-                    <div class="w3-card-4 gameCard">
-                        <img src="{% static 'polls/images/lol.jpg' %}" alt="League of Legends" class="gameImg">
-                        <div class="w3-container w3-center">
-                            <h3>League of Legends</h3>
-                        </div>
+
+        <div class="w3-col {% if user.is_authenticated %} m7 {% endif %}">
+            <div class="w3-container">
+                <div class="w3-card w3-round w3-theme">
+                    <div class="w3-container w3-padding">
+                        <button type="button" class="w3-button w3-white"
+                                onclick="document.getElementById('create_game_modal').style.display='block'">
+                            <i class="fa fa-plus"></i> Add game
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {#            <div class="w3-row-padding">#}
-            {#                <div class="w3-col m12">#}
-            {#                    <div class="w3-card w3-round w3-white">#}
-            {#                        <div class="w3-container w3-padding">#}
-            {#                            <h6 class="w3-opacity">Social Media template by w3.css</h6>#}
-            {#                            <p contenteditable="true" class="w3-border w3-padding">Status: Feeling Blue</p>#}
-            {#                            <button type="button" class="w3-button w3-theme"><i class="fa fa-pencil"></i>  Post</button>#}
-            {#                        </div>#}
-            {#                    </div>#}
-            {#                </div>#}
-            {#            </div>#}
-            {##}
-            {#            <div class="w3-container w3-card w3-white w3-round w3-margin"><br>#}
-            {#                <img src="/w3images/avatar2.png" alt="Avatar" class="w3-left w3-circle w3-margin-right"#}
-            {#                     style="width:60px">#}
-            {#                <span class="w3-right w3-opacity">1 min</span>#}
-            {#                <h4>John Doe</h4><br>#}
-            {#                <hr class="w3-clear">#}
-            {#                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore#}
-            {#                    et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut#}
-            {#                    aliquip ex ea commodo consequat.</p>#}
-            {#                <div class="w3-row-padding" style="margin:0 -16px">#}
-            {#                    <div class="w3-half">#}
-            {#                        <img src="/w3images/lights.jpg" style="width:100%" alt="Northern Lights"#}
-            {#                             class="w3-margin-bottom">#}
-            {#                    </div>#}
-            {#                    <div class="w3-half">#}
-            {#                        <img src="/w3images/nature.jpg" style="width:100%" alt="Nature" class="w3-margin-bottom">#}
-            {#                    </div>#}
-            {#                </div>#}
-            {#                <button type="button" class="w3-button w3-theme-d1 w3-margin-bottom"><i class="fa fa-thumbs-up"></i>#}
-            {#                     Like#}
-            {#                </button>#}
-            {#                <button type="button" class="w3-button w3-theme-d2 w3-margin-bottom"><i class="fa fa-comment"></i>#}
-            {#                     Comment#}
-            {#                </button>#}
-            {#            </div>#}
-            {##}
-            {#            <div class="w3-container w3-card w3-white w3-round w3-margin"><br>#}
-            {#                <img src="/w3images/avatar5.png" alt="Avatar" class="w3-left w3-circle w3-margin-right"#}
-            {#                     style="width:60px">#}
-            {#                <span class="w3-right w3-opacity">16 min</span>#}
-            {#                <h4>Jane Doe</h4><br>#}
-            {#                <hr class="w3-clear">#}
-            {#                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore#}
-            {#                    et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut#}
-            {#                    aliquip ex ea commodo consequat.</p>#}
-            {#                <button type="button" class="w3-button w3-theme-d1 w3-margin-bottom"><i class="fa fa-thumbs-up"></i>#}
-            {#                     Like#}
-            {#                </button>#}
-            {#                <button type="button" class="w3-button w3-theme-d2 w3-margin-bottom"><i class="fa fa-comment"></i>#}
-            {#                     Comment#}
-            {#                </button>#}
-            {#            </div>#}
-            {##}
-            {#            <div class="w3-container w3-card w3-white w3-round w3-margin"><br>#}
-            {#                <img src="/w3images/avatar6.png" alt="Avatar" class="w3-left w3-circle w3-margin-right"#}
-            {#                     style="width:60px">#}
-            {#                <span class="w3-right w3-opacity">32 min</span>#}
-            {#                <h4>Angie Jane</h4><br>#}
-            {#                <hr class="w3-clear">#}
-            {#                <p>Have you seen this?</p>#}
-            {#                <img src="/w3images/nature.jpg" style="width:100%" class="w3-margin-bottom">#}
-            {#                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore#}
-            {#                    et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut#}
-            {#                    aliquip ex ea commodo consequat.</p>#}
-            {#                <button type="button" class="w3-button w3-theme-d1 w3-margin-bottom"><i class="fa fa-thumbs-up"></i>#}
-            {#                     Like#}
-            {#                </button>#}
-            {#                <button type="button" class="w3-button w3-theme-d2 w3-margin-bottom"><i class="fa fa-comment"></i>#}
-            {#                     Comment#}
-            {#                </button>#}
-            {#            </div>#}
+            <div class="w3-container w3-margin-top flex-container">
+                {% for game in game_list %}
+                    <div class="w3-card-4 flex-item gameCard">
+                        <header class="w3-block w3-center gameImg">
+                            <button type="button" class="w3-display-topleft w3-white gameEdit"
+                                    onclick="$('#game_edit_' + {{ game.id }}).show()">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            {% if game.image_url %}
+                                <img src="{{ game.image_url }}" alt="{{ game.name }}" style="width: 300px">
+                            {% else %}
+                                <h3 class="w3-text-white w3-display-middle">No image</h3>
+                            {% endif %}
+                        </header>
 
+                        <div class="w3-container w3-center">
+                            <h3 style="margin-bottom: 0">{{ game.name }}</h3>
+                            <div id="game_info_{{ game.id }}" class="accordion">
+                                <ul class="w3-ul">
+                                    <li>Released: {{ game.release_date|default:"unknown" }}</li>
+                                    <li>Genre: {{ game.genre|default:"unknown" }}</li>
+                                    <li>Publisher: {{ game.publisher|default:"unknown" }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <button onclick="showGameInfo(event, 'game_info_{{ game.id }}')" class="w3-block w3-button"
+                                style="padding: 0; margin-top: 6px">
+                            <i class="fa fa-angle-double-down"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
             <!-- End Middle Column -->
         </div>
 
         <!-- Right Column -->
-        <div class="w3-cell" style="width:20%">
-            {% if user.is_authenticated %}
+        {% if user.is_authenticated %}
+            <div class="w3-col m2">
+
 
                 <div class="w3-card w3-round w3-white w3-center">
                     <div class="w3-container">
@@ -322,9 +281,9 @@
                     <p><i class="fa fa-bug w3-xxlarge"></i></p>
                 </div>
 
-            {% endif %}
-            <!-- End Right Column -->
-        </div>
+                <!-- End Right Column -->
+            </div>
+        {% endif %}
 
         <!-- End Grid -->
     </div>
@@ -341,5 +300,114 @@
 <footer class="w3-container w3-theme-d5">
     <p>Leagues|THE place for gamers</p>
 </footer>
+
+{% load widget_tweaks %}
+{% for form in edit_forms %}
+    <div id="{{ form.prefix }}" class="w3-modal" {% if form.errors %}
+         style="display: block" {% endif %}>
+        <div class="w3-modal-content w3-card-4" style="max-width:600px">
+
+            <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+                <h3>Edit '{{ form.name.value }}'</h3>
+
+                <button onclick="$('#{{ form.prefix }}').hide()" type="button"
+                        class="w3-button w3-display-topright w3-red">
+                    <i class="fa fa-times"></i>
+                </button>
+            </header>
+
+            <form method="POST" class="" action="{% url 'polls:games' %}" name="game_edit">
+                <div class="w3-section w3-container">
+                    {% csrf_token %}
+                    {% if form.errors %}
+                        <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                            {{ form.errors }}
+                        </div>
+                    {% endif %}
+
+                    <label><b>{{ form.name.label_tag }}</b></label>
+                    {% render_field form.name class+="w3-input w3-border w3-margin-bottom" %}
+
+                    <label><b>{{ form.release_date.label_tag }}</b></label>
+                    <div class='w3-cell-row w3-margin-bottom'>
+                        {% render_field form.release_date class+="w3-input w3-border w3-cell" %}
+                        <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
+                            <span class="fa fa-calendar"></span>
+                        </div>
+                    </div>
+
+                    <label><b>{{ form.publisher.label_tag }}</b></label>
+                    {% render_field form.publisher class+="w3-input w3-border w3-margin-bottom" %}
+                    <label><b>{{ form.image_url.label_tag }}</b></label>
+                    {% render_field form.image_url class+="w3-input w3-border w3-margin-bottom" %}
+                    <label><b>{{ form.genre.label_tag }}</b></label>
+                    {% render_field form.genre class+="w3-input w3-border w3-margin-bottom" %}
+                    <label><b>{{ form.game_modes.label_tag }}</b></label>
+                    {% render_field form.game_modes class+="w3-input w3-border" %}
+                </div>
+                <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                    <button onclick="$('#{{ form.prefix }}').hide()" type="button"
+                            class="w3-button w3-red">Close
+                    </button>
+
+                    <input type="hidden" name="game_id" value="{{ form.instance.id }}">
+                    <input class="w3-button w3-green w3-right" type="submit" name="{{ form.prefix }}"
+                           value="Save changes">
+                </div>
+            </form>
+        </div>
+    </div>
+{% endfor %}
+
+
+<div id="create_game_modal" class="w3-modal" {% if game_form.errors %} style="display: block" {% endif %}>
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+            <h3>Create game</h3>
+
+            <button onclick="$('#create_game_modal').hide()" type="button"
+                    class="w3-button w3-display-topright w3-red">
+                <i class="fa fa-times"></i>
+            </button>
+        </header>
+
+        <form method="POST" class="" action="{% url 'polls:games' %}" name="game_create">
+            <div class="w3-section w3-container">
+                {% csrf_token %}
+                {% if game_form.errors %}
+                    <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                        {{ game_form.errors }}
+                    </div>
+                {% endif %}
+                <label><b>{{ game_form.name.label_tag }}</b></label>
+                {% render_field game_form.name class+="w3-input w3-border w3-margin-bottom" %}
+
+                <label><b>{{ game_form.release_date.label_tag }}</b></label>
+                <div class='w3-cell-row w3-margin-bottom'>
+                    {% render_field game_form.release_date class+="w3-input w3-border w3-cell" %}
+                    <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
+                        <span class="fa fa-calendar"></span>
+                    </div>
+                </div>
+
+                <label><b>{{ game_form.publisher.label_tag }}</b></label>
+                {% render_field game_form.publisher class+="w3-input w3-border w3-margin-bottom" %}
+                <label><b>{{ game_form.image_url.label_tag }}</b></label>
+                {% render_field game_form.image_url class+="w3-input w3-border w3-margin-bottom" %}
+                <label><b>{{ game_form.genre.label_tag }}</b></label>
+                {% render_field game_form.genre class+="w3-input w3-border w3-margin-bottom" %}
+                <label><b>{{ game_form.game_modes.label_tag }}</b></label>
+                {% render_field game_form.game_modes class+="w3-input w3-border" %}
+            </div>
+            <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                <button onclick="document.getElementById('create_game_modal').style.display='none'" type="button"
+                        class="w3-button w3-red">Cancel
+                </button>
+                <input class="w3-button w3-green w3-right" type="submit" name="{{ game_form.prefix }}"
+                       value="Create game">
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>

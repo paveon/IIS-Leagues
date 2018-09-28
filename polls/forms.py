@@ -3,29 +3,31 @@ from django.forms import ModelForm
 from polls.models import *
 
 
-class BaseForm(ModelForm):
-    def __init__(self, *args, **kwargs):
-        super(BaseForm, self).__init__(*args, **kwargs)
-        for field_name, field in self.fields.items():
-            added_classes = ' form-control'
-            key = 'class'
-            if key in field.widget.attrs:
-                field.widget.attrs[key] += added_classes
-            else:
-                field.widget.attrs[key] = added_classes
-
-
 class CalendarWidget(forms.TextInput):
+    def __init__(self):
+        super().__init__(attrs={'class': 'date_picker'})
+
     class Media:
-        js = ('polls/date_picker.js',)
+        js = (
+            'polls/js/date_picker.js',
+        )
 
 
-class PlayerForm(BaseForm):
+class PlayerForm(ModelForm):
     class Meta:
         model = Player
         fields = ['nickname', 'first_name', 'last_name', 'country', 'birth_date']
         widgets = {
-            'birth_date': CalendarWidget(attrs={'class': 'date_picker'}),
+            'birth_date': CalendarWidget(),
+        }
+
+
+class GameForm(ModelForm):
+    class Meta:
+        model = Game
+        fields = ['name', 'release_date', 'publisher', 'image_url', 'genre', 'game_modes']
+        widgets = {
+            'release_date': CalendarWidget()
         }
 
 

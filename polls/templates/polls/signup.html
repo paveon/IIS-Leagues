@@ -45,7 +45,7 @@
                     {% endif %}
                 </div>
 
-                <form method="post" class="w3-container" action="{% url 'polls:signup' %}">
+                <form method="POST" class="w3-container" action="{% url 'polls:signup' %}">
                     {% csrf_token %}
                     <div class="w3-section w3-border-top" style="padding-top: 20px">
                         {% if form.username.errors %}

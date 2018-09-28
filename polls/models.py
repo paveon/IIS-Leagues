@@ -5,8 +5,8 @@ from django.utils import timezone
 
 class Genre(models.Model):
     name = models.CharField(max_length=100, primary_key=True, help_text="Name of the genre of a game")
-    acronym = models.CharField(max_length=10, null=True, blank=True, help_text="Game genre acronym")
-    description = models.CharField(max_length=500, null=True, blank=True, help_text="Description of genre")
+    acronym = models.CharField(max_length=10, blank=True, help_text="Game genre acronym")
+    description = models.CharField(max_length=500, blank=True, help_text="Description of genre")
 
     def __str__(self):
         return "{0} ({1})".format(self.acronym, self.name)
@@ -31,12 +31,13 @@ class GameMode(models.Model):
 
 
 class Game(models.Model):
-    name = models.CharField('name of the game', max_length=100, primary_key=True)
+    name = models.CharField('name of the game', max_length=100, unique=True)
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True, blank=True,
                               verbose_name='genre of the game')
-    release_date = models.DateField('release date of the game', default=datetime.date.today, null=True, blank=True)
-    publisher = models.CharField('game publisher', max_length=200, null=True, blank=True)
-    game_modes = models.ManyToManyField(GameMode, verbose_name='available game modes')
+    release_date = models.DateField('release date of the game', null=True, blank=True)
+    image_url = models.URLField('game image url', max_length=500, blank=True)
+    publisher = models.CharField('game publisher', max_length=200, blank=True)
+    game_modes = models.ManyToManyField(GameMode, blank=True, verbose_name='available game modes')
 
     def __str__(self):
         return self.name
@@ -78,7 +79,7 @@ class Sponsorship(models.Model):
 class Clan(models.Model):
     name = models.CharField(max_length=200, primary_key=True)
     founded = models.DateField('foundation date', default=datetime.date.today)
-    country = models.CharField('country of origin', max_length=200, null=True, blank=True)
+    country = models.CharField('country of origin', max_length=200, blank=True)
     games = models.ManyToManyField(Game, verbose_name='Games focused by the clan')
 
     def __str__(self):
@@ -125,8 +126,8 @@ class Equipment(models.Model):
     )
     name = models.CharField(max_length=200, primary_key=True)
     type = models.CharField('Kind of equipment', max_length=20, choices=EQUIPMENT_TYPES)
-    manufacturer = models.CharField('Equipment manufacturer', max_length=200, null=True, blank=True)
-    brand = models.CharField('Brand of equipment', max_length=200, null=True, blank=True)
+    manufacturer = models.CharField('Equipment manufacturer', max_length=200, blank=True)
+    brand = models.CharField('Brand of equipment', max_length=200, blank=True)
 
     def __str__(self):
         return self.name
@@ -136,7 +137,7 @@ class Player(models.Model):
     nickname = models.CharField(max_length=50, primary_key=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    country = models.CharField('country of birth', max_length=200, null=True, blank=True)
+    country = models.CharField('country of birth', max_length=200, blank=True)
     birth_date = models.DateField('date of birth', null=True, blank=True)
     equipment = models.ManyToManyField(Equipment, verbose_name='Equipment used by player')
     games = models.ManyToManyField(Game, verbose_name='Games focused by the player')
