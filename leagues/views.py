@@ -145,6 +145,11 @@ class GamesView(generic.TemplateView):
         return render(request, self.template_name, context)
 
 
+class DetailGameView(generic.DetailView):
+    model = Game
+    template_name = "leagues/game_detail.html"
+
+
 class IndexView(generic.ListView):
     template_name = 'leagues/index.html'
 

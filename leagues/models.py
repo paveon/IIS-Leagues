@@ -33,12 +33,17 @@ class GameMode(models.Model):
 
 class Game(models.Model):
     name = models.CharField('name of the game', max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True, blank=True,
                               verbose_name='genre of the game')
     release_date = models.DateField('release date of the game', null=True, blank=True)
     image_url = models.URLField('game image url', max_length=500, blank=True)
     publisher = models.CharField('game publisher', max_length=200, blank=True)
     game_modes = models.ManyToManyField(GameMode, blank=True, verbose_name='available game modes')
+
+    def save(self, *args, **kwargs):
+        self.slug = self.name.replace(" ", "-")
+        super(Game, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.name
