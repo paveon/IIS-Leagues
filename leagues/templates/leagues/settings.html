@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leagues | Games</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% load staticfiles %}
+    <script src="{% static 'leagues/js/jquery-3.3.1.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'leagues/css/w3.css' %}">
+    <link rel="stylesheet" href="{% static 'leagues/css/style.css' %}">
+
+    <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    {{ game_form.media }}
+
+    <script>
+        // Accordion
+        function myFunction(id) {
+            let block = $("#" + id);
+            if (block) {
+                block.toggleClass('w3-show');
+                block.prev().toggleClass('w3-theme-d1');
+            }
+        }
+
+        function showSection(event, sectionID) {
+            $('.section').hide();
+            $('#' + sectionID).show();
+            $('.section-tab').removeClass('w3-border-red');
+            $(event.target).addClass('w3-border-red');
+        }
+
+        function showSubsection(event, subsectionID) {
+            $('.subsection').hide();
+            $('#' + subsectionID).show();
+            $('.section-tab').removeClass('w3-border-green');
+            $(event.target).addClass('w3-border-green');
+        }
+
+        // Used to toggle the menu on smaller screens when clicking on the menu button
+        function openNav() {
+            let item = $("#navDemo");
+            if (item) {
+                item.toggleClass('w3-show');
+            }
+        }
+
+
+        function TableHandler() {
+            var rows = $('tbody tr', this);
+            var rowsTotal = rows.length;
+            var rowsRangeSelector = $('.rowsRangeSelector', this);
+            var nextButton = $('.nextButton', this);
+            var prevButton = $('.prevButton', this);
+            var rowsRange = parseInt(rowsRangeSelector.val());
+            var interval = [0, rowsRange];
+            var handleButtons = function () {
+                nextButton.attr('disabled', (interval[1] >= rowsTotal));
+                prevButton.attr('disabled', interval[0] <= 0);
+            };
+
+            rows.slice(interval[0], interval[1]).show();
+            handleButtons();
+
+            nextButton.click(function () {
+                rows.slice(interval[0], interval[1]).hide();
+                interval[0] += rowsRange;
+                interval[1] += rowsRange;
+                rows.slice(interval[0], interval[1]).show();
+                handleButtons();
+                console.log("<" + interval[0] + "," + interval[1] + ">");
+            });
+
+            prevButton.click(function () {
+                rows.slice(interval[0], interval[1]).hide();
+                interval[0] -= rowsRange;
+                interval[1] -= rowsRange;
+                rows.slice(interval[0], interval[1]).show();
+                handleButtons();
+                console.log("<" + interval[0] + "," + interval[1] + ">");
+            });
+
+            rowsRangeSelector.change(function () {
+                let newRange = parseInt(rowsRangeSelector.val());
+                if (newRange > rowsRange) {
+                    let upperBound = interval[0] + newRange;
+                    rows.slice(interval[1], upperBound).show();
+                    interval[1] = upperBound;
+                } else if (newRange < rowsRange) {
+                    let upperBound = interval[0] + newRange;
+                    rows.slice(upperBound, interval[1]).hide();
+                    interval[1] = upperBound;
+                }
+                rowsRange = newRange;
+                handleButtons();
+                console.log("<" + interval[0] + "," + interval[1] + ">");
+            });
+        }
+
+
+        jQuery(document).ready(function ($) {
+            let pagedTables = $('.pagedTable');
+            pagedTables.each(TableHandler);
+
+
+            $("#gdRows tr td").each(function () {
+                var cellText = $.trim($(this).text());
+                if (cellText.length === 0) {
+                    $(this).parent().hide();
+                }
+            });
+
+        });
+    </script>
+</head>
+<body class="w3-theme-l5">
+{% load widget_tweaks %}
+
+<!-- Navbar -->
+<div class="w3-top">
+    <div class="w3-bar w3-theme-d2 w3-left-align w3-large">
+        <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large w3-theme-d2"
+           href="javascript:void(0);" onclick="openNav()"><i class="fa fa-bars"></i></a>
+
+        <a href="{% url 'leagues:games' %}" class="w3-bar-item w3-button w3-padding-large w3-theme-d4 logoText"
+           title="Homepage">
+            <i class="fa fa-home w3-margin-right"></i>Leagues
+        </a>
+
+        <a href="{% url 'leagues:games' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
+           title="Games">
+            <i class="fa fa-gamepad"></i>
+        </a>
+
+        <a href="#" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Players">
+            <i class="fa fa-user"></i>
+        </a>
+
+        <a href="#" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Tournaments">
+            <i class="fa fa-trophy"></i>
+        </a>
+
+        <div class="w3-dropdown-hover w3-hide-small">
+            <button class="w3-button w3-padding-large" title="Notifications"><i class="fa fa-bell"></i>
+            </button>
+            <div class="w3-dropdown-content w3-card-4 w3-bar-block" style="width:300px">
+                <a href="#" class="w3-bar-item w3-button">One new friend request</a>
+                <a href="#" class="w3-bar-item w3-button">John Doe posted on your wall</a>
+                <a href="#" class="w3-bar-item w3-button">Jane likes your post</a>
+            </div>
+        </div>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'leagues:settings' %}"
+               class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Management">
+                <i class="fa fa-cog"></i>
+            </a>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'leagues:logout' %}"
+               class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white"
+               title="My Account">
+                Account <i class="fa fa-user-circle"></i>
+            </a>
+        {% else %}
+            <a href="{% url 'leagues:login' %}"
+               class="w3-bar-item w3-button w3-hide-small w3-right w3-padding-large w3-hover-white"
+               title="Annonymous user">Log in
+                <i class="fa fa-user-secret w3-margin-left"></i>
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Navbar on small screens -->
+<div id="navDemo" class="w3-bar-block w3-theme-d2 w3-hide w3-hide-large w3-hide-medium w3-large">
+    <a href="#" class="w3-bar-item w3-button w3-padding-large">Link 1</a>
+    <a href="#" class="w3-bar-item w3-button w3-padding-large">Link 2</a>
+    <a href="#" class="w3-bar-item w3-button w3-padding-large">Link 3</a>
+    <a href="#" class="w3-bar-item w3-button w3-padding-large">My Profile</a>
+</div>
+
+<!-- Page Container -->
+<div class="w3-container" style="flex:1 0 auto;">
+
+    <!-- Settings container -->
+    <div class="flex-container">
+        <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto">
+            <ul class="section-bar">
+                <li onclick="showSection(event, 'Games');"
+                    class="section-tab w3-bottombar w3-hover-light-grey w3-padding w3-border-red">
+                    Games
+                </li>
+                <li onclick="showSection(event, 'Players');"
+                    class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+                    Players
+                </li>
+                <li onclick="showSection(event, 'Teams');"
+                    class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+                    Teams
+                </li>
+                <li onclick="showSection(event, 'Clans');"
+                    class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+                    Clans
+                </li>
+                <li onclick="showSection(event, 'Tournaments');"
+                    class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+                    Tournaments
+                </li>
+            </ul>
+
+            <div id="Games" class="section" style="display:block">
+                <ul class="section-bar">
+                    <li onclick="showSubsection(event, 'titles');"
+                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding w3-border-green">
+                        Titles
+                    </li>
+                    <li onclick="showSubsection(event, 'genres');"
+                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+                        Genres
+                    </li>
+                    <li onclick="showSubsection(event, 'game_modes');"
+                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+                        Game modes
+                    </li>
+                </ul>
+                <div id="titles" class="subsection w3-container w3-section" style="display:block">
+                    <h3>Titles</h3>
+                    <div class="pagedTable w3-card w3-round">
+                        <header>
+                            <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
+                                    onclick="document.getElementById('create_game_modal').style.display='block'">
+                                <i class="fa fa-plus"></i> Add game
+                            </button>
+                        </header>
+                        <table class="w3-table w3-striped w3-bordered w3-hoverable">
+                            <thead>
+                            <tr class="">
+                                <th>Name</th>
+                                <th>Publisher</th>
+                                <th>Release date</th>
+                                <th>Genre</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="games_rows">
+                            {% for game in game_list %}
+                                <tr data-href="{% url 'leagues:game_detail' game.id %}" style="display: none">
+                                    <td>{{ game.name }}</td>
+                                    <td>{{ game.publisher|default:"unknown" }}</td>
+                                    <td>{{ game.release_date|default:"unknown" }}</td>
+                                    <td>{{ game.genre|default:"unknown" }}</td>
+                                    <td class="edit_game" onclick="$('#game_edit_' + {{ game.id }}).show()">
+                                        Edit<i class="fa fa-pencil-square-o" style="margin-left:10px"></i>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <footer class="w3-small flex-container">
+                            <button class="prevButton w3-padding-3 w3-button"
+                                    style="flex:1 0 0; align-self: stretch;">
+                                &#10094; Previous
+                            </button>
+                            <label type="hidden" for="games_range"></label>
+                            <select id="games_range" class="rowsRangeSelector w3-padding-3 w3-select" name="option"
+                                    style="flex:4 0 0;">
+                                <option selected value="5">5 rows</option>
+                                <option value="10">10 rows</option>
+                                <option value="15">15 rows</option>
+                                <option value="50">50 rows</option>
+                                <option value="100">100 rows</option>
+                            </select>
+                            <button class="nextButton w3-padding-3 w3-button"
+                                    style="flex:1 0 0; align-self: stretch;">
+                                Next &#10095;
+                            </button>
+                        </footer>
+                    </div>
+                </div>
+
+                <div id="genres" class="subsection w3-container w3-section">
+                    <h3>Genres</h3>
+                </div>
+
+                <div id="game_modes" class="subsection w3-container w3-section">
+                    <h3>Game modes</h3>
+                </div>
+            </div>
+
+            <div id="Players" class="w3-container section">
+                <h2>Players</h2>
+            </div>
+
+            <div id="Teams" class="w3-container section">
+                <h2>Teams</h2>
+            </div>
+
+            <div id="Clans" class="w3-container section">
+                <h2>Clans</h2>
+            </div>
+
+            <div id="Tournaments" class="w3-container section">
+                <h2>Tournaments</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="create_game_modal" class="w3-modal" {% if game_form.errors %} style="display: block" {% endif %}>
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+            <h3>Create game</h3>
+
+            <button onclick="$('#create_game_modal').hide()" type="button"
+                    class="w3-button w3-display-topright w3-red">
+                <i class="fa fa-times"></i>
+            </button>
+        </header>
+
+        <form method="POST" class="" action="{% url 'leagues:settings' %}" name="game_create">
+            <div class="w3-section w3-container">
+                {% csrf_token %}
+                {% if game_form.errors %}
+                    <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                        {{ game_form.errors }}
+                    </div>
+                {% endif %}
+                <label><b>{{ game_form.name.label_tag }}</b></label>
+                {% render_field game_form.name class+="w3-input w3-border w3-margin-bottom" %}
+
+                <label><b>{{ game_form.release_date.label_tag }}</b></label>
+                <div class='w3-cell-row w3-margin-bottom'>
+                    {% render_field game_form.release_date class+="w3-input w3-border w3-cell" %}
+                    <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
+                        <span class="fa fa-calendar"></span>
+                    </div>
+                </div>
+
+                <label><b>{{ game_form.publisher.label_tag }}</b></label>
+                {% render_field game_form.publisher class+="w3-input w3-border w3-margin-bottom" %}
+                <label><b>{{ game_form.image_url.label_tag }}</b></label>
+                {% render_field game_form.image_url class+="w3-input w3-border w3-margin-bottom" %}
+                <label><b>{{ game_form.genre.label_tag }}</b></label>
+                {% render_field game_form.genre class+="w3-input w3-border w3-margin-bottom" %}
+                <label><b>{{ game_form.game_modes.label_tag }}</b></label>
+                {% render_field game_form.game_modes class+="w3-input w3-border" %}
+            </div>
+            <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                <button onclick="document.getElementById('create_game_modal').style.display='none'" type="button"
+                        class="w3-button w3-red">Cancel
+                </button>
+                <input class="w3-button w3-green w3-right" type="submit" name="{{ game_form.prefix }}"
+                       value="Create game">
+            </div>
+        </form>
+    </div>
+</div>
+
+
+{% for form in edit_forms %}
+    <div id="{{ form.prefix }}" class="w3-modal" {% if form.errors %}
+         style="display: block" {% endif %}>
+        <div class="w3-modal-content w3-card-4" style="max-width:600px">
+
+            <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+                <h3>Edit '{{ form.name.value }}'</h3>
+
+                <button onclick="$('#{{ form.prefix }}').hide()" type="button"
+                        class="w3-button w3-display-topright w3-red">
+                    <i class="fa fa-times"></i>
+                </button>
+            </header>
+
+            <form method="POST" class="" action="{% url 'leagues:settings' %}" name="game_edit">
+                <div class="w3-section w3-container">
+                    {% csrf_token %}
+                    {% if form.errors %}
+                        <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                            {{ form.errors }}
+                        </div>
+                    {% endif %}
+
+                    <label><b>{{ form.name.label_tag }}</b></label>
+                    {% render_field form.name class+="w3-input w3-border w3-margin-bottom" %}
+
+                    <label><b>{{ form.release_date.label_tag }}</b></label>
+                    <div class='w3-cell-row w3-margin-bottom'>
+                        {% render_field form.release_date class+="w3-input w3-border w3-cell" %}
+                        <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
+                            <span class="fa fa-calendar"></span>
+                        </div>
+                    </div>
+
+                    <label><b>{{ form.publisher.label_tag }}</b></label>
+                    {% render_field form.publisher class+="w3-input w3-border w3-margin-bottom" %}
+                    <label><b>{{ form.image_url.label_tag }}</b></label>
+                    {% render_field form.image_url class+="w3-input w3-border w3-margin-bottom" %}
+                    <label><b>{{ form.genre.label_tag }}</b></label>
+                    {% render_field form.genre class+="w3-input w3-border w3-margin-bottom" %}
+                    <label><b>{{ form.game_modes.label_tag }}</b></label>
+                    {% render_field form.game_modes class+="w3-input w3-border" %}
+                </div>
+                <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                    <button onclick="$('#{{ form.prefix }}').hide()" type="button"
+                            class="w3-button w3-red">Close
+                    </button>
+
+                    <input type="hidden" name="game_id" value="{{ form.instance.id }}">
+                    <input class="w3-button w3-green w3-right" type="submit" name="{{ form.prefix }}"
+                           value="Save changes">
+                </div>
+            </form>
+        </div>
+    </div>
+{% endfor %}
+
+
+<!-- Footer -->
+<footer class="w3-container w3-theme-d3 w3-padding-16">
+    <h5>Footer</h5>
+</footer>
+
+<footer class="w3-container w3-theme-d5">
+    <h3 class="logoText">Leagues</h3>
+</footer>
+
+</body>
+</html>

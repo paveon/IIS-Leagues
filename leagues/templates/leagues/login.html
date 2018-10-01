@@ -6,30 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% load staticfiles %}
 
-    <script src="{% static 'polls/js/jquery-3.3.1.min.js'%}"></script>
-    <link rel="stylesheet" href="{% static 'polls/css/w3.css' %}">
+    <script src="{% static 'leagues/js/jquery-3.3.1.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'leagues/css/w3.css' %}">
+    <link rel="stylesheet" href="{% static 'leagues/css/style.css' %}">
     <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
     <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide" >
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
 
     <style>
         html,body,h1,h2,h3,h4,h5 {font-family: "Open Sans", sans-serif}
-
-        .logoText {
-            font-family: 'Audiowide', cursive;
-            text-shadow: 3px 3px 5px gray
-        }
     </style>
-
-    <script>
-        $(document).ready(function(){
-            let username = $('#id_username')
-            if (username) {
-                username.va
-            }
-        });
-    </script>
 </head>
 <body>
     {% load widget_tweaks %}
@@ -49,7 +36,7 @@
                 {% endif %}
             </div>
 
-            <form method="post" class="w3-container" action="{% url 'polls:login' %}">
+            <form method="post" class="w3-container" action="{% url 'leagues:login' %}">
                 {% csrf_token %}
                 <div class="w3-section w3-border-top" style="padding-top: 20px">
                          {% if form.username.errors %}
@@ -80,7 +67,7 @@
             </form>
 
             <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-                <span class="w3-right w3-padding w3-hide-small">Don't have <a href="{% url 'polls:signup' %}">account</a> yet?</span>
+                <span class="w3-right w3-padding w3-hide-small">Don't have <a href="{% url 'leagues:signup' %}">account</a> yet?</span>
             </div>
 
         </div>

@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import ModelForm
-from polls.models import *
+from leagues.models import *
 
 
 class CalendarWidget(forms.TextInput):
@@ -9,7 +9,7 @@ class CalendarWidget(forms.TextInput):
 
     class Media:
         js = (
-            'polls/js/date_picker.js',
+            'leagues/js/date_picker.js',
         )
 
 

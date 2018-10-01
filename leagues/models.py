@@ -1,6 +1,7 @@
 import datetime
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
 
 class Genre(models.Model):
@@ -70,8 +71,8 @@ class Sponsorship(models.Model):
         ('MAIN', 'Main'),
         ('SIDE', 'Side'),
     )
-    sponsor = models.ForeignKey(Sponsor, on_delete=models.CASCADE)
-    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)
+    sponsor = models.ForeignKey(Sponsor, on_delete=models.PROTECT)
+    tournament = models.ForeignKey(Tournament, on_delete=models.PROTECT)
     type = models.CharField('sponsorship type', max_length=4, choices=SPONSORSHIP_TYPES, default=SPONSORSHIP_TYPES[0])
     amount = models.PositiveIntegerField('donation amount', null=True, blank=True)
 
@@ -102,15 +103,15 @@ class Team(models.Model):
 class Match(models.Model):
     beginning = models.DateTimeField('beginning of the match', default=timezone.now)
     duration = models.DurationField('duration of the match')
-    game = models.ForeignKey(Game, on_delete=models.CASCADE, verbose_name='related game')
-    game_mode = models.ForeignKey(GameMode, on_delete=models.CASCADE, verbose_name='game mode of the match')
-    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, null=True, blank=True,
+    game = models.ForeignKey(Game, on_delete=models.PROTECT, verbose_name='related game')
+    game_mode = models.ForeignKey(GameMode, on_delete=models.PROTECT, verbose_name='game mode of the match')
+    tournament = models.ForeignKey(Tournament, on_delete=models.PROTECT, null=True, blank=True,
                                    verbose_name='related tournament')
-    team_1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_a',
+    team_1 = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_a',
                                verbose_name='first participating team')
-    team_2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_b',
+    team_2 = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_b',
                                verbose_name='second participating team')
-    winner = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_won', verbose_name='winning team')
+    winner = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_won', verbose_name='winning team')
 
     def __str__(self):
         return "Match ({0}): {1} vs {2}".format(self.id, self.team_1, self.team_2)
@@ -134,7 +135,8 @@ class Equipment(models.Model):
 
 
 class Player(models.Model):
-    nickname = models.CharField(max_length=50, primary_key=True)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    nickname = models.CharField(max_length=50)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     country = models.CharField('country of birth', max_length=200, blank=True)
@@ -154,10 +156,10 @@ class Player(models.Model):
 
 
 class Death(models.Model):
-    match = models.ForeignKey(Match, on_delete=models.CASCADE, verbose_name='Related match')
+    match = models.ForeignKey(Match, on_delete=models.PROTECT, verbose_name='Related match')
     match_time = models.TimeField(default=timezone.now)
-    victim = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='deaths', verbose_name='Killed player')
-    killer = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='kills', null=True, blank=True,
+    victim = models.ForeignKey(Player, on_delete=models.PROTECT, related_name='deaths', verbose_name='Killed player')
+    killer = models.ForeignKey(Player, on_delete=models.PROTECT, related_name='kills', null=True, blank=True,
                                verbose_name='Killer')
 
 
@@ -166,8 +168,8 @@ class Assist(models.Model):
         ('HEALING', 'Damage'),
         ('DAMAGE', 'Healing'),
     )
-    death = models.ForeignKey(Death, on_delete=models.CASCADE, verbose_name='Related death')
-    player = models.ForeignKey(Player, on_delete=models.CASCADE, verbose_name='Assisting player')
+    death = models.ForeignKey(Death, on_delete=models.PROTECT, verbose_name='Related death')
+    player = models.ForeignKey(Player, on_delete=models.PROTECT, verbose_name='Assisting player')
     type = models.CharField('Type of assistance', max_length=20, choices=ASSISTANCE_TYPE)
 
 

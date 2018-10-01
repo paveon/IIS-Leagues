@@ -2,6 +2,36 @@ html, body, h1, h2, h3, h4, h5 {
     font-family: "Open Sans", sans-serif
 }
 
+html, body {
+    height: 100%;
+}
+
+body {
+    padding-top: 80px;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+}
+
+tbody tr {
+    cursor: pointer;
+}
+
+a {
+    font-family: "Open Sans", sans-serif;
+}
+
+.logoText {
+    font-family: 'Audiowide', cursive;
+    text-shadow: 3px 3px 5px gray
+}
+
+.content-flex {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
 .flex-container {
     display: flex;
     flex-direction: row;
@@ -16,6 +46,25 @@ html, body, h1, h2, h3, h4, h5 {
     margin-right: 8px;
     margin-left: 8px;
     position: relative;
+}
+
+.section-bar {
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+    margin: 0;
+    list-style-type:none
+}
+
+.section-tab {
+    flex-grow: 1;
+    flex-basis: 0;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.section, .subsection {
+    display: none;
 }
 
 .gameCard {
@@ -55,6 +104,10 @@ html, body, h1, h2, h3, h4, h5 {
     height: 30px;
     opacity: 0.7;
     cursor: pointer;
+}
+
+.edit_game:hover {
+    text-decoration: underline;
 }
 
 .gameEdit:hover {
