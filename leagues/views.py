@@ -43,23 +43,49 @@ class SignupView(View):
 class SettingsView(generic.TemplateView):
     template_name = "leagues/settings.html"
 
+    def __init__(self):
+        super().__init__()
+        self.context = []
+        self.forms = [
+            (Game, GameForm),
+            (Genre, GenreForm),
+        ]
+
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        games = Game.objects.all()
-        context['game_list'] = games
-        context['game_form'] = GameForm(prefix='game_create')
-        edit_forms = []
-        for game in games:
-            edit_forms.append(GameForm(instance=game, prefix='game_edit_' + str(game.id)))
-        context['edit_forms'] = edit_forms
-        return context
+        self.context = super().get_context_data(**kwargs)
+        for form in self.forms:
+            edit_forms = []
+            model_class = form[0]
+            model_name = model_class.__name__.lower()
+            form_class = form[1]
+            for obj in model_class.objects.all():
+                prefix = model_name + '_edit_' + str(obj.id)
+                edit_forms.append(form_class(instance=obj, prefix=prefix))
+            self.context[model_name + '_edit_forms'] = edit_forms
+            self.context[model_name + '_form'] = form_class(prefix=model_name + '_form')
+            self.context[model_name + '_list'] = model_class.objects.all()
+
+        return self.context
+
+    def process_edit_form(self, prefix, model_class, form_class):
+        try:
+            model_object = model_class.objects.get(pk=self.request.POST['object_id'])
+            edit_form = form_class(self.request.POST, instance=model_object, prefix=prefix + str(model_object.id))
+            if edit_form.is_bound and edit_form.is_valid():
+                edit_form.save()
+                return HttpResponseRedirect(reverse('leagues:settings'))
+            form_list = self.context[prefix + 'forms']
+            form_list[:] = [edit_form if x.instance == model_object else x for x in form_list]
+
+        except Game.DoesNotExist as err:
+            return None
 
     def get(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
-        return render(request, self.template_name, context)
+        self.context = self.get_context_data(**kwargs)
+        return render(request, self.template_name, self.context)
 
     def post(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
+        self.context = self.get_context_data(**kwargs)
         if 'game_create' in request.POST:
             create_form = GameForm(request.POST, prefix='game_create')
             if create_form.is_bound and create_form.is_valid():
@@ -76,19 +102,12 @@ class SettingsView(generic.TemplateView):
                     return HttpResponseRedirect(reverse('leagues:settings'))
 
         elif 'game_id' in request.POST:
-            try:
-                game = Game.objects.get(pk=request.POST['game_id'])
-                edit_form = GameForm(request.POST, instance=game, prefix='game_edit_' + str(game.id))
-                if edit_form.is_bound and edit_form.is_valid():
-                    edit_form.save()
-                    return HttpResponseRedirect(reverse('leagues:settings'))
-                form_list = context['edit_forms']
-                form_list[:] = [edit_form if x.instance == game else x for x in form_list]
+            return self.process_edit_form('game_edit_', Game, GameForm)
 
-            except Game.DoesNotExist as err:
-                return None
+        elif 'genre_id' in request.POST:
+            return self.process_edit_form('genre_edit_', Genre, GenreForm)
 
-        return render(request, self.template_name, context)
+        return render(request, self.template_name, self.context)
 
 
 class GamesView(generic.TemplateView):

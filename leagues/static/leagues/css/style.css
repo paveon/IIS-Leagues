@@ -106,7 +106,7 @@ a {
     cursor: pointer;
 }
 
-.edit_game:hover {
+.edit_object:hover {
     text-decoration: underline;
 }
 

@@ -31,5 +31,11 @@ class GameForm(ModelForm):
         }
 
 
+class GenreForm(ModelForm):
+    class Meta:
+        model = Genre
+        fields = ['name', 'acronym', 'description']
+
+
 class NameForm(forms.Form):
     your_name = forms.CharField(label='Your name', max_length=100)
