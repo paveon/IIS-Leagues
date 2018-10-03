@@ -6,7 +6,9 @@ from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
+from django.db import models
 from .models import Player
 from .forms import *
 
@@ -48,8 +50,15 @@ class SettingsView(generic.TemplateView):
         self.context = []
         self.forms = [
             (Game, GameForm),
-            (Genre, GenreForm),
+            (Genre, GenreForm)
         ]
+
+        self.post_actions = {
+            'game_create': self.game_create,
+            'game_edit': self.game_edit,
+            'genre_create': self.genre_create,
+            'genre_edit': self.genre_edit
+        }
 
     def get_context_data(self, **kwargs):
         self.context = super().get_context_data(**kwargs)
@@ -67,18 +76,48 @@ class SettingsView(generic.TemplateView):
 
         return self.context
 
-    def process_edit_form(self, prefix, model_class, form_class):
-        try:
-            model_object = model_class.objects.get(pk=self.request.POST['object_id'])
-            edit_form = form_class(self.request.POST, instance=model_object, prefix=prefix + str(model_object.id))
-            if edit_form.is_bound and edit_form.is_valid():
-                edit_form.save()
-                return HttpResponseRedirect(reverse('leagues:settings'))
-            form_list = self.context[prefix + 'forms']
-            form_list[:] = [edit_form if x.instance == model_object else x for x in form_list]
+    def process_edit_form(self, model_class, form_class):
+        model_name = model_class.__name__.lower()
+        prefix = model_name + '_edit_'
+        model_object = model_class.objects.get(pk=self.request.POST['object_id'])
+        edit_form = form_class(self.request.POST, instance=model_object, prefix=prefix + str(model_object.id))
+        if edit_form.is_bound and edit_form.is_valid():
+            edit_form.save()
+            return HttpResponseRedirect(reverse('leagues:settings'))
+        form_list = self.context[prefix + 'forms']
+        form_list[:] = [edit_form if x.instance == model_object else x for x in form_list]
+        raise ValidationError(edit_form.__name__ + ' validation failed')
 
-        except Game.DoesNotExist as err:
-            return None
+    def process_create_form(self, model_class, form_class):
+        model_name = model_class.__name__
+        create_form = form_class(self.request.POST, prefix=model_name.lower() + '_form')
+        if create_form.is_bound and create_form.is_valid():
+            object_name = create_form.cleaned_data['name']
+            if not model_class.objects.filter(name=object_name).exists():
+                # commit=False doesn't save new model object directly into the DB
+                # so we can do additional processing before storing it in the DB with save method of model object
+                model_object = create_form.save(commit=False)
+
+                # ... do additional processing
+
+                model_object.save()  # save object do DB
+                create_form.save_m2m()  # need to save relations manually with commit=False
+                return HttpResponseRedirect(reverse('leagues:settings'))
+            return ValidationError('{0} object with name \'{1}\' already exists'.format(model_name, object_name))
+        self.context[model_name.lower() + '_form'] = create_form
+        raise ValidationError(create_form.__class__.__name__ + ' validation failed')
+
+    def genre_create(self):
+        return self.process_create_form(Genre, GenreForm)
+
+    def genre_edit(self):
+        return self.process_edit_form(Genre, GenreForm)
+
+    def game_edit(self):
+        return self.process_edit_form(Game, GameForm)
+
+    def game_create(self):
+        return self.process_create_form(Game, GameForm)
 
     def get(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
@@ -86,28 +125,11 @@ class SettingsView(generic.TemplateView):
 
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
-        if 'game_create' in request.POST:
-            create_form = GameForm(request.POST, prefix='game_create')
-            if create_form.is_bound and create_form.is_valid():
-                game_name = create_form.cleaned_data['name']
-                if not Game.objects.filter(name=game_name).exists():
-                    # commit=False doesn't save new model object directly into the DB
-                    # so we can do additional processing before storing it in the DB with save method of model object
-                    game_object = create_form.save(commit=False)
-
-                    # ... do additional processing
-
-                    game_object.save()  # save object do DB
-                    create_form.save_m2m()  # need to save relations manually with commit=False
-                    return HttpResponseRedirect(reverse('leagues:settings'))
-
-        elif 'game_id' in request.POST:
-            return self.process_edit_form('game_edit_', Game, GameForm)
-
-        elif 'genre_id' in request.POST:
-            return self.process_edit_form('genre_edit_', Genre, GenreForm)
-
-        return render(request, self.template_name, self.context)
+        try:
+            action = self.post_actions[request.POST['post_action']]
+            return action()
+        except ValidationError as err:
+            return render(request, self.template_name, self.context)
 
 
 class GamesView(generic.TemplateView):

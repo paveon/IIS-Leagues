@@ -319,7 +319,7 @@
                                 <tr style="display: none">
                                     <td>{{ genre.name }}</td>
                                     <td>{{ genre.acronym|default:"unknown" }}</td>
-                                    <td>{{ genre.description|default:"unknown" }}</td>
+                                    <td>{{ genre.description|default:"unknown"|truncatechars:20 }}</td>
                                     <td class="edit_object" onclick="$('#genre_edit_' + {{ genre.id }}).show()">
                                         Edit<i class="fa fa-pencil-square-o" style="margin-left:10px"></i>
                                     </td>
@@ -384,7 +384,6 @@
                 <i class="fa fa-times"></i>
             </button>
         </header>
-
         <form method="POST" class="" action="{% url 'leagues:settings' %}" name="game_create">
             <div class="w3-section w3-container">
                 {% csrf_token %}
@@ -408,6 +407,8 @@
                 <button onclick="$('#{{ genre_form.prefix }}').hide()" type="button"
                         class="w3-button w3-red">Cancel
                 </button>
+
+                <input type="hidden" name="post_action" value="genre_create">
                 <input class="w3-button w3-green w3-right" type="submit" name="{{ genre_form.prefix }}"
                        value="Create game">
             </div>
@@ -459,12 +460,62 @@
                 <button onclick="$('#{{ game_form.prefix }}').hide()" type="button"
                         class="w3-button w3-red">Cancel
                 </button>
+
+                <input type="hidden" name="post_action" value="game_create">
                 <input class="w3-button w3-green w3-right" type="submit" name="{{ game_form.prefix }}"
                        value="Create game">
             </div>
         </form>
     </div>
 </div>
+
+
+{% for form in genre_edit_forms %}
+    <div id="{{ form.prefix }}" class="w3-modal" {% if form.errors %}
+         style="display: block" {% endif %}>
+        <div class="w3-modal-content w3-card-4" style="max-width:600px">
+
+            <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+                <h3>Edit '{{ form.name.value }}'</h3>
+
+                <button onclick="$('#{{ form.prefix }}').hide()" type="button"
+                        class="w3-button w3-display-topright w3-red">
+                    <i class="fa fa-times"></i>
+                </button>
+            </header>
+
+            <form method="POST" class="" action="{% url 'leagues:settings' %}" name="genre_edit">
+                <div class="w3-section w3-container">
+                    {% csrf_token %}
+                    {% if form.errors %}
+                        <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                            {{ form.errors }}
+                        </div>
+                    {% endif %}
+
+                    <label><b>{{ form.name.label_tag }}</b></label>
+                    {% render_field form.name class+="w3-input w3-border w3-margin-bottom" %}
+
+                    <label><b>{{ form.acronym.label_tag }}</b></label>
+                    {% render_field form.acronym class+="w3-input w3-border w3-margin-bottom" %}
+
+                    <label><b>{{ form.description.label_tag }}</b></label>
+                    {% render_field form.description class+="w3-input w3-border" %}
+                </div>
+                <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                    <button onclick="$('#{{ form.prefix }}').hide()" type="button"
+                            class="w3-button w3-red">Close
+                    </button>
+
+                    <input type="hidden" name="object_id" value="{{ form.instance.id }}">
+                    <input type="hidden" name="post_action" value="genre_edit">
+                    <input class="w3-button w3-green w3-right" type="submit" name="{{ form.prefix }}"
+                           value="Save changes">
+                </div>
+            </form>
+        </div>
+    </div>
+{% endfor %}
 
 
 {% for form in game_edit_forms %}
@@ -515,7 +566,8 @@
                             class="w3-button w3-red">Close
                     </button>
 
-                    <input type="hidden" name="game_id" value="{{ form.instance.id }}">
+                    <input type="hidden" name="object_id" value="{{ form.instance.id }}">
+                    <input type="hidden" name="post_action" value="game_edit">
                     <input class="w3-button w3-green w3-right" type="submit" name="{{ form.prefix }}"
                            value="Save changes">
                 </div>
