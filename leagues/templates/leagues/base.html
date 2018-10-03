@@ -28,6 +28,13 @@
             }
         }
 
+        function showSection(event, sectionID) {
+            $('.section').hide();
+            $('#' + sectionID).show();
+            $('.section-tab').removeClass('w3-border-red');
+            $(event.target).addClass('w3-border-red');
+        }
+
         function showGameInfo(event, id) {
             $(event.target).children().first().toggleClass('fa-angle-double-down');
             $(event.target).children().first().toggleClass('fa-angle-double-up');
@@ -41,6 +48,81 @@
                 item.toggleClass('w3-show');
             }
         }
+
+
+        function TableHandler() {
+            var rows = $('tbody tr', this);
+            var rowsTotal = rows.length;
+            var rowsRangeSelector = $('.rowsRangeSelector', this);
+            var nextButton = $('.nextButton', this);
+            var prevButton = $('.prevButton', this);
+            var rowsRange = parseInt(rowsRangeSelector.val());
+            var interval = [0, rowsRange];
+            var handleButtons = function () {
+                nextButton.attr('disabled', (interval[1] >= rowsTotal));
+                prevButton.attr('disabled', interval[0] <= 0);
+            };
+
+            rows.each(function () {
+                let row = $(this);
+                let target = row.data('href');
+                if (target) {
+                    $('td', this).not('.edit_object').click(function () {
+                        window.location.href = target;
+                    });
+                }
+            });
+
+            rows.slice(interval[0], interval[1]).show();
+            handleButtons();
+
+            nextButton.click(function () {
+                rows.slice(interval[0], interval[1]).hide();
+                interval[0] += rowsRange;
+                interval[1] += rowsRange;
+                rows.slice(interval[0], interval[1]).show();
+                handleButtons();
+                console.log("<" + interval[0] + "," + interval[1] + ">");
+            });
+
+            prevButton.click(function () {
+                rows.slice(interval[0], interval[1]).hide();
+                if (interval[0] - rowsRange < 0) {
+                    interval[0] = 0;
+                    interval[1] = rowsRange;
+                }
+                else {
+                    interval[0] -= rowsRange;
+                    interval[1] -= rowsRange;
+                }
+
+                rows.slice(interval[0], interval[1]).show();
+                handleButtons();
+                console.log("<" + interval[0] + "," + interval[1] + ">");
+            });
+
+            rowsRangeSelector.change(function () {
+                let newRange = parseInt(rowsRangeSelector.val());
+                if (newRange > rowsRange) {
+                    let upperBound = interval[0] + newRange;
+                    rows.slice(interval[1], upperBound).show();
+                    interval[1] = upperBound;
+                } else if (newRange < rowsRange) {
+                    let upperBound = interval[0] + newRange;
+                    rows.slice(upperBound, interval[1]).hide();
+                    interval[1] = upperBound;
+                }
+                rowsRange = newRange;
+                handleButtons();
+                console.log("<" + interval[0] + "," + interval[1] + ">");
+            });
+        }
+
+
+        jQuery(document).ready(function ($) {
+            let pagedTables = $('.pagedTable');
+            pagedTables.each(TableHandler);
+        });
     </script>
 </head>
 <body class="w3-theme-l5">
@@ -61,7 +143,7 @@
             <i class="fa fa-gamepad"></i>
         </a>
 
-        <a href="#" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Players">
+        <a href="{% url 'leagues:social' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Players">
             <i class="fa fa-user"></i>
         </a>
 

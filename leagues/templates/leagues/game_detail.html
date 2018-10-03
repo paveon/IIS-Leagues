@@ -12,7 +12,7 @@
             <p>Datum vydání: {{ game.release_date|default:"Není zadán" }}</p>
             <p>Vydavatel: {{ game.publisher|default:"Není zadán" }}</p>
             {% if game.genre != None %}
-                <p>Žánr: <a href="{% url 'leagues:genre_detail' game.genre.acronym %}">{{ game.genre.acronym }}({{ game.genre.name }})</a></p>
+                <p>Žánr: <a href="{% url 'leagues:genre_detail' game.genre.slug %}">{{ game.genre.acronym }}({{ game.genre.name }})</a></p>
             {% else %}
                 <p>Žánr: Není zadán </p>
             {% endif %}

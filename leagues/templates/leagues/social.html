@@ -1,0 +1,153 @@
+{% extends 'leagues/base.html' %}
+{% block title %}Leagues | Social {% endblock %}
+
+{% block content %}
+    <div style="flex: 1 0 auto">
+        <div class="flex-container">
+            <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
+                <ul class="section-bar" style="flex: 1 1 auto">
+                    <li onclick="showSection(event, 'Players');"
+                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding w3-border-red">
+                        Players
+                    </li>
+                    <li onclick="showSection(event, 'Teams');"
+                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+                        Teams
+                    </li>
+                    <li onclick="showSection(event, 'Clans');"
+                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+                        Clans
+                    </li>
+                </ul>
+
+                <div id="Players" class="w3-container section" style="display:block">
+                    <h2>Players</h2>
+                    <div class="pagedTable w3-card w3-round">
+                        <table class="w3-table w3-striped w3-bordered w3-hoverable">
+                            <thead>
+                            <tr class="">
+                                <th>First name</th>
+                                <th>Last name</th>
+                                <th>Nickname</th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="players_rows">
+                            {% for player in player_list %}
+                                <tr data-href="{% url 'leagues:player_detail' player.slug %}" style="display: none">
+                                    <td>{{ player.first_name }}</td>
+                                    <td>{{ player.last_name }}</td>
+                                    <td>{{ player.nickname }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <footer class="w3-small flex-container">
+                            <button class="prevButton w3-padding-3 w3-button"
+                                    style="flex:1 0 0; align-self: stretch;">
+                                &#10094; Previous
+                            </button>
+                            <label type="hidden" for="players_range"></label>
+                            <select id="players_range" class="rowsRangeSelector w3-padding-3 w3-select" name="option"
+                                    style="flex:4 0 0;">
+                                <option selected value="5">5 rows</option>
+                                <option value="10">10 rows</option>
+                                <option value="15">15 rows</option>
+                                <option value="50">50 rows</option>
+                                <option value="100">100 rows</option>
+                            </select>
+                            <button class="nextButton w3-padding-3 w3-button"
+                                    style="flex:1 0 0; align-self: stretch;">
+                                Next &#10095;
+                            </button>
+                        </footer>
+                    </div>
+                </div>
+
+                <div id="Teams" class="w3-container section">
+                    <h2>Teams</h2>
+                    <div class="pagedTable w3-card w3-round">
+                        <table class="w3-table w3-striped w3-bordered w3-hoverable">
+                            <thead>
+                            <tr class="">
+                                <th>Name</th>
+                                <th>Leader</th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="teams_rows">
+                            {% for team in team_list %}
+                                <tr data-href="{% url 'leagues:team_detail' team.slug %}" style="display: none">
+                                    <td>{{ team.name }}</td>
+                                    <td>{{ team.leader }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <footer class="w3-small flex-container">
+                            <button class="prevButton w3-padding-3 w3-button"
+                                    style="flex:1 0 0; align-self: stretch;">
+                                &#10094; Previous
+                            </button>
+                            <label type="hidden" for="teams_range"></label>
+                            <select id="teams_range" class="rowsRangeSelector w3-padding-3 w3-select" name="option"
+                                    style="flex:4 0 0;">
+                                <option selected value="5">5 rows</option>
+                                <option value="10">10 rows</option>
+                                <option value="15">15 rows</option>
+                                <option value="50">50 rows</option>
+                                <option value="100">100 rows</option>
+                            </select>
+                            <button class="nextButton w3-padding-3 w3-button"
+                                    style="flex:1 0 0; align-self: stretch;">
+                                Next &#10095;
+                            </button>
+                        </footer>
+                    </div>
+                </div>
+
+                <div id="Clans" class="w3-container section">
+                    <h2>Clans</h2>
+                    <div class="pagedTable w3-card w3-round">
+                        <table class="w3-table w3-striped w3-bordered w3-hoverable">
+                            <thead>
+                            <tr class="">
+                                <th>Name</th>
+                                <th>Leader</th>
+                            </tr>
+                            </thead>
+
+                            <tbody id="clans_rows">
+                            {% for clan in clan_list %}
+                                <tr data-href="{% url 'leagues:clan_detail' clan.slug %}" style="display: none">
+                                    <td>{{ clan.name }}</td>
+                                    <td>{{ clan.leader }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <footer class="w3-small flex-container">
+                            <button class="prevButton w3-padding-3 w3-button"
+                                    style="flex:1 0 0; align-self: stretch;">
+                                &#10094; Previous
+                            </button>
+                            <label type="hidden" for="clans_range"></label>
+                            <select id="clans_range" class="rowsRangeSelector w3-padding-3 w3-select" name="option"
+                                    style="flex:4 0 0;">
+                                <option selected value="5">5 rows</option>
+                                <option value="10">10 rows</option>
+                                <option value="15">15 rows</option>
+                                <option value="50">50 rows</option>
+                                <option value="100">100 rows</option>
+                            </select>
+                            <button class="nextButton w3-padding-3 w3-button"
+                                    style="flex:1 0 0; align-self: stretch;">
+                                Next &#10095;
+                            </button>
+                        </footer>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

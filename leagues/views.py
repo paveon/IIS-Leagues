@@ -196,6 +196,59 @@ class DetailGenreView(generic.DetailView):
     template_name = "leagues/genre_detail.html"
 
 
+class SocialView(generic.TemplateView):
+    template_name = "leagues/social.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        players = Player.objects.all()
+        teams = Team.objects.all()
+        clans = Clan.objects.all()
+        context['player_list'] = players
+        context['team_list'] = teams
+        context['clan_list'] = clans
+        return context
+
+
+class PlayerDetailView(generic.DetailView):
+    template_name = "leagues/player_detail.html"
+    model = Player
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        edit_form = PlayerEditForm(instance=context['player'], prefix='player_edit_form')
+        context['edit_form'] = edit_form
+        return context
+    # TODO random generace noveho leadera pokud leavne leader klan nebo tym
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = super().get_context_data(**kwargs)
+        if 'player_edit_form' in request.POST:
+            edit_form = PlayerEditForm(request.POST, instance=context['player'], prefix='player_edit_form')
+            if edit_form.is_bound and edit_form.is_valid():
+                edit_form.save()
+                new_slug = slugify(context['player'].nickname)
+                return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
+        elif 'team_id' in request.POST:
+            Player.teams.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['team_id']).delete()
+            return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
+        elif 'clan_id' in request.POST:
+            Player.clans.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['clan_id']).delete()
+            return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
+
+        return render(request, self.template_name, context)
+
+
+class TeamDetailView(generic.DetailView):
+    template_name = "leagues/team_detail.html"
+    model = Team
+
+
+class ClanDetailView(generic.DetailView):
+    template_name = "leagues/clan_detail.html"
+    model = Clan
+
+
 class IndexView(generic.ListView):
     template_name = 'leagues/index.html'
 
