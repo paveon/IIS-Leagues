@@ -169,6 +169,11 @@ class DetailGameView(generic.DetailView):
     template_name = "leagues/game_detail.html"
 
 
+class DetailGenreView(generic.DetailView):
+    model = Genre
+    template_name = "leagues/genre_detail.html"
+
+
 class IndexView(generic.ListView):
     template_name = 'leagues/index.html'
 
