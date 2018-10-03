@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Games | {{ game.name }}</title>
+    <title>Genres | {{ genre.acronym }}</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     {% load staticfiles %}
@@ -200,19 +200,8 @@
         <div class="w3-col {% if user.is_authenticated %} m7 {% endif %}">
 
             <div class="w3-container w3-margin-top flex-container">
-                <h1>{{ game.name }}</h1>
+                <h1>{{ genre.name }}</h1>
             </div>
-            <p>Datum vydání: {{ game.release_date|default:"Není zadán" }}</p>
-            <p>Vydavatel: {{ game.publisher|default:"Není zadán" }}</p>
-            {% if game.genre != None %}
-                <p>Žánr: <a href="{% url 'leagues:genre_detail' game.genre.acronym %}">{{ game.genre.acronym }}({{ game.genre.name }})</a></p>
-            {% else %}
-                <p>Žánr: Není zadán </p>
-            {% endif %}
-            <p>Herní módy {% for mode in game.game_modes.all %} <br/> {{ mode }} {% endfor %}</p>
-
-            <p>Počet hráčů: {{ game.player_set.count }}</p>
-            <p>Popis hry: --TBD--</p>
             <!-- End Middle Column -->
         </div>
 

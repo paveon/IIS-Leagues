@@ -9,6 +9,7 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='leagues/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('signup/', views.SignupView.as_view(), name='signup'),
+    path('<slug:acronym>', views.DetailGenreView.as_view(), name='genre_detail'),
     path('game/<slug:slug>/', views.DetailGameView.as_view(), name='game_detail'),
     path('games/', views.GamesView.as_view(), name='games'),
     path('settings/', views.SettingsView.as_view(), name='settings'),
