@@ -111,7 +111,7 @@
 {% load widget_tweaks %}
     <!--  LEAVE TEAM ALLERT !-->
     {% for team in player.teams.all %}
-        <div id="team_alert{{ team.id }}" class="w3-modal" {% if edit_form.errors %}style="display: block"{% endif %}>
+        <div id="team_alert{{ team.id }}" class="w3-modal" style="display: none">
             <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
                 <header class="w3-container w3-center w3-light-grey w3-border-bottom">
@@ -139,7 +139,7 @@
     {% endfor %}
     <!--  LEAVE CLAN ALLERT !-->
     {% for clan in player.clans.all %}
-        <div id="clan_alert{{ clan.id }}" class="w3-modal" {% if edit_form.errors %}style="display: block"{% endif %}>
+        <div id="clan_alert{{ clan.id }}" class="w3-modal" style="display: none">
             <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
                 <header class="w3-container w3-center w3-light-grey w3-border-bottom">
