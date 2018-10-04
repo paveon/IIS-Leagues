@@ -13,6 +13,12 @@ class CalendarWidget(forms.TextInput):
         )
 
 
+class PlayerEditForm(ModelForm):
+    class Meta:
+        model = Player
+        fields = ['nickname', 'first_name', 'last_name', 'country']
+
+
 class PlayerForm(ModelForm):
     class Meta:
         model = Player

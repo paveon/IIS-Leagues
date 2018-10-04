@@ -212,3 +212,119 @@ class DetailGameView(generic.DetailView):
 class DetailGenreView(generic.DetailView):
     model = Genre
     template_name = "leagues/genre_detail.html"
+
+
+class SocialView(generic.TemplateView):
+    template_name = "leagues/social.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        players = Player.objects.all()
+        teams = Team.objects.all()
+        clans = Clan.objects.all()
+        context['player_list'] = players
+        context['team_list'] = teams
+        context['clan_list'] = clans
+        return context
+
+
+class PlayerDetailView(generic.DetailView):
+    template_name = "leagues/player_detail.html"
+    model = Player
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        edit_form = PlayerEditForm(instance=context['player'], prefix='player_edit_form')
+        context['edit_form'] = edit_form
+        return context
+    # TODO random generace noveho leadera pokud leavne leader klan nebo tym
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        context = super().get_context_data(**kwargs)
+        if 'player_edit_form' in request.POST:
+            edit_form = PlayerEditForm(request.POST, instance=context['player'], prefix='player_edit_form')
+            if edit_form.is_bound and edit_form.is_valid():
+                edit_form.save()
+                new_slug = slugify(context['player'].nickname)
+                return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
+        elif 'team_id' in request.POST:
+            Player.teams.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['team_id']).delete()
+            return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
+        elif 'clan_id' in request.POST:
+            Player.clans.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['clan_id']).delete()
+            return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
+
+        return render(request, self.template_name, context)
+
+
+class TeamDetailView(generic.DetailView):
+    template_name = "leagues/team_detail.html"
+    model = Team
+
+
+class ClanDetailView(generic.DetailView):
+    template_name = "leagues/clan_detail.html"
+    model = Clan
+
+
+class IndexView(generic.ListView):
+    template_name = 'leagues/index.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
+        context['latest_question_list'] = data
+        context['form'] = NameForm()
+        context['player'] = PlayerForm()
+        return context
+
+    def get_queryset(self):
+        return Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
+
+    def post(self, request):
+        form = NameForm(self.request.POST)
+        if form.is_valid():
+            print(form.cleaned_data)
+            return HttpResponseRedirect(reverse('leagues:index'))
+        return render(request, self.template_name)
+
+
+class DetailView(generic.DetailView):
+    model = Question
+    template_name = 'leagues/detail.html'
+
+    def get_queryset(self):
+        """
+        Excludes any questions that aren't published yet.
+        """
+        return Question.objects.filter(pub_date__lte=timezone.now())
+
+
+class ResultsView(generic.DetailView):
+    model = Question
+    template_name = 'leagues/results.html'
+
+    def get_queryset(self):
+        """
+        Excludes any questions that aren't published yet.
+        """
+        return Question.objects.filter(pub_date__lte=timezone.now())
+
+
+def vote(request, question_id):
+    question = get_object_or_404(Question, pk=question_id)
+    try:
+        selected_choice = question.choice_set.get(pk=request.POST['choice'])
+    except (KeyError, Choice.DoesNotExist):
+        # Redisplay the question voting form.
+        return render(request, 'leagues/detail.html', {
+            'question': question,
+            'error_message': "You didn't select a choice.",
+        })
+    else:
+        selected_choice.votes += 1
+        selected_choice.save()
+        # Always return an HttpResponseRedirect after successfully dealing
+        # with POST data. This prevents data from being posted twice if a
+        # user hits the Back button.
+        return HttpResponseRedirect(reverse('leagues:results', args=(question.id,)))

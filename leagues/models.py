@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 from django.conf import settings
+from django.template.defaultfilters import slugify
 import re
 
 
@@ -90,18 +91,28 @@ class Sponsorship(models.Model):
 
 class Clan(models.Model):
     name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=200, unique=True)
     founded = models.DateField('foundation date', default=datetime.date.today)
     country = models.CharField('country of origin', max_length=200, blank=True)
+    leader = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True,
+                               verbose_name="Leader of the clan")
     games = models.ManyToManyField(Game, verbose_name='Games focused by the clan')
 
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Clan, self).save(*args, **kwargs)
+
 
 class Team(models.Model):
     name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=200, unique=True)
     founded = models.DateField('foundation date', default=datetime.date.today)
     active = models.BooleanField('activity status', default=True)
+    leader = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True,
+                               verbose_name="Leader of the team")
     game = models.ForeignKey(Game, on_delete=models.SET_NULL, null=True, blank=True,
                              verbose_name='Game focused by the team')
     clan = models.ForeignKey(Clan, on_delete=models.SET_NULL, null=True, blank=True,
@@ -109,6 +120,10 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Team, self).save(*args, **kwargs)
 
 
 class Match(models.Model):
@@ -148,6 +163,7 @@ class Equipment(models.Model):
 class Player(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     nickname = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     country = models.CharField('country of birth', max_length=200, blank=True)
@@ -166,6 +182,10 @@ class Player(models.Model):
 
     def __str__(self):
         return "{0} ({1})".format(self.nickname, self.full_name)
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.nickname)
+        super(Player, self).save(*args, **kwargs)
 
 
 class Death(models.Model):
