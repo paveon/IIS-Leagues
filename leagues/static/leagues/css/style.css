@@ -53,7 +53,7 @@ a {
     flex-direction: row;
     padding: 0;
     margin: 0;
-    list-style-type:none
+    list-style-type: none
 }
 
 .section-tab {
@@ -89,12 +89,26 @@ a {
     opacity: 1;
 }
 
-.gameImg {
+.gameHeader {
     background-color: gray;
     height: 150px;
     width: 300px;
     position: relative;
     overflow: hidden;
+}
+
+.gameImg {
+    display: block;
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    height: 150px;
+}
+
+.gameLink {
+    text-decoration: none;
+    font-family: 'Audiowide', cursive;
 }
 
 .gameEdit {

@@ -25,7 +25,7 @@ class PlayerForm(ModelForm):
 class GameForm(ModelForm):
     class Meta:
         model = Game
-        fields = ['name', 'release_date', 'publisher', 'image_url', 'genre', 'game_modes']
+        fields = ['name', 'release_date', 'publisher', 'image_url', 'description', 'genre', 'game_modes']
         widgets = {
             'release_date': CalendarWidget()
         }
@@ -37,5 +37,7 @@ class GenreForm(ModelForm):
         fields = ['name', 'acronym', 'description']
 
 
-class NameForm(forms.Form):
-    your_name = forms.CharField(label='Your name', max_length=100)
+class GameModeForm(ModelForm):
+    class Meta:
+        model = GameMode
+        fields = ['name', 'team_player_count', 'description']

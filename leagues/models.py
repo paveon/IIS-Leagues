@@ -1,7 +1,13 @@
 import datetime
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 from django.conf import settings
+import re
+
+
+def strip_spaces(string):
+    return re.sub(r'\s+', ' ', string)
 
 
 class Genre(models.Model):
@@ -11,26 +17,19 @@ class Genre(models.Model):
     description = models.TextField('description', blank=True, help_text="Description of genre")
 
     def save(self, *args, **kwargs):
-        self.slug = self.name.replace(" ", "-")
+        self.slug = slugify(self.name)
+        self.name = strip_spaces(self.name)
         super(Genre, self).save(*args, **kwargs)
 
     def __str__(self):
-        return "{0} ({1})".format(self.acronym, self.name)
-
-
-class GameModeType(models.Model):
-    name = models.CharField(max_length=100, unique=True, help_text="Name of game mode type")
-
-    def __str__(self):
-        return self.name
+        return self.acronym
 
 
 class GameMode(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="Name of the game mode")
-    type = models.ForeignKey(GameModeType, on_delete=models.SET_NULL, null=True, blank=True,
-                             help_text="General type of game mode")
     team_player_count = models.PositiveSmallIntegerField(default=5, null=True, blank=True,
                                                          help_text="Number of players in one team")
+    description = models.TextField('description', blank=True, help_text="Description of game mode")
 
     def __str__(self):
         return self.name
@@ -44,10 +43,12 @@ class Game(models.Model):
     release_date = models.DateField('release date of the game', null=True, blank=True)
     image_url = models.URLField('game image url', max_length=500, blank=True)
     publisher = models.CharField('game publisher', max_length=200, blank=True)
+    description = models.TextField('description', blank=True, help_text="Description of game")
     game_modes = models.ManyToManyField(GameMode, blank=True, verbose_name='available game modes')
-    
+
     def save(self, *args, **kwargs):
-        self.slug = self.name.replace(" ", "-")
+        self.slug = slugify(self.name)
+        self.name = strip_spaces(self.name)
         super(Game, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -146,11 +147,13 @@ class Equipment(models.Model):
 
 class Player(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
-    nickname = models.CharField(max_length=50)
+    nickname = models.CharField(max_length=50, unique=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     country = models.CharField('country of birth', max_length=200, blank=True)
     birth_date = models.DateField('date of birth', null=True, blank=True)
+    image_url = models.URLField('profile image url', max_length=500, blank=True)
+    description = models.TextField('description', blank=True, help_text="Description of player")
     equipment = models.ManyToManyField(Equipment, verbose_name='Equipment used by player')
     games = models.ManyToManyField(Game, verbose_name='Games focused by the player')
     teams = models.ManyToManyField(Team, verbose_name='Team memberships')
@@ -181,29 +184,3 @@ class Assist(models.Model):
     death = models.ForeignKey(Death, on_delete=models.PROTECT, verbose_name='Related death')
     player = models.ForeignKey(Player, on_delete=models.PROTECT, verbose_name='Assisting player')
     type = models.CharField('Type of assistance', max_length=20, choices=ASSISTANCE_TYPE)
-
-
-class Question(models.Model):
-    question_text = models.CharField(max_length=200)
-    pub_date = models.DateTimeField('date published')
-
-    def __str__(self):
-        return self.question_text
-
-    def was_published_recently(self):
-        now = timezone.now()
-        return now - datetime.timedelta(days=1) <= self.pub_date <= now
-
-    was_published_recently.admin_order_field = 'pub_date'
-    was_published_recently.boolean = True
-    was_published_recently.short_description = 'Published recently?'
-
-
-class Choice(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    choice_text = models.CharField(max_length=200)
-    votes = models.IntegerField(default=0)
-
-    def __str__(self):
-        return self.choice_text
-

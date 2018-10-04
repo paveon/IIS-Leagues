@@ -50,14 +50,20 @@ class SettingsView(generic.TemplateView):
         self.context = []
         self.forms = [
             (Game, GameForm),
-            (Genre, GenreForm)
+            (Genre, GenreForm),
+            (GameMode, GameModeForm),
+            (Player, PlayerForm),
         ]
 
         self.post_actions = {
             'game_create': self.game_create,
             'game_edit': self.game_edit,
             'genre_create': self.genre_create,
-            'genre_edit': self.genre_edit
+            'genre_edit': self.genre_edit,
+            'gamemode_create': self.gamemode_create,
+            'gamemode_edit': self.gamemode_edit,
+            'player_create': self.player_create,
+            'player_edit': self.player_edit,
         }
 
     def get_context_data(self, **kwargs):
@@ -113,11 +119,23 @@ class SettingsView(generic.TemplateView):
     def genre_edit(self):
         return self.process_edit_form(Genre, GenreForm)
 
+    def game_create(self):
+        return self.process_create_form(Game, GameForm)
+
     def game_edit(self):
         return self.process_edit_form(Game, GameForm)
 
-    def game_create(self):
-        return self.process_create_form(Game, GameForm)
+    def gamemode_create(self):
+        return self.process_create_form(GameMode, GameModeForm)
+
+    def gamemode_edit(self):
+        return self.process_edit_form(GameMode, GameModeForm)
+
+    def player_create(self):
+        return self.process_create_form(Player, PlayerForm)
+
+    def player_edit(self):
+        return self.process_edit_form(Player, PlayerForm)
 
     def get(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
@@ -194,66 +212,3 @@ class DetailGameView(generic.DetailView):
 class DetailGenreView(generic.DetailView):
     model = Genre
     template_name = "leagues/genre_detail.html"
-
-
-class IndexView(generic.ListView):
-    template_name = 'leagues/index.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        data = Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
-        context['latest_question_list'] = data
-        context['form'] = NameForm()
-        context['player'] = PlayerForm()
-        return context
-
-    def get_queryset(self):
-        return Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
-
-    def post(self, request):
-        form = NameForm(self.request.POST)
-        if form.is_valid():
-            print(form.cleaned_data)
-            return HttpResponseRedirect(reverse('leagues:index'))
-        return render(request, self.template_name)
-
-
-class DetailView(generic.DetailView):
-    model = Question
-    template_name = 'leagues/detail.html'
-
-    def get_queryset(self):
-        """
-        Excludes any questions that aren't published yet.
-        """
-        return Question.objects.filter(pub_date__lte=timezone.now())
-
-
-class ResultsView(generic.DetailView):
-    model = Question
-    template_name = 'leagues/results.html'
-
-    def get_queryset(self):
-        """
-        Excludes any questions that aren't published yet.
-        """
-        return Question.objects.filter(pub_date__lte=timezone.now())
-
-
-def vote(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    try:
-        selected_choice = question.choice_set.get(pk=request.POST['choice'])
-    except (KeyError, Choice.DoesNotExist):
-        # Redisplay the question voting form.
-        return render(request, 'leagues/detail.html', {
-            'question': question,
-            'error_message': "You didn't select a choice.",
-        })
-    else:
-        selected_choice.votes += 1
-        selected_choice.save()
-        # Always return an HttpResponseRedirect after successfully dealing
-        # with POST data. This prevents data from being posted twice if a
-        # user hits the Back button.
-        return HttpResponseRedirect(reverse('leagues:results', args=(question.id,)))

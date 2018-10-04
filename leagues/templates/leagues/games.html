@@ -121,7 +121,7 @@
                 <!-- Profile -->
                 <div class="w3-card w3-round w3-white">
                     <div class="w3-container">
-                        <h4 class="w3-center">My Profile</h4>
+                        <h4 class="w3-center">{{ user.player.nickname }}</h4>
                         <p class="w3-center">
                             <img src="{% static 'leagues/images/default_avatar.png' %}" class="w3-circle"
                                  style="height:106px;width:106px" alt="Avatar">
@@ -200,20 +200,18 @@
             <div class="w3-container flex-container">
                 {% for game in game_list %}
                     <div class="w3-card-4 flex-item gameCard">
-                        <header class="w3-block w3-center gameImg">
-                            <button type="button" class="w3-display-topleft w3-white gameEdit"
-                                    onclick="$('#game_edit_' + {{ game.id }}).show()">
-                                <i class="fa fa-pencil"></i>
-                            </button>
+                        <header class="w3-block w3-center gameHeader">
                             {% if game.image_url %}
-                                <img src="{{ game.image_url }}" alt="{{ game.name }}" style="width: 300px">
+                                <img src="{{ game.image_url }}" alt="{{ game.name }}" class="gameImg">
                             {% else %}
                                 <h3 class="w3-text-white w3-display-middle">No image</h3>
                             {% endif %}
                         </header>
                         <div class="w3-container w3-center">
-                            <a href="{% url 'leagues:game_detail' game.slug %}"><h3
-                                    style="margin-bottom: 0">{{ game.name }}</h3></a>
+                            <a href="{% url 'leagues:game_detail' game.slug %}" class="w3-block w3-section-8 gameLink">
+                                {{ game.name }}
+                            </a>
+
                             <div id="game_info_{{ game.id }}" class="accordion">
                                 <ul class="w3-ul">
                                     <li>Released: {{ game.release_date|default:"unknown" }}</li>
@@ -223,7 +221,7 @@
                             </div>
                         </div>
                         <button onclick="showGameInfo(event, 'game_info_{{ game.id }}')" class="w3-block w3-button"
-                                style="padding: 0; margin-top: 6px">
+                                style="padding: 0">
                             <i class="fa fa-angle-double-down"></i>
                         </button>
                     </div>

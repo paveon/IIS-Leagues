@@ -234,7 +234,9 @@ hr{border:0;border-top:1px solid #eee;margin:20px 0}
 /* Our styles */
 .w3-input:hover { border-color: #ff9800 !important; }
 .w3-padding-3{padding-top:3px!important;padding-bottom:3px!important}
+.w3-section-8{margin-top:8px!important;margin-bottom:8px!important}
 
 textarea {
     resize: none;
+    height: 6em;
 }
