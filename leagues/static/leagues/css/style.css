@@ -142,3 +142,12 @@ a {
     border-top-right-radius: 4px;
     width: 40px;
 }
+
+.table_button_center {
+    text-align: right !important;
+    vertical-align: middle !important;
+}
+
+.table_button_width {
+    width: 70px;
+}

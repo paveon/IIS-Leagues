@@ -181,8 +181,10 @@ class Player(models.Model):
     description = models.TextField('description', blank=True, help_text="Description of player")
     equipment = models.ManyToManyField(Equipment, verbose_name='Equipment used by player')
     games = models.ManyToManyField(Game, verbose_name='Games focused by the player')
-    teams = models.ManyToManyField(Team, verbose_name='Team memberships')
-    clans = models.ManyToManyField(Clan, verbose_name='Clan memberships')
+    teams = models.ManyToManyField(Team, verbose_name='Team memberships', related_name='team_member')
+    clans = models.ManyToManyField(Clan, verbose_name='Clan memberships', related_name='clan_member')
+    team_pendings = models.ManyToManyField(Team, related_name='team_pendings')
+    clan_pendings = models.ManyToManyField(Clan, related_name='clan_pendings')
     matches = models.ManyToManyField(Match, verbose_name='Played matches')
 
     @property

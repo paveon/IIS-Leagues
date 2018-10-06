@@ -177,12 +177,74 @@ class SocialView(generic.TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         players = Player.objects.all()
-        teams = Team.objects.all()
-        clans = Clan.objects.all()
+        all_teams = Team.objects.all()
+        all_clans = Clan.objects.all()
+        teams = []
+        clans = []
+        try:
+            player = self.request.user.player.teams.all()
+            pend_player = self.request.user.player.team_pendings.all()
+            for team in all_teams:
+                found = 3
+                for team_member in player:
+                    if team_member.id == team.id:
+                        found = 1
+                        teams.append((team, found))
+                        break
+                for team_pend_member in pend_player:
+                    if team_pend_member.id == team.id:
+                        found = 2
+                        teams.append((team, found))
+                        break
+                if found == 3:
+                    teams.append((team, found))
+        except:
+            for team in all_teams:
+                teams += (team, False)
+        try:
+            player = self.request.user.player.clans.all()
+            pend_player = self.request.user.player.clan_pendings.all()
+            for clan in all_clans:
+                found = 3
+                for clan_member in player:
+                    if clan_member.id == clan.id:
+                        found = 1
+                        clans.append((clan, found))
+                        break
+                for clan_pend_member in pend_player:
+                    if clan_pend_member.id == clan.id:
+                        found = 2
+                        clans.append((clan, found))
+                        break
+                if found == 3:
+                    clans.append((clan, found))
+        except:
+            for clan in all_clans:
+                clans += (clan, 0)
         context['player_list'] = players
         context['team_list'] = teams
         context['clan_list'] = clans
         return context
+
+    def post(self, request, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if 'leave_team_id' in request.POST:
+            Player.teams.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['leave_team_id']).delete()
+            return HttpResponseRedirect(reverse("leagues:social"))
+        elif 'leave_clan_id' in request.POST:
+            Player.clans.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['leave_clan_id']).delete()
+            return HttpResponseRedirect(reverse("leagues:social"))
+        elif 'join_team_id' in request.POST:
+            player = Player.objects.get(pk=request.POST['player_id'])
+            team = Team.objects.get(pk=request.POST['join_team_id'])
+            player.team_pendings.add(team)
+            return HttpResponseRedirect(reverse("leagues:social"))
+        elif 'join_clan_id' in request.POST:
+            player = Player.objects.get(pk=request.POST['player_id'])
+            clan = Clan.objects.get(pk=request.POST['join_clan_id'])
+            player.clan_pendings.add(clan)
+            return HttpResponseRedirect(reverse("leagues:social"))
+        return render(request, self.template_name, context)
 
 
 class PlayerDetailView(generic.DetailView):

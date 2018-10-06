@@ -235,6 +235,8 @@ hr{border:0;border-top:1px solid #eee;margin:20px 0}
 .w3-input:hover { border-color: #ff9800 !important; }
 .w3-padding-3{padding-top:3px!important;padding-bottom:3px!important}
 .w3-section-8{margin-top:8px!important;margin-bottom:8px!important}
+.w3-block-special{width:70px;height:100%;margin:0px;border:none;display:inline-block;margin:auto;padding:8px 16px;vertical-align:middle;overflow:hidden;text-decoration:none;color:inherit;background-color:inherit;text-align:center}
+.w3-padding-small-special{padding:3px 8px!important}
 
 textarea {
     resize: none;
