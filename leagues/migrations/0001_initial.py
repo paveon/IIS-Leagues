@@ -146,7 +146,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=200, unique=True, verbose_name='tournament name')),
                 ('prize', models.PositiveIntegerField(blank=True, help_text='prize pool in dollars', null=True, verbose_name='tournament prize')),
                 ('opening_date', models.DateField(default=datetime.date.today, verbose_name='date of the tournament start')),
-                ('end_date', models.DateField(default=leagues.models.Tournament.end_date_default, verbose_name='date of the tournament end')),
+                ('end_date', models.DateField(default=leagues.models.end_date_default, verbose_name='date of the tournament end')),
                 ('sponsors', models.ManyToManyField(through='leagues.Sponsorship', to='leagues.Sponsor')),
             ],
         ),

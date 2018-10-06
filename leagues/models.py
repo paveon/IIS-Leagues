@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.conf import settings
 from django.template.defaultfilters import slugify
+from django_countries.fields import CountryField
 import re
 
 
@@ -23,7 +24,7 @@ class Genre(models.Model):
         super(Genre, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.acronym
+        return self.acronym if self.acronym else self.name
 
 
 class GameMode(models.Model):
@@ -63,16 +64,19 @@ class Sponsor(models.Model):
         return self.name
 
 
-class Tournament(models.Model):
-    def end_date_default(self):
-        return datetime.date.today() + datetime.timedelta(days=7)
+def end_date_default():
+        end_date = datetime.date.today() + datetime.timedelta(days=7)
+        return end_date
 
+
+class Tournament(models.Model):
     name = models.CharField('tournament name', max_length=200, unique=True)
     prize = models.PositiveIntegerField('tournament prize', null=True, blank=True,
                                         help_text='prize pool in dollars')
     opening_date = models.DateField('date of the tournament start', default=datetime.date.today)
     end_date = models.DateField('date of the tournament end', default=end_date_default)
-    sponsors = models.ManyToManyField(Sponsor, through='Sponsorship')
+    sponsors = models.ManyToManyField(Sponsor, through='Sponsorship', blank=True)
+    description = models.TextField('description', blank=True, help_text="Description of tournament")
 
     def __str__(self):
         return self.name
@@ -88,12 +92,16 @@ class Sponsorship(models.Model):
     type = models.CharField('sponsorship type', max_length=4, choices=SPONSORSHIP_TYPES, default=SPONSORSHIP_TYPES[0])
     amount = models.PositiveIntegerField('donation amount', null=True, blank=True)
 
+    class Meta:
+        unique_together = ('sponsor', 'tournament')
+
 
 class Clan(models.Model):
     name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True)
     founded = models.DateField('foundation date', default=datetime.date.today)
-    country = models.CharField('country of origin', max_length=200, blank=True)
+    country = CountryField('country of origin', blank=True)
+    description = models.TextField('description', blank=True, help_text="Description of clan")
     leader = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True,
                                verbose_name="Leader of the clan")
     games = models.ManyToManyField(Game, verbose_name='Games focused by the clan')
@@ -110,7 +118,8 @@ class Team(models.Model):
     name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True)
     founded = models.DateField('foundation date', default=datetime.date.today)
-    active = models.BooleanField('activity status', default=True)
+    description = models.TextField('description', blank=True, help_text="Description of team")
+    active = models.BooleanField('active', default=True)
     leader = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True,
                                verbose_name="Leader of the team")
     game = models.ForeignKey(Game, on_delete=models.SET_NULL, null=True, blank=True,
@@ -161,12 +170,12 @@ class Equipment(models.Model):
 
 
 class Player(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     nickname = models.CharField(max_length=50, unique=True)
     slug = models.SlugField(max_length=50)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    country = models.CharField('country of birth', max_length=200, blank=True)
+    country = CountryField('country of birth', blank=True)
     birth_date = models.DateField('date of birth', null=True, blank=True)
     image_url = models.URLField('profile image url', max_length=500, blank=True)
     description = models.TextField('description', blank=True, help_text="Description of player")
@@ -181,7 +190,7 @@ class Player(models.Model):
         return "%s %s".format(self.first_name, self.last_name)
 
     def __str__(self):
-        return "{0} ({1})".format(self.nickname, self.full_name)
+        return self.nickname
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.nickname)

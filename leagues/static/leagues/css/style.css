@@ -13,10 +13,6 @@ body {
     flex-wrap: nowrap;
 }
 
-tbody tr {
-    cursor: pointer;
-}
-
 a {
     font-family: "Open Sans", sans-serif;
 }
@@ -46,6 +42,13 @@ a {
     margin-right: 8px;
     margin-left: 8px;
     position: relative;
+}
+
+.input-flex {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: stretch;
 }
 
 .section-bar {
@@ -120,6 +123,10 @@ a {
     cursor: pointer;
 }
 
+.edit_object {
+    cursor: pointer;
+}
+
 .edit_object:hover {
     text-decoration: underline;
 }
@@ -133,4 +140,5 @@ a {
     border-left-width: 0 !important;
     border-bottom-right-radius: 4px;
     border-top-right-radius: 4px;
+    width: 40px;
 }

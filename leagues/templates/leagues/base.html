@@ -18,6 +18,7 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     {{ game_form.media }}
 
+    <script src="{% static 'leagues/js/table_handler.js' %}"></script>
     <script>
         // Accordion
         function myFunction(id) {
@@ -49,80 +50,65 @@
             }
         }
 
-
-        function TableHandler() {
-            var rows = $('tbody tr', this);
-            var rowsTotal = rows.length;
-            var rowsRangeSelector = $('.rowsRangeSelector', this);
-            var nextButton = $('.nextButton', this);
-            var prevButton = $('.prevButton', this);
-            var rowsRange = parseInt(rowsRangeSelector.val());
-            var interval = [0, rowsRange];
-            var handleButtons = function () {
-                nextButton.attr('disabled', (interval[1] >= rowsTotal));
-                prevButton.attr('disabled', interval[0] <= 0);
-            };
-
-            rows.each(function () {
-                let row = $(this);
-                let target = row.data('href');
-                if (target) {
-                    $('td', this).not('.edit_object').click(function () {
-                        window.location.href = target;
-                    });
-                }
-            });
-
-            rows.slice(interval[0], interval[1]).show();
-            handleButtons();
-
-            nextButton.click(function () {
-                rows.slice(interval[0], interval[1]).hide();
-                interval[0] += rowsRange;
-                interval[1] += rowsRange;
-                rows.slice(interval[0], interval[1]).show();
-                handleButtons();
-                console.log("<" + interval[0] + "," + interval[1] + ">");
-            });
-
-            prevButton.click(function () {
-                rows.slice(interval[0], interval[1]).hide();
-                if (interval[0] - rowsRange < 0) {
-                    interval[0] = 0;
-                    interval[1] = rowsRange;
-                }
-                else {
-                    interval[0] -= rowsRange;
-                    interval[1] -= rowsRange;
-                }
-
-                rows.slice(interval[0], interval[1]).show();
-                handleButtons();
-                console.log("<" + interval[0] + "," + interval[1] + ">");
-            });
-
-            rowsRangeSelector.change(function () {
-                let newRange = parseInt(rowsRangeSelector.val());
-                if (newRange > rowsRange) {
-                    let upperBound = interval[0] + newRange;
-                    rows.slice(interval[1], upperBound).show();
-                    interval[1] = upperBound;
-                } else if (newRange < rowsRange) {
-                    let upperBound = interval[0] + newRange;
-                    rows.slice(upperBound, interval[1]).hide();
-                    interval[1] = upperBound;
-                }
-                rowsRange = newRange;
-                handleButtons();
-                console.log("<" + interval[0] + "," + interval[1] + ">");
-            });
+        function OpenCreateModal(modalID) {
+            let objectType = modalID.split('_')[0];
+            let modal = $('#' + modalID);
+            let modalTitle = $('.modalTitle', modal);
+            let form = $('form', modal);
+            let formAction = $('.formAction', form);
+            let formSubmit = $('.formSubmit', form);
+            let formUnique = $('.formUnique', form);
+            let formID = $('.formID', form);
+            modalTitle.text('Create ' + objectType);
+            formAction.val(objectType + '_create');
+            formSubmit.val('Create ' + objectType);
+            form[0].reset();
+            modal.show();
         }
 
 
-        jQuery(document).ready(function ($) {
-            let pagedTables = $('.pagedTable');
-            pagedTables.each(TableHandler);
-        });
+        function OpenEditModal(modalID, objectID) {
+            console.log(objectID);
+            let objectType = modalID.split('_')[0];
+            let modal = $('#' + modalID);
+            let modalTitle = $('.modalTitle', modal);
+            let form = $('form', modal);
+            let formAction = $('.formAction', form);
+            let formSubmit = $('.formSubmit', form);
+            let formUnique = $('.formUnique', form);
+            let formID = $('.formID', form);
+
+            $.ajax({
+                type: "GET",
+                dataType: "json",
+                async: true,
+                url: "{% url 'leagues:settings' %}",
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    'action': 'edit',
+                    'type': modalID,
+                    'object_id': objectID,
+                },
+                success: function (json) {
+                    console.log("AJAX success");
+                    $.each(json, function (key, value) {
+                        let field = $('#id_' + modalID + '-' + key);
+                        field.val(value);
+                    });
+                    modalTitle.text('Edit \'' + formUnique.val() + '\'');
+                    formAction.val(objectType + '_edit');
+                    formSubmit.val('Save changes');
+                    formID.val(objectID);
+
+                    modal.show();
+                },
+                error: function (xhr, error) {
+                    console.log("AJAX failure");
+                    console.log(xhr);
+                    console.log(error);
+                }
+            });
+        }
     </script>
 </head>
 <body class="w3-theme-l5">
@@ -143,7 +129,8 @@
             <i class="fa fa-gamepad"></i>
         </a>
 
-        <a href="{% url 'leagues:social' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Players">
+        <a href="{% url 'leagues:social' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
+           title="Players">
             <i class="fa fa-user"></i>
         </a>
 
@@ -197,25 +184,25 @@
     <div class="flex-container" style="flex-wrap: nowrap">
         <!-- Left Column -->
 
-        {% if user.is_authenticated %}
-            <div style="max-width: 300px; flex: 1 0 auto">
-                <!-- Profile -->
-                {% include "leagues/left_panel.html" %}
+{#        {% if user.is_authenticated %}#}
+{#            <div style="max-width: 300px; flex: 1 1 0">#}
+{#                <!-- Profile -->#}
+{#                {% include "leagues/left_panel.html" %}#}
+{##}
+{#                <!-- End Left Column -->#}
+{#            </div>#}
+{#        {% endif %}#}
 
-                <!-- End Left Column -->
-            </div>
-        {% endif %}
+        {% block content %}
+        {% endblock %}
 
-{% block content %}
-{% endblock %}
-
-        {% if user.is_authenticated %}
-            <div style="max-width: 200px; flex: 1 0 auto">
-                {% include "leagues/right_panel.html" %}
-
-                <!-- End Right Column -->
-            </div>
-        {% endif %}
+{#        {% if user.is_authenticated %}#}
+{#            <div style="max-width: 200px; flex: 1 1 0">#}
+{#                {% include "leagues/right_panel.html" %}#}
+{##}
+{#                <!-- End Right Column -->#}
+{#            </div>#}
+{#        {% endif %}#}
 
         <!-- End Grid -->
     </div>
