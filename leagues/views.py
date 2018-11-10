@@ -6,6 +6,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from django.forms.models import model_to_dict
 from django_countries.fields import Country
+from django.db.models import F
+from enum import Enum
 from .forms import *
 
 
@@ -62,7 +64,8 @@ class SettingsView(generic.TemplateView):
             model_class = form[0]
             model_name = model_class.__name__.lower()
             form_class = form[1]
-            self.context[model_name + '_form'] = form_class(prefix=model_name + '_form')
+            form_instance = form_class(prefix=model_name + '_form')
+            self.context[model_name + '_form'] = form_instance
             self.context[model_name + '_list'] = model_class.objects.all()
         return self.context
 
@@ -73,9 +76,21 @@ class SettingsView(generic.TemplateView):
         edit_form = form_class(self.request.POST, instance=model_object, prefix=prefix)
         if edit_form.is_bound and edit_form.is_valid():
             edit_form.save()
+
+            #Additional processing
+            if form_class.__name__ == 'TeamForm':
+                # Leader must be a member of team
+                leader = edit_form.cleaned_data['leader']
+                if leader:
+                    team = model_object
+                    try:
+                        team.team_members.get(pk=leader.id)
+                    except Player.DoesNotExist:
+                        team.team_members.add(leader)
+
             return HttpResponseRedirect(reverse('leagues:settings'))
-        form_list = self.context[prefix + 'forms']
-        form_list[:] = [edit_form if x.instance == model_object else x for x in form_list]
+
+        self.context[prefix] = edit_form
         raise ValidationError(form_class.__name__ + ' validation failed')
 
     def process_create_form(self, model_class, form_class):
@@ -114,10 +129,32 @@ class SettingsView(generic.TemplateView):
                         model_object_dict[key] = id_list
                     elif type(value) is Country:
                         model_object_dict[key] = value.code
+
+                # Provide specific querysets for select dropdowns based on
+                # integrity constraints
+                # if form_class.__name__ == 'TeamForm':
+                #     queryset = Team.objects.get(pk=object_id).team_members.all()
+                #     queryset = queryset.annotate(value=F('nickname')).values('id', 'value')
+                #     model_object_dict['leader_queryset'] = list(queryset)
+                # elif form_class.__name__ == 'ClanForm':
+                #     queryset = Clan.objects.get(pk=object_id).clan_members.all()
+                #     queryset = queryset.annotate(value=F('nickname')).values('id', 'value')
+                #     model_object_dict['leader_queryset'] = list(queryset)
+
                 response = JsonResponse(model_object_dict)
                 return response
-            else:
-                pass
+            elif action == 'create':
+                # If edit form messed up some select dropdowns, send original data back when
+                # opening create form
+                class_name = self.request.GET['type'].split('_')[0]
+                pair = self.used_models[class_name]
+                class_name = pair[1].__name__
+                # if class_name == 'TeamForm' or class_name == 'ClanForm':
+                #     queryset = Player.objects.all().annotate(value=F('nickname')).values('id', 'value')
+                #     data = {'leader': list(queryset)}
+                #     return JsonResponse(data)
+                return JsonResponse({})
+
         else:
             self.context = self.get_context_data(**kwargs)
             content = render(request, self.template_name, self.context)
@@ -171,80 +208,88 @@ class DetailGenreView(generic.DetailView):
     template_name = "leagues/genre_detail.html"
 
 
+def template_enum(cls):
+    cls.do_not_call_in_templates = True
+    return cls
+
+
+@template_enum
+class MembershipStatus(Enum):
+    PENDING = 2
+    MEMBER = 1
+    NOT_MEMBER = 0
+
+
 class SocialView(generic.TemplateView):
     template_name = "leagues/social.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        players = Player.objects.all()
-        all_teams = Team.objects.all()
-        all_clans = Clan.objects.all()
-        teams = []
-        clans = []
-        try:
-            player = self.request.user.player.teams.all()
-            pend_player = self.request.user.player.team_pendings.all()
-            for team in all_teams:
-                found = 3
-                for team_member in player:
-                    if team_member.id == team.id:
-                        found = 1
-                        teams.append((team, found))
-                        break
-                for team_pend_member in pend_player:
-                    if team_pend_member.id == team.id:
-                        found = 2
-                        teams.append((team, found))
-                        break
-                if found == 3:
-                    teams.append((team, found))
-        except:
-            for team in all_teams:
-                teams += (team, False)
-        try:
-            player = self.request.user.player.clans.all()
-            pend_player = self.request.user.player.clan_pendings.all()
-            for clan in all_clans:
-                found = 3
-                for clan_member in player:
-                    if clan_member.id == clan.id:
-                        found = 1
-                        clans.append((clan, found))
-                        break
-                for clan_pend_member in pend_player:
-                    if clan_pend_member.id == clan.id:
-                        found = 2
-                        clans.append((clan, found))
-                        break
-                if found == 3:
-                    clans.append((clan, found))
-        except:
-            for clan in all_clans:
-                clans += (clan, 0)
-        context['player_list'] = players
+        player = self.request.user.player
+
+        # Split all teams into 3 types and create tuple with membership info for each of them
+        joined_teams = player.teams.all()
+        pending_teams = player.team_pendings.all()
+        remaining_teams = Team.objects.all().difference(joined_teams).difference(pending_teams)
+        remaining_teams = list(map(lambda x: (x, MembershipStatus.NOT_MEMBER), remaining_teams))
+        joined_teams = list(map(lambda x: (x, MembershipStatus.MEMBER), joined_teams))
+        pending_teams = list(map(lambda x: (x, MembershipStatus.PENDING), pending_teams))
+
+        # Split all clans into 3 types and create tuple with membership info for each of them
+        joined_clans = player.clans.all()
+        pending_clans = player.clan_pendings.all()
+        remaining_clans = Clan.objects.all().difference(joined_clans).difference(pending_clans)
+        remaining_clans = list(map(lambda x: (x, MembershipStatus.NOT_MEMBER), remaining_clans))
+        joined_clans = list(map(lambda x: (x, MembershipStatus.MEMBER), joined_clans))
+        pending_clans = list(map(lambda x: (x, MembershipStatus.PENDING), pending_clans))
+
+        # Join all 3 types of teams into a single list
+        teams = joined_teams + pending_teams + remaining_teams
+        clans = joined_clans + pending_clans + remaining_clans
+
+        context['player_list'] = Player.objects.all()
         context['team_list'] = teams
         context['clan_list'] = clans
+        context['membership'] = MembershipStatus.__members__
         return context
 
     def post(self, request, *args, **kwargs):
         context = super().get_context_data(**kwargs)
+        player_id = request.POST['player_id']
+        player = Player.objects.get(pk=player_id)
+        team_members = Player.teams.through.objects.all()
+        clan_members = Player.clans.through.objects.all()
+
         if 'leave_team_id' in request.POST:
-            Player.teams.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['leave_team_id']).delete()
-            return HttpResponseRedirect(reverse("leagues:social"))
+            team_id = request.POST['leave_team_id']
+            team = Team.objects.get(pk=team_id)
+
+            # Check if leaving player is a team leader and revoke the privilage if so
+            if team.leader and team.leader.id == player.id:
+                team.leader = None
+                team.save()
+            team.team_members.remove(player)
         elif 'leave_clan_id' in request.POST:
-            Player.clans.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['leave_clan_id']).delete()
-            return HttpResponseRedirect(reverse("leagues:social"))
+            clan_id = request.POST['leave_clan_id']
+            clan_members.filter(player__id=player_id, clan__id=clan_id).delete()
         elif 'join_team_id' in request.POST:
-            player = Player.objects.get(pk=request.POST['player_id'])
-            team = Team.objects.get(pk=request.POST['join_team_id'])
-            player.team_pendings.add(team)
-            return HttpResponseRedirect(reverse("leagues:social"))
+            team_id = request.POST['join_team_id']
+            team = Team.objects.get(pk=team_id)
+
+            # Need confirmation if team has a leader otherwise join immediately
+            if team.leader:
+                player.team_pendings.add(team)
+            else:
+                team.leader = player
+                team.team_members.add(player)
+                team.save()
         elif 'join_clan_id' in request.POST:
-            player = Player.objects.get(pk=request.POST['player_id'])
             clan = Clan.objects.get(pk=request.POST['join_clan_id'])
             player.clan_pendings.add(clan)
-            return HttpResponseRedirect(reverse("leagues:social"))
-        return render(request, self.template_name, context)
+        else:
+            return render(request, self.template_name, context)
+
+        return HttpResponseRedirect(reverse("leagues:social"))
 
 
 class PlayerDetailView(generic.DetailView):
@@ -256,10 +301,11 @@ class PlayerDetailView(generic.DetailView):
         edit_form = PlayerEditForm(instance=context['player'], prefix='player_edit_form')
         context['edit_form'] = edit_form
         return context
+
     # TODO random generace noveho leadera pokud leavne leader klan nebo tym
     def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
         context = super().get_context_data(**kwargs)
+
         if 'player_edit_form' in request.POST:
             edit_form = PlayerEditForm(request.POST, instance=context['player'], prefix='player_edit_form')
             if edit_form.is_bound and edit_form.is_valid():
@@ -267,10 +313,12 @@ class PlayerDetailView(generic.DetailView):
                 new_slug = slugify(context['player'].nickname)
                 return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
         elif 'team_id' in request.POST:
-            Player.teams.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['team_id']).delete()
+            Player.teams.through.objects.all().filter(player__id=request.POST['player_id'],
+                                                      team__id=request.POST['team_id']).delete()
             return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
         elif 'clan_id' in request.POST:
-            Player.clans.through.objects.all().filter(player__id=request.POST['player_id'], team__id=request.POST['clan_id']).delete()
+            Player.clans.through.objects.all().filter(player__id=request.POST['player_id'],
+                                                      team__id=request.POST['clan_id']).delete()
             return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
 
         return render(request, self.template_name, context)

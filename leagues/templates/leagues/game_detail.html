@@ -2,84 +2,101 @@
 {% load staticfiles %}
 {% block title %}Games | {{ game.name }}{% endblock %}
 
+
+{% block left_panel %}
+  {% with side_bars_enabled=True %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock left_panel %}
+
+
 {% block content %}
-    <!-- Middle Column -->
-        <div class="w3-col {% if user.is_authenticated %} m7 {% endif %}">
+  <!-- Middle Column -->
+  <div class="w3-col {% if user.is_authenticated %} m7 {% endif %}">
 
-            <div class="w3-container w3-margin-top flex-container">
-                <h1>{{ game.name }}</h1>
-            </div>
-            <p>Datum vydání: {{ game.release_date|default:"Není zadán" }}</p>
-            <p>Vydavatel: {{ game.publisher|default:"Není zadán" }}</p>
-            {% if game.genre != None %}
-                <p>Žánr: <a href="{% url 'leagues:genre_detail' game.genre.slug %}">{{ game.genre.acronym }}({{ game.genre.name }})</a></p>
-            {% else %}
-                <p>Žánr: Není zadán </p>
-            {% endif %}
-            <p>Herní módy {% for mode in game.game_modes.all %} <br/> {{ mode }} {% endfor %}</p>
+    <div class="w3-container w3-margin-top flex-container">
+      <h1>{{ game.name }}</h1>
+    </div>
+    <p>Datum vydání: {{ game.release_date|default:"Není zadán" }}</p>
+    <p>Vydavatel: {{ game.publisher|default:"Není zadán" }}</p>
+    {% if game.genre != None %}
+      <p>Žánr: <a href="{% url 'leagues:genre_detail' game.genre.slug %}">{{ game.genre.acronym }}({{ game.genre.name }})</a>
+      </p>
+    {% else %}
+      <p>Žánr: Není zadán </p>
+    {% endif %}
+    <p>Herní módy {% for mode in game.game_modes.all %} <br/> {{ mode }} {% endfor %}</p>
 
-            <p>Počet hráčů: {{ game.player_set.count }}</p>
-            <p>Popis hry: --TBD--</p>
-            <!-- End Middle Column -->
-        </div>
+    <p>Počet hráčů: {{ game.player_set.count }}</p>
+    <p>Popis hry: --TBD--</p>
+    <!-- End Middle Column -->
+  </div>
 {% endblock %}
 
+
+{% block right_panel %}
+  {% with side_bars_enabled=True %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock right_panel %}
+
+
 {% block endpage %}
-{% load widget_tweaks %}
-{% for form in edit_forms %}
+  {% load widget_tweaks %}
+  {% for form in edit_forms %}
     <div id="{{ form.prefix }}" class="w3-modal" {% if form.errors %}
          style="display: block" {% endif %}>
-        <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
-            <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-                <h3>Edit '{{ form.name.value }}'</h3>
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3>Edit '{{ form.name.value }}'</h3>
 
-                <button onclick="$('#{{ form.prefix }}').hide()" type="button"
-                        class="w3-button w3-display-topright w3-red">
-                    <i class="fa fa-times"></i>
-                </button>
-            </header>
+          <button onclick="$('#{{ form.prefix }}').hide()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
+          </button>
+        </header>
 
-            <form method="POST" class="" action="{% url 'leagues:games' %}" name="game_edit">
-                <div class="w3-section w3-container">
-                    {% csrf_token %}
-                    {% if form.errors %}
-                        <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
-                            {{ form.errors }}
-                        </div>
-                    {% endif %}
+        <form method="POST" class="" action="{% url 'leagues:games' %}" name="game_edit">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
+            {% if form.errors %}
+              <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
+                {{ form.errors }}
+              </div>
+            {% endif %}
 
-                    <label><b>{{ form.name.label_tag }}</b></label>
-                    {% render_field form.name class+="w3-input w3-border w3-margin-bottom" %}
+            <label><b>{{ form.name.label_tag }}</b></label>
+            {% render_field form.name class+="w3-input w3-border w3-margin-bottom" %}
 
-                    <label><b>{{ form.release_date.label_tag }}</b></label>
-                    <div class='w3-cell-row w3-margin-bottom'>
-                        {% render_field form.release_date class+="w3-input w3-border w3-cell" %}
-                        <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
-                            <span class="fa fa-calendar"></span>
-                        </div>
-                    </div>
+            <label><b>{{ form.release_date.label_tag }}</b></label>
+            <div class='w3-cell-row w3-margin-bottom'>
+              {% render_field form.release_date class+="w3-input w3-border w3-cell" %}
+              <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
+                <span class="fa fa-calendar"></span>
+              </div>
+            </div>
 
-                    <label><b>{{ form.publisher.label_tag }}</b></label>
-                    {% render_field form.publisher class+="w3-input w3-border w3-margin-bottom" %}
-                    <label><b>{{ form.image_url.label_tag }}</b></label>
-                    {% render_field form.image_url class+="w3-input w3-border w3-margin-bottom" %}
-                    <label><b>{{ form.genre.label_tag }}</b></label>
-                    {% render_field form.genre class+="w3-input w3-border w3-margin-bottom" %}
-                    <label><b>{{ form.game_modes.label_tag }}</b></label>
-                    {% render_field form.game_modes class+="w3-input w3-border" %}
-                </div>
-                <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-                    <button onclick="$('#{{ form.prefix }}').hide()" type="button"
-                            class="w3-button w3-red">Close
-                    </button>
+            <label><b>{{ form.publisher.label_tag }}</b></label>
+            {% render_field form.publisher class+="w3-input w3-border w3-margin-bottom" %}
+            <label><b>{{ form.image_url.label_tag }}</b></label>
+            {% render_field form.image_url class+="w3-input w3-border w3-margin-bottom" %}
+            <label><b>{{ form.genre.label_tag }}</b></label>
+            {% render_field form.genre class+="w3-input w3-border w3-margin-bottom" %}
+            <label><b>{{ form.game_modes.label_tag }}</b></label>
+            {% render_field form.game_modes class+="w3-input w3-border" %}
+          </div>
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#{{ form.prefix }}').hide()" type="button"
+                    class="w3-button w3-red">Close
+            </button>
 
-                    <input type="hidden" name="game_id" value="{{ form.instance.id }}">
-                    <input class="w3-button w3-green w3-right" type="submit" name="{{ form.prefix }}"
-                           value="Save changes">
-                </div>
-            </form>
-        </div>
+            <input type="hidden" name="game_id" value="{{ form.instance.id }}">
+            <input class="w3-button w3-green w3-right" type="submit" name="{{ form.prefix }}"
+                   value="Save changes">
+          </div>
+        </form>
+      </div>
     </div>
-{% endfor %}
+  {% endfor %}
 {% endblock %}

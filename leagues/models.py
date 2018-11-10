@@ -127,6 +127,10 @@ class Team(models.Model):
     clan = models.ForeignKey(Clan, on_delete=models.SET_NULL, null=True, blank=True,
                              verbose_name='Related clan')
 
+    @property
+    def all_matches(self):
+        return self.matches_a.all().union(self.matches_b.all())
+
     def __str__(self):
         return self.name
 
@@ -181,15 +185,31 @@ class Player(models.Model):
     description = models.TextField('description', blank=True, help_text="Description of player")
     equipment = models.ManyToManyField(Equipment, verbose_name='Equipment used by player')
     games = models.ManyToManyField(Game, verbose_name='Games focused by the player')
-    teams = models.ManyToManyField(Team, verbose_name='Team memberships', related_name='team_member')
-    clans = models.ManyToManyField(Clan, verbose_name='Clan memberships', related_name='clan_member')
+    teams = models.ManyToManyField(Team, verbose_name='Team memberships', related_name='team_members')
+    clans = models.ManyToManyField(Clan, verbose_name='Clan memberships', related_name='clan_members')
     team_pendings = models.ManyToManyField(Team, related_name='team_pendings')
     clan_pendings = models.ManyToManyField(Clan, related_name='clan_pendings')
-    matches = models.ManyToManyField(Match, verbose_name='Played matches')
+    matches = models.ManyToManyField(Match, through='PlayedMatch', verbose_name='Played matches')
+
+    @property
+    def win_ratio(self):
+        games_total = self.matches.count()
+        if not games_total:
+            return None
+        games_won = self.matches.filter(playedmatch__team=models.F('playedmatch__match_winner')).count()
+        return round((games_won / games_total) * 100, 2)
 
     @property
     def full_name(self):
-        return "%s %s".format(self.first_name, self.last_name)
+        return "{0} {1}".format(self.first_name, self.last_name)
+
+    @property
+    def age(self):
+        born = self.birth_date
+        if born:
+            today = datetime.date.today()
+            return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+        return None
 
     def __str__(self):
         return self.nickname
@@ -197,6 +217,16 @@ class Player(models.Model):
     def save(self, *args, **kwargs):
         self.slug = slugify(self.nickname)
         super(Player, self).save(*args, **kwargs)
+
+
+class PlayedMatch(models.Model):
+    player = models.ForeignKey(Player, on_delete=models.PROTECT)
+    match = models.ForeignKey(Match, on_delete=models.PROTECT)
+    team = models.ForeignKey(Team, on_delete=models.PROTECT)
+    # game_won = models.BooleanField('game won')
+
+    class Meta:
+        unique_together = ('player', 'match')
 
 
 class Death(models.Model):

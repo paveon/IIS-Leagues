@@ -30,6 +30,19 @@ class PlayerForm(ModelForm):
             'birth_date': CalendarWidget(),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        born = cleaned_data['birth_date']
+        today = datetime.date.today()
+        if born > today:
+            raise ValidationError('Invalid birth date, can\'t be in future')
+        else:
+            age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+            if age < 15:
+                raise ValidationError('Player must be at least 15 years old!')
+            else:
+                return cleaned_data
+
 
 class SponsorForm(ModelForm):
     class Meta:
@@ -61,6 +74,24 @@ class ClanForm(ModelForm):
             'founded': CalendarWidget()
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        foundation_date = cleaned_data['founded']
+        if foundation_date > datetime.date.today():
+            raise ValidationError('Clan cannot be founded in future')
+
+        # Leader must be a member of team
+        leader = cleaned_data['leader']
+        if leader:
+            clan = self.instance
+            if clan:
+                try:
+                    clan.team_members.get(pk=leader.id)
+                except Player.DoesNotExist:
+                    raise ValidationError('Leader must be a member of clan')
+
+        return cleaned_data
+
 
 class TeamForm(ModelForm):
     class Meta:
@@ -71,10 +102,18 @@ class TeamForm(ModelForm):
         }
 
     def clean(self):
-        cleaned_data = super(TeamForm, self).clean()
+        cleaned_data = super().clean()
+        team = self.instance
         foundation_date = cleaned_data['founded']
         if foundation_date > datetime.date.today():
             raise ValidationError('Team cannot be founded in future')
+
+        # When editing, foundation date cannot be after first match (if any)
+        if team:
+            older_matches = team.all_matches.filter(beginning__gt=foundation_date)
+            if older_matches:
+                raise ValidationError('Team cannot be founded after first played match')
+
         return cleaned_data
 
 

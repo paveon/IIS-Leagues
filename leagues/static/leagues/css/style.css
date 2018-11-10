@@ -151,3 +151,29 @@ a {
 .table_button_width {
     width: 70px;
 }
+
+.table_button {
+    border-radius: 8px;
+    padding: 3px 8px !important;
+    width: 70px;
+    height: 26px;
+}
+
+.join_button:hover {
+    color: black !important;
+    font-weight: bold;
+    background-color: white !important;
+    border: 2px solid green !important;
+}
+
+.leave_button:hover {
+    color: black !important;
+    font-weight: bold;
+    background-color: white !important;
+    border: 2px solid red !important;
+}
+
+.pending_button:hover {
+    cursor: default;
+    background-color: #ff9800!important;
+}

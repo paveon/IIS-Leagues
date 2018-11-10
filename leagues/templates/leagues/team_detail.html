@@ -1,13 +1,26 @@
 {% extends 'leagues/base.html' %}
 {% block title %}Teams | {{ team.name }} {% endblock %}
 
+{% block left_panel %}
+  {% with side_bars_enabled=True %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock left_panel %}
+
+
 {% block content %}
-    <div style="flex: 1 0 auto">
-        <div class="flex-container">
-            <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
-                <h1 style="text-align: center">{{ team.name }}</h1>
-            </div>
-        </div>
+  <div style="flex: 1 0 auto">
+    <div class="flex-container">
+      <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
+        <h1 style="text-align: center">{{ team.name }}</h1>
+      </div>
     </div>
+  </div>
 {% endblock %}
 
+
+{% block right_panel %}
+  {% with side_bars_enabled=True %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock right_panel %}

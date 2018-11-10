@@ -1,309 +1,306 @@
 {% extends 'leagues/base.html' %}
+
+
 {% block title %}Leagues | Social {% endblock %}
 
+
+{% block left_panel %}
+  {% with side_bars_enabled=True %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock left_panel %}
+
+
 {% block content %}
-    <div style="flex: 1 0 auto">
-        <div class="flex-container">
-            <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
-                <ul class="section-bar" style="flex: 1 1 auto">
-                    <li onclick="showSection(event, 'Players');"
-                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding w3-border-red">
-                        Players
-                    </li>
-                    <li onclick="showSection(event, 'Teams');"
-                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
-                        Teams
-                    </li>
-                    <li onclick="showSection(event, 'Clans');"
-                        class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
-                        Clans
-                    </li>
-                </ul>
+  <div class="w3-container flex-container" style="flex: 1 1 0">
+    <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
+      <ul class="section-bar" style="flex: 1 1 auto">
+        <li onclick="showSection(event, 'Players');" id="players_tab"
+            class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+          Players
+        </li>
+        <li onclick="showSection(event, 'Teams');" id="teams_tab"
+            class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+          Teams
+        </li>
+        <li onclick="showSection(event, 'Clans');" id="clans_tab"
+            class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+          Clans
+        </li>
+      </ul>
 
-                <div id="Players" class="w3-container section" style="display:block">
-                    <h2>Players</h2>
-                    <div class="pagedTable w3-card w3-round">
-                        <table class="w3-table w3-striped w3-bordered w3-hoverable">
-                            <thead>
-                            <tr class="">
-                                <th>First name</th>
-                                <th>Last name</th>
-                                <th>Nickname</th>
-                            </tr>
-                            </thead>
+      <div id="Players" class="w3-container w3-section section" style="display:block">
+        <h3>Players</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Nickname</th>
+              <th>Age</th>
+              <th>Country</th>
+              <th>Win ratio</th>
+            </tr>
+            </thead>
 
-                            <tbody id="players_rows">
-                            {% for player in player_list %}
-                                <tr data-href="{% url 'leagues:player_detail' player.slug %}" style="display: none">
-                                    <td>{{ player.first_name }}</td>
-                                    <td>{{ player.last_name }}</td>
-                                    <td>{{ player.nickname }}</td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                        <footer class="w3-small flex-container">
-                            <button class="prevButton w3-padding-3 w3-button"
-                                    style="flex:1 0 0; align-self: stretch;">
-                                &#10094; Previous
-                            </button>
-                            <label type="hidden" for="players_range"></label>
-                            <select id="players_range" class="rowsRangeSelector w3-padding-3 w3-select" name="option"
-                                    style="flex:4 0 0;">
-                                <option selected value="5">5 rows</option>
-                                <option value="10">10 rows</option>
-                                <option value="15">15 rows</option>
-                                <option value="50">50 rows</option>
-                                <option value="100">100 rows</option>
-                            </select>
-                            <button class="nextButton w3-padding-3 w3-button"
-                                    style="flex:1 0 0; align-self: stretch;">
-                                Next &#10095;
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-
-                <div id="Teams" class="w3-container section">
-                    <h2>Teams</h2>
-                    <div class="pagedTable w3-card w3-round">
-                        <table class="w3-table w3-striped w3-bordered w3-hoverable">
-                            <thead>
-                            <tr class="">
-                                <th>Name</th>
-                                <th>Leader</th>
-                                {% if user.is_authenticated %} <th></th> {% endif %}
-                            </tr>
-                            </thead>
-
-                            <tbody id="teams_rows">
-                            {% for team in team_list %}
-                                <tr data-href="{% url 'leagues:team_detail' team.0.slug %}" style="display: none">
-                                    <td>{{ team.0.name }}</td>
-                                    <td>{{ team.0.leader }}</td>
-                                    {% if user.is_authenticated %}
-                                        {% if team.1 == 1%}
-                                            <td class="w3-button w3-round-large w3-red table_button_center" onclick="$('#leave_team' + {{ team.0.id }}).show()">
-                                                <div class="w3-button w3-round-large w3-green w3-padding-small-special table_button_width">
-                                                    Leave
-                                                </div>
-                                            </td>
-                                        {% elif team.1 == 3 %}
-                                            <td class="w3-padding-3 w3-small table_button_center" onclick="$('#join_team' + {{ team.0.id }}).show()">
-                                                <div class="w3-button w3-round-large w3-green w3-padding-small-special table_button_width">
-                                                    Join
-                                                </div>
-                                            </td>
-                                        {% else %}
-                                            <td class="w3-padding-3 w3-small table_button_center" >
-                                                <div class="w3-block-special w3-round-large w3-orange w3-padding-small-special">Pending...</div>
-                                            </td>
-                                        {% endif %}
-                                    {% endif %}
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                        <footer class="w3-small flex-container">
-                            <button class="prevButton w3-padding-3 w3-button"
-                                    style="flex:1 0 0; align-self: stretch;">
-                                &#10094; Previous
-                            </button>
-                            <label type="hidden" for="teams_range"></label>
-                            <select id="teams_range" class="rowsRangeSelector w3-padding-3 w3-select" name="option"
-                                    style="flex:4 0 0;">
-                                <option selected value="5">5 rows</option>
-                                <option value="10">10 rows</option>
-                                <option value="15">15 rows</option>
-                                <option value="50">50 rows</option>
-                                <option value="100">100 rows</option>
-                            </select>
-                            <button class="nextButton w3-padding-3 w3-button"
-                                    style="flex:1 0 0; align-self: stretch;">
-                                Next &#10095;
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-
-                <div id="Clans" class="w3-container section">
-                    <h2>Clans</h2>
-                    <div class="pagedTable w3-card w3-round">
-                        <table class="w3-table w3-striped w3-bordered w3-hoverable">
-                            <thead>
-                            <tr class="">
-                                <th>Name</th>
-                                <th>Leader</th>
-                                {% if user.is_authenticated %} <th></th> {% endif %}
-                            </tr>
-                            </thead>
-
-                            <tbody id="clans_rows">
-                            {% for clan in clan_list %}
-                                <tr data-href="{% url 'leagues:clan_detail' clan.0.slug %}" style="display: none">
-                                    <td>{{ clan.0.name }}</td>
-                                    <td>{{ clan.0.leader }}</td>
-                                    {% if user.is_authenticated %}
-                                        {% if clan.1 == 1 %}
-                                            <td class="w3-padding-3 w3-small table_button_center" onclick="$('#leave_clan' + {{ clan.0.id }}).show()">
-                                                <div class="w3-button w3-round-large w3-red w3-padding-small-special table_button_width">
-                                                    Leave
-                                                </div>
-                                            </td>
-                                        {% elif clan.1 == 3 %}
-                                            <td class="w3-padding-3 w3-small table_button_center" onclick="$('#join_clan' + {{ clan.0.id }}).show()">
-                                                <div class="w3-button w3-round-large w3-green w3-padding-small-special table_button_width">
-                                                    Join
-                                                </div>
-                                            </td>
-                                        {% else %}
-                                            <td class="w3-padding-3 w3-small table_button_center" >
-                                                <div class="w3-block-special w3-round-large w3-orange w3-padding-small-special">Pending...</div>
-                                            </td>
-                                        {% endif %}
-                                    {% endif %}
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                        <footer class="w3-small flex-container">
-                            <button class="prevButton w3-padding-3 w3-button"
-                                    style="flex:1 0 0; align-self: stretch;">
-                                &#10094; Previous
-                            </button>
-                            <label type="hidden" for="clans_range"></label>
-                            <select id="clans_range" class="rowsRangeSelector w3-padding-3 w3-select" name="option"
-                                    style="flex:4 0 0;">
-                                <option selected value="5">5 rows</option>
-                                <option value="10">10 rows</option>
-                                <option value="15">15 rows</option>
-                                <option value="50">50 rows</option>
-                                <option value="100">100 rows</option>
-                            </select>
-                            <button class="nextButton w3-padding-3 w3-button"
-                                    style="flex:1 0 0; align-self: stretch;">
-                                Next &#10095;
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-            </div>
+            <tbody id="players_rows">
+            {% for player in player_list %}
+              <tr style="display: none">
+                <td>
+                  <a href="{% url 'leagues:player_detail' player.slug %}">
+                    {{ player.nickname }}
+                  </a>
+                </td>
+                <td>{{ player.age|default:"Unknown" }}</td>
+                <td>{{ player.country }}</td>
+                <td>{{ player.win_ratio|default:"No games" }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
         </div>
+      </div>
+
+      <div id="Teams" class="w3-container w3-section section">
+        <h3>Teams</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Name</th>
+              <th>Leader</th>
+              {% if user.is_authenticated %}
+                <th class="w3-right-align">Membership status</th>
+              {% endif %}
+            </tr>
+            </thead>
+
+            <tbody id="teams_rows">
+            {% for team in team_list %}
+              <tr style="display: none">
+                <td>
+                  <a href="{% url 'leagues:team_detail' team.0.slug %}">{{ team.0.name }}</a>
+                </td>
+
+                <td>
+                  {% if team.0.leader %}
+                    <a href="{% url 'leagues:player_detail' team.0.leader.slug %}">
+                      {{ team.0.leader }}
+                    </a>
+                  {% else %}
+                    None
+                  {% endif %}
+                </td>
+
+                {% if user.is_authenticated %}
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    {% if team.1 == membership.MEMBER %}
+                      <button onclick="$('#leave_team' + {{ team.0.id }}).show()"
+                              class="w3-button w3-red table_button leave_button">
+                        Leave
+                      </button>
+                    {% elif team.1 == membership.NOT_MEMBER %}
+                      <button onclick="$('#join_team' + {{ team.0.id }}).show()"
+                              class="w3-button w3-green table_button join_button">
+                        Join
+                      </button>
+                    {% else %}
+                      <button class="w3-button w3-orange table_button pending_button">
+                        Pending...
+                      </button>
+                    {% endif %}
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+
+      <div id="Clans" class="w3-container w3-section section">
+        <h3>Clans</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Name</th>
+              <th>Leader</th>
+              {% if user.is_authenticated %}
+                <th class="w3-right-align">Membership status</th>
+              {% endif %}
+            </tr>
+            </thead>
+
+            <tbody id="clans_rows">
+            {% for clan in clan_list %}
+              <tr style="display: none">
+                <td>
+                  <a href="{% url 'leagues:clan_detail' clan.0.slug %}">{{ clan.0.name }}</a>
+                </td>
+
+                <td>
+                  {% if clan.0.leader %}
+                    <a href="{% url 'leagues:player_detail' clan.0.leader.slug %}">
+                      {{ clan.0.leader }}
+                    </a>
+                  {% else %}
+                    None
+                  {% endif %}
+                </td>
+
+                {% if user.is_authenticated %}
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    {% if clan.1 == membership.MEMBER %}
+                      <button onclick="$('#leave_clan' + {{ clan.0.id }}).show()"
+                              class="w3-button w3-red table_button leave_button">
+                        Leave
+                      </button>
+                    {% elif clan.1 == membership.NOT_MEMBER %}
+                      <button onclick="$('#join_clan' + {{ clan.0.id }}).show()"
+                              class="w3-button w3-green table_button join_button">
+                        Join
+                      </button>
+                    {% else %}
+                      <button class="w3-button w3-orange table_button pending_button">
+                        Pending...
+                      </button>
+                    {% endif %}
+                  </td>
+
+                {% endif %}
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
     </div>
+  </div>
 {% endblock %}
 
+
+{% block right_panel %}
+  {% with side_bars_enabled=True %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock right_panel %}
+
+
 {% block endpage %}
-{% load widget_tweaks %}
-    <!--  LEAVE TEAM ALLERT !-->
-    {% for team in team_list %}
-        <div id="leave_team{{ team.0.id }}" class="w3-modal"style="display: none">
-            <div class="w3-modal-content w3-card-4" style="max-width:600px">
+  {% load widget_tweaks %}
+  <!--  LEAVE TEAM ALLERT !-->
+  {% for team in team_list %}
+    <div id="leave_team{{ team.0.id }}" class="w3-modal" style="display: none">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
-                <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-                    <h3>Do you really want to leave {{ team.0.name }}</h3>
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3>Do you really wish to leave {{ team.0.name }}</h3>
 
-                    <button onclick="$('#leave_team' + {{ team.0.id }}).hide()" type="button"
-                            class="w3-button w3-display-topright w3-red">
-                        <i class="fa fa-times"></i>
-                    </button>
-                </header>
+          <button onclick="$('#leave_team' + {{ team.0.id }}).hide()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
+          </button>
+        </header>
 
-                <form method="POST" class="" action="{% url 'leagues:social' %}" name="team_leave">{% csrf_token %}
-                    <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-                        <button onclick="$('#leave_team' + {{ team.0.id }}).hide()" type="button"
-                                class="w3-button w3-red">No
-                        </button>
-                        <input type="hidden" name="player_id" value="{{ user.player.id }}">
-                        <input type="hidden" name="leave_team_id" value="{{ team.0.id }}">
-                        <input class="w3-button w3-green w3-right" type="submit" name="{{ team.0.name }}"
-                               value="Yes">
-                    </div>
-                </form>
-            </div>
-        </div>
-    {% endfor %}
-    <!--  LEAVE CLAN ALLERT !-->
-    {% for clan in clan_list %}
-        <div id="leave_clan{{ clan.0.id }}" class="w3-modal" style="display: none">
-            <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <form method="POST" class="" action="{% url 'leagues:social' %}" name="team_leave">{% csrf_token %}
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#leave_team' + {{ team.0.id }}).hide()" type="button"
+                    class="w3-button w3-red">No
+            </button>
+            <input type="hidden" name="player_id" value="{{ user.player.id }}">
+            <input type="hidden" name="leave_team_id" value="{{ team.0.id }}">
+            <input class="w3-button w3-green w3-right" type="submit" name="{{ team.0.name }}"
+                   value="Yes">
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+  <!--  LEAVE CLAN ALLERT !-->
+  {% for clan in clan_list %}
+    <div id="leave_clan{{ clan.0.id }}" class="w3-modal" style="display: none">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
-                <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-                    <h3>Do you really want to leave {{ clan0..name }}</h3>
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3>Do you really wish to leave {{ clan.0.name }}</h3>
 
-                    <button onclick="$('#leave_clan' + {{ clan.0.id }}).hide()" type="button"
-                            class="w3-button w3-display-topright w3-red">
-                        <i class="fa fa-times"></i>
-                    </button>
-                </header>
+          <button onclick="$('#leave_clan' + {{ clan.0.id }}).hide()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
+          </button>
+        </header>
 
-                <form method="POST" class="" action="{% url 'leagues:social' %}" name="clan_leave">{% csrf_token %}
-                    <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-                        <button onclick="$('#leave_clan' + {{ clan.0.id }}).hide()" type="button"
-                                class="w3-button w3-red">No
-                        </button>
-                        <input type="hidden" name="player_id" value="{{ user.player.id }}">
-                        <input type="hidden" name="leave_clan_id" value="{{ clan.0.id }}">
-                        <input class="w3-button w3-green w3-right" type="submit" name="{{ clan.0.name }}"
-                               value="Yes">
-                    </div>
-                </form>
-            </div>
-        </div>
-    {% endfor %}
-    <!--  JOIN TEAM ALLERT !-->
-    {% for team in team_list %}
-        <div id="join_team{{ team.0.id }}" class="w3-modal"style="display: none">
-            <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <form method="POST" class="" action="{% url 'leagues:social' %}" name="clan_leave">{% csrf_token %}
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#leave_clan' + {{ clan.0.id }}).hide()" type="button"
+                    class="w3-button w3-red">No
+            </button>
+            <input type="hidden" name="player_id" value="{{ user.player.id }}">
+            <input type="hidden" name="leave_clan_id" value="{{ clan.0.id }}">
+            <input class="w3-button w3-green w3-right" type="submit" name="{{ clan.0.name }}"
+                   value="Yes">
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+  <!--  JOIN TEAM ALLERT !-->
+  {% for team in team_list %}
+    <div id="join_team{{ team.0.id }}" class="w3-modal" style="display: none">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
-                <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-                    <h3>Do you really want to leave {{ team.0.name }}</h3>
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3>Do you really want to join {{ team.0.name }}</h3>
 
-                    <button onclick="$('#join_team' + {{ team.0.id }}).hide()" type="button"
-                            class="w3-button w3-display-topright w3-red">
-                        <i class="fa fa-times"></i>
-                    </button>
-                </header>
+          <button onclick="$('#join_team' + {{ team.0.id }}).hide()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
+          </button>
+        </header>
 
-                <form method="POST" class="" action="{% url 'leagues:social' %}" name="team_leave">{% csrf_token %}
-                    <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-                        <button onclick="$('#join_team' + {{ team.0.id }}).hide()" type="button"
-                                class="w3-button w3-red">No
-                        </button>
-                        <input type="hidden" name="player_id" value="{{ user.player.id }}">
-                        <input type="hidden" name="join_team_id" value="{{ team.0.id }}">
-                        <input class="w3-button w3-green w3-right" type="submit" name="{{ team.0.name }}"
-                               value="Yes">
-                    </div>
-                </form>
-            </div>
-        </div>
-    {% endfor %}
-    <!--  JOIN CLAN ALLERT !-->
-    {% for clan in clan_list %}
-        <div id="join_clan{{ clan.0.id }}" class="w3-modal" style="display: none">
-            <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <form method="POST" class="" action="{% url 'leagues:social' %}" name="team_leave">{% csrf_token %}
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#join_team' + {{ team.0.id }}).hide()" type="button"
+                    class="w3-button w3-red">No
+            </button>
+            <input type="hidden" name="player_id" value="{{ user.player.id }}">
+            <input type="hidden" name="join_team_id" value="{{ team.0.id }}">
+            <input class="w3-button w3-green w3-right" type="submit" name="{{ team.0.name }}"
+                   value="Yes">
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+  <!--  JOIN CLAN ALLERT !-->
+  {% for clan in clan_list %}
+    <div id="join_clan{{ clan.0.id }}" class="w3-modal" style="display: none">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
-                <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-                    <h3>Do you really want to leave {{ clan0..name }}</h3>
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3>Do you really want to join {{ clan.0.name }}</h3>
 
-                    <button onclick="$('#join_clan' + {{ clan.0.id }}).hide()" type="button"
-                            class="w3-button w3-display-topright w3-red">
-                        <i class="fa fa-times"></i>
-                    </button>
-                </header>
+          <button onclick="$('#join_clan' + {{ clan.0.id }}).hide()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
+          </button>
+        </header>
 
-                <form method="POST" class="" action="{% url 'leagues:social' %}" name="clan_leave">{% csrf_token %}
-                    <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-                        <button onclick="$('#join_clan' + {{ clan.0.id }}).hide()" type="button"
-                                class="w3-button w3-red">No
-                        </button>
-                        <input type="hidden" name="player_id" value="{{ user.player.id }}">
-                        <input type="hidden" name="join_clan_id" value="{{ clan.0.id }}">
-                        <input class="w3-button w3-green w3-right" type="submit" name="{{ clan.0.name }}"
-                               value="Yes">
-                    </div>
-                </form>
-            </div>
-        </div>
-    {% endfor %}
+        <form method="POST" class="" action="{% url 'leagues:social' %}" name="clan_leave">{% csrf_token %}
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#join_clan' + {{ clan.0.id }}).hide()" type="button"
+                    class="w3-button w3-red">No
+            </button>
+            <input type="hidden" name="player_id" value="{{ user.player.id }}">
+            <input type="hidden" name="join_clan_id" value="{{ clan.0.id }}">
+            <input class="w3-button w3-green w3-right" type="submit" name="{{ clan.0.name }}"
+                   value="Yes">
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
 {% endblock %}
