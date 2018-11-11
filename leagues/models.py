@@ -180,7 +180,7 @@ class Player(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     country = CountryField('country of birth', blank=True)
-    birth_date = models.DateField('date of birth', null=True, blank=True)
+    birth_date = models.DateField('date of birth')
     image_url = models.URLField('profile image url', max_length=500, blank=True)
     description = models.TextField('description', blank=True, help_text="Description of player")
     equipment = models.ManyToManyField(Equipment, verbose_name='Equipment used by player')

@@ -77,8 +77,9 @@ class SettingsView(generic.TemplateView):
         if edit_form.is_bound and edit_form.is_valid():
             edit_form.save()
 
-            #Additional processing
-            if form_class.__name__ == 'TeamForm':
+            # Additional processing
+            form_name = form_class.__name__
+            if form_name == 'TeamForm':
                 # Leader must be a member of team
                 leader = edit_form.cleaned_data['leader']
                 if leader:
@@ -87,6 +88,16 @@ class SettingsView(generic.TemplateView):
                         team.team_members.get(pk=leader.id)
                     except Player.DoesNotExist:
                         team.team_members.add(leader)
+
+            elif form_name == 'ClanForm':
+                # Leader must be a member of clan
+                leader = edit_form.cleaned_data['leader']
+                if leader:
+                    clan = model_object
+                    try:
+                        clan.clan_members.get(pk=leader.id)
+                    except Player.DoesNotExist:
+                        clan.clan_members.add(leader)
 
             return HttpResponseRedirect(reverse('leagues:settings'))
 
@@ -223,6 +234,80 @@ class MembershipStatus(Enum):
 class SocialView(generic.TemplateView):
     template_name = "leagues/social.html"
 
+    def cancel_request(self, request_type):
+        player_id = self.request.POST['player_id']
+        object_id = self.request.POST['object_id']
+        player = Player.objects.get(pk=player_id)
+
+        if request_type == 'cancel_team':
+            team = Team.objects.get(pk=object_id)
+            player.team_pendings.remove(team)
+        elif request_type == 'cancel_clan':
+            clan = Clan.objects.get(pk=object_id)
+            player.clan_pendings.remove(clan)
+
+    # Processes join request for teams and clans
+    def join_request(self, request_type):
+        player_id = self.request.POST['player_id']
+        object_id = self.request.POST['object_id']
+        player = Player.objects.get(pk=player_id)
+        group_pendings = None
+        group_members = None
+        group = None
+
+        # Check which type of request it is and initialize common variables
+        if request_type == 'join_team':
+            group = Team.objects.get(pk=object_id)
+            group_members = group.team_members
+            group_pendings = player.team_pendings
+        elif request_type == 'join_clan':
+            group = Clan.objects.get(pk=object_id)
+            group_members = group.clan_members
+            group_pendings = player.clan_pendings
+
+        if group:
+            if group.leader:
+                # Need confirmation if group has a leader
+                group_pendings.add(group)
+            else:
+                # Join immediately
+                group.leader = player
+                group_members.add(player)
+                group.save()
+
+    def leave_request(self, request_type):
+        player_id = self.request.POST['player_id']
+        object_id = self.request.POST['object_id']
+        player = Player.objects.get(pk=player_id)
+        group = None
+        group_members = None
+
+        if request_type == 'leave_team':
+            group = Team.objects.get(pk=object_id)
+            group_members = group.team_members
+        elif request_type == 'leave_clan':
+            group = Clan.objects.get(pk=object_id)
+            group_members = group.clan_members
+
+        if group:
+            group_members.remove(player)
+            # Check if leaving player is a group leader and revoke the privilege if so
+            if group.leader and group.leader.id == player.id:
+                # Pick first player to become a new leader (None if there are no players left)
+                group.leader = group_members.first()
+                group.save()
+
+    def __init__(self):
+        super().__init__()
+        self.actions = {
+            'cancel_team': self.cancel_request,
+            'cancel_clan': self.cancel_request,
+            'join_team': self.join_request,
+            'join_clan': self.join_request,
+            'leave_team': self.leave_request,
+            'leave_clan': self.leave_request,
+        }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         player = self.request.user.player
@@ -257,37 +342,39 @@ class SocialView(generic.TemplateView):
         context = super().get_context_data(**kwargs)
         player_id = request.POST['player_id']
         player = Player.objects.get(pk=player_id)
-        team_members = Player.teams.through.objects.all()
-        clan_members = Player.clans.through.objects.all()
 
-        if 'leave_team_id' in request.POST:
-            team_id = request.POST['leave_team_id']
-            team = Team.objects.get(pk=team_id)
+        if request.is_ajax():
+            # Get callable object from action dictionary and call action method
+            action_key = request.POST['action']
+            action = self.actions[action_key]
+            action(action_key)
+            return JsonResponse({})
 
-            # Check if leaving player is a team leader and revoke the privilage if so
-            if team.leader and team.leader.id == player.id:
-                team.leader = None
-                team.save()
-            team.team_members.remove(player)
-        elif 'leave_clan_id' in request.POST:
-            clan_id = request.POST['leave_clan_id']
-            clan_members.filter(player__id=player_id, clan__id=clan_id).delete()
-        elif 'join_team_id' in request.POST:
-            team_id = request.POST['join_team_id']
-            team = Team.objects.get(pk=team_id)
-
-            # Need confirmation if team has a leader otherwise join immediately
-            if team.leader:
-                player.team_pendings.add(team)
-            else:
-                team.leader = player
-                team.team_members.add(player)
-                team.save()
-        elif 'join_clan_id' in request.POST:
-            clan = Clan.objects.get(pk=request.POST['join_clan_id'])
-            player.clan_pendings.add(clan)
         else:
-            return render(request, self.template_name, context)
+            if 'leave_team_id' in request.POST:
+                team_id = request.POST['leave_team_id']
+                team = Team.objects.get(pk=team_id)
+                team.team_members.remove(player)
+
+                # Check if leaving player is a team leader and revoke the privilege if so
+                if team.leader and team.leader.id == player.id:
+                    # Pick first player to become a new leader (None if there are no players left)
+                    team.leader = team.team_members.first()
+                    team.save()
+
+            elif 'leave_clan_id' in request.POST:
+                clan_id = request.POST['leave_clan_id']
+                clan = Clan.objects.get(pk=clan_id)
+                clan.clan_members.remove(player)
+
+                # Check if leaving player is a clan leader and revoke the privilege if so
+                if clan.leader and clan.leader.id == player.id:
+                    # Pick first player to become a new leader (None if there are no players left)
+                    clan.leader = clan.clan_members.first()
+                    clan.save()
+
+            else:
+                return render(request, self.template_name, context)
 
         return HttpResponseRedirect(reverse("leagues:social"))
 

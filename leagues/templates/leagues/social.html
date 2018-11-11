@@ -3,6 +3,40 @@
 
 {% block title %}Leagues | Social {% endblock %}
 
+{% block scripts %}
+  <script>
+      function buttonClick(id, action) {
+          $.ajax({
+              type: 'POST',
+              url: "{% url 'leagues:social' %}",
+              data: {
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'action': action,
+                  'object_id': id,
+                  'player_id': {{ user.player.id }}
+              },
+              dataType: "json",
+              async: true,
+              success: function (json) {
+                  location.reload();
+              },
+              error: function (xhr, error) {
+                  console.log("AJAX failure");
+                  console.log(xhr);
+                  console.log(error);
+              }
+          });
+      }
+
+      function openDialog(text, confirmCallback) {
+          $('#dialog_text').text(text);
+          $('#dialog_confirm').attr('onclick',
+              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
+          $('#dialog').show();
+      }
+  </script>
+{% endblock %}
+
 
 {% block left_panel %}
   {% with side_bars_enabled=True %}
@@ -95,18 +129,21 @@
                 {% if user.is_authenticated %}
                   <td class="w3-padding-3 w3-small table_button_center">
                     {% if team.1 == membership.MEMBER %}
-                      <button onclick="$('#leave_team' + {{ team.0.id }}).show()"
+                      <button onclick="openDialog('Do you really wish to leave \'{{ team.0.name }}\'',
+                          buttonClick, {{ team.0.id }}, 'leave_team')"
                               class="w3-button w3-red table_button leave_button">
                         Leave
                       </button>
                     {% elif team.1 == membership.NOT_MEMBER %}
-                      <button onclick="$('#join_team' + {{ team.0.id }}).show()"
+                      <button onclick="buttonClick({{ team.0.id }}, 'join_team')"
                               class="w3-button w3-green table_button join_button">
                         Join
                       </button>
                     {% else %}
-                      <button class="w3-button w3-orange table_button pending_button">
-                        Pending...
+                      <button onclick="buttonClick({{ team.0.id }}, 'cancel_team');"
+                              class="w3-button w3-orange table_button pending_button">
+                        <span class="normal">Pending</span>
+                        <span class="hover">Cancel</span>
                       </button>
                     {% endif %}
                   </td>
@@ -153,18 +190,21 @@
                 {% if user.is_authenticated %}
                   <td class="w3-padding-3 w3-small table_button_center">
                     {% if clan.1 == membership.MEMBER %}
-                      <button onclick="$('#leave_clan' + {{ clan.0.id }}).show()"
+                      <button onclick="openDialog('Do you really wish to leave \'{{ clan.0.name }}\'',
+                          buttonClick, {{ clan.0.id }}, 'leave_clan')"
                               class="w3-button w3-red table_button leave_button">
                         Leave
                       </button>
                     {% elif clan.1 == membership.NOT_MEMBER %}
-                      <button onclick="$('#join_clan' + {{ clan.0.id }}).show()"
+                      <button onclick="buttonClick({{ clan.0.id }}, 'join_clan')"
                               class="w3-button w3-green table_button join_button">
                         Join
                       </button>
                     {% else %}
-                      <button class="w3-button w3-orange table_button pending_button">
-                        Pending...
+                      <button onclick="buttonClick({{ clan.0.id }}, 'cancel_clan');"
+                              class="w3-button w3-orange table_button pending_button">
+                        <span class="normal">Pending</span>
+                        <span class="hover">Cancel</span>
                       </button>
                     {% endif %}
                   </td>
@@ -191,116 +231,27 @@
 
 {% block endpage %}
   {% load widget_tweaks %}
-  <!--  LEAVE TEAM ALLERT !-->
-  {% for team in team_list %}
-    <div id="leave_team{{ team.0.id }}" class="w3-modal" style="display: none">
-      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+  <div id="dialog" class="w3-modal" style="display: none">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
-        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-          <h3>Do you really wish to leave {{ team.0.name }}</h3>
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 id="dialog_text">Placeholder Text</h3>
 
-          <button onclick="$('#leave_team' + {{ team.0.id }}).hide()" type="button"
-                  class="w3-button w3-display-topright w3-red">
-            <i class="fa fa-times"></i>
-          </button>
-        </header>
+        <button onclick="$('#dialog').hide()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
 
-        <form method="POST" class="" action="{% url 'leagues:social' %}" name="team_leave">{% csrf_token %}
-          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-            <button onclick="$('#leave_team' + {{ team.0.id }}).hide()" type="button"
-                    class="w3-button w3-red">No
-            </button>
-            <input type="hidden" name="player_id" value="{{ user.player.id }}">
-            <input type="hidden" name="leave_team_id" value="{{ team.0.id }}">
-            <input class="w3-button w3-green w3-right" type="submit" name="{{ team.0.name }}"
-                   value="Yes">
-          </div>
-        </form>
+      <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+        <button onclick="$('#dialog').hide()" type="button" id="dialog_decline"
+                class="w3-button w3-red">No
+        </button>
+
+        <button onclick="$('#dialog').hide()" type="button" id="dialog_confirm"
+                class="w3-button w3-green w3-right">Yes
+        </button>
       </div>
     </div>
-  {% endfor %}
-  <!--  LEAVE CLAN ALLERT !-->
-  {% for clan in clan_list %}
-    <div id="leave_clan{{ clan.0.id }}" class="w3-modal" style="display: none">
-      <div class="w3-modal-content w3-card-4" style="max-width:600px">
-
-        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-          <h3>Do you really wish to leave {{ clan.0.name }}</h3>
-
-          <button onclick="$('#leave_clan' + {{ clan.0.id }}).hide()" type="button"
-                  class="w3-button w3-display-topright w3-red">
-            <i class="fa fa-times"></i>
-          </button>
-        </header>
-
-        <form method="POST" class="" action="{% url 'leagues:social' %}" name="clan_leave">{% csrf_token %}
-          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-            <button onclick="$('#leave_clan' + {{ clan.0.id }}).hide()" type="button"
-                    class="w3-button w3-red">No
-            </button>
-            <input type="hidden" name="player_id" value="{{ user.player.id }}">
-            <input type="hidden" name="leave_clan_id" value="{{ clan.0.id }}">
-            <input class="w3-button w3-green w3-right" type="submit" name="{{ clan.0.name }}"
-                   value="Yes">
-          </div>
-        </form>
-      </div>
-    </div>
-  {% endfor %}
-  <!--  JOIN TEAM ALLERT !-->
-  {% for team in team_list %}
-    <div id="join_team{{ team.0.id }}" class="w3-modal" style="display: none">
-      <div class="w3-modal-content w3-card-4" style="max-width:600px">
-
-        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-          <h3>Do you really want to join {{ team.0.name }}</h3>
-
-          <button onclick="$('#join_team' + {{ team.0.id }}).hide()" type="button"
-                  class="w3-button w3-display-topright w3-red">
-            <i class="fa fa-times"></i>
-          </button>
-        </header>
-
-        <form method="POST" class="" action="{% url 'leagues:social' %}" name="team_leave">{% csrf_token %}
-          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-            <button onclick="$('#join_team' + {{ team.0.id }}).hide()" type="button"
-                    class="w3-button w3-red">No
-            </button>
-            <input type="hidden" name="player_id" value="{{ user.player.id }}">
-            <input type="hidden" name="join_team_id" value="{{ team.0.id }}">
-            <input class="w3-button w3-green w3-right" type="submit" name="{{ team.0.name }}"
-                   value="Yes">
-          </div>
-        </form>
-      </div>
-    </div>
-  {% endfor %}
-  <!--  JOIN CLAN ALLERT !-->
-  {% for clan in clan_list %}
-    <div id="join_clan{{ clan.0.id }}" class="w3-modal" style="display: none">
-      <div class="w3-modal-content w3-card-4" style="max-width:600px">
-
-        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-          <h3>Do you really want to join {{ clan.0.name }}</h3>
-
-          <button onclick="$('#join_clan' + {{ clan.0.id }}).hide()" type="button"
-                  class="w3-button w3-display-topright w3-red">
-            <i class="fa fa-times"></i>
-          </button>
-        </header>
-
-        <form method="POST" class="" action="{% url 'leagues:social' %}" name="clan_leave">{% csrf_token %}
-          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-            <button onclick="$('#join_clan' + {{ clan.0.id }}).hide()" type="button"
-                    class="w3-button w3-red">No
-            </button>
-            <input type="hidden" name="player_id" value="{{ user.player.id }}">
-            <input type="hidden" name="join_clan_id" value="{{ clan.0.id }}">
-            <input class="w3-button w3-green w3-right" type="submit" name="{{ clan.0.name }}"
-                   value="Yes">
-          </div>
-        </form>
-      </div>
-    </div>
-  {% endfor %}
+  </div>
 {% endblock %}
