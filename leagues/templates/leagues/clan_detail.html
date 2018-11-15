@@ -10,10 +10,133 @@
 
 
 {% block content %}
-  <div style="flex: 1 0 auto">
-    <div class="flex-container">
-      <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
-        <h1 style="text-align: center">{{ clan.name }}</h1>
+  <div class="w3-container w3-margin-bottom flex-container" style="flex: 1 1 0;">
+    <div class="w3-card w3-round-large w3-white" style="width: 100%; max-width: 1000px">
+      <header>
+        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ clan.name }}</h1>
+
+        <ul class="section-bar" style="flex: 1 1 auto">
+          <li onclick="showSection(event, 'info');" id="info_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Clan info
+          </li>
+          <li onclick="showSection(event, 'teams');" id="teams_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Teams
+          </li>
+          <li onclick="showSection(event, 'members');" id="members_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Members
+          </li>
+        </ul>
+      </header>
+
+      <div id="info" class="w3-container w3-section section">
+        <h4>Active:
+          {% if clan.active %}
+            <i class="fas fa-check-circle"></i>
+          {% else %}
+            <i class="fas fa-times-circle"></i>
+          {% endif %}
+        </h4>
+
+        <h4>Leader:
+          {% if clan.leader %}
+            <a href="{% url 'leagues:player_detail' clan.leader.slug %}">{{ clan.leader }}</a>
+          {% else %}
+            None
+          {% endif %}
+        </h4>
+
+        <h4>Founded: {{ clan.founded|default:""|date:"j.n.Y" }}</h4>
+
+        <h4>
+          Description:
+        </h4>
+        <article class="w3-container">
+          <p style="margin:0;">{{ clan.description }}</p>
+        </article>
+      </div>
+
+
+      <div id="teams" class="w3-container w3-section section">
+        <h3>Teams</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Name</th>
+              <th>Leader</th>
+              <th>Games won</th>
+              <th>Games total</th>
+              <th>Win ratio</th>
+            </tr>
+            </thead>
+
+            <tbody id="team_rows">
+            {% for team in clan_teams %}
+              <tr style="display: none">
+                <td>
+                  <a href="{% url 'leagues:team_detail' team.slug %}">
+                    {{ team.name }}
+                  </a>
+                </td>
+                <td>
+                  <a href="{% url 'leagues:player_detail' team.leader.slug %}">
+                    {{ team.leader.nickname }}
+                  </a>
+                </td>
+                <td>{{ team.matches_won.count }}</td>
+                <td>{{ team.all_matches.count }}</td>
+                <td>{{ team.win_ratio|default:"No matches" }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+
+      <div id="members" class="w3-container w3-section section">
+        <h3>Members</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Nickname</th>
+              <th>Team</th>
+{#              <th>Games won</th>#}
+              <th>Games total</th>
+{#              <th>Win ratio</th>#}
+            </tr>
+            </thead>
+
+            <tbody id="member_rows">
+            {% for member in member_matches %}
+              <tr style="display: none">
+                <td>
+                  <a href="{% url 'leagues:player_detail' member.0.slug %}">
+                    {{ member.0.nickname }}
+                  </a>
+                </td>
+                <td>
+                  {% if member.1.team.slug %}
+                  <a href="{% url 'leagues:team_detail' member.1.team.slug %}">
+                    {{ member.1.team.name }}
+                  </a>
+                  {% else %}
+                  <p>sakra</p>
+                  {% endif %}
+                </td>
+{#                <td>{{ member.2.count }}</td>#}
+                <td>{{ member.1.count }}</td>
+{#                <td>{{ member.0.win_ratio|default:"No games" }}</td>#}
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
       </div>
     </div>
   </div>
