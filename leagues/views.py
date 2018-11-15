@@ -460,6 +460,9 @@ class ClanDetailView(generic.DetailView):
         member_matches = []
         for member in members:
             clan_matches = PlayedMatch.objects.filter(Q(clan=clan) & Q(player=member))
+            count = clan_matches.count()
+            won_matches = clan_matches.filter(team=F('match__winner'))
+            won_count = won_matches.count()
             member_matches.append((member, clan_matches))
         context['member_matches'] = member_matches
         clan_teams = Team.objects.filter(clan_id=clan.id)
