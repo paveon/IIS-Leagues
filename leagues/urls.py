@@ -16,6 +16,7 @@ urlpatterns = [
     path('team/<slug:slug>/', views.TeamDetailView.as_view(), name='team_detail'),
     path('clan/<slug:slug>/', views.ClanDetailView.as_view(), name='clan_detail'),
     path('game/<slug:slug>/', views.DetailGameView.as_view(), name='game_detail'),
+    path('match/<pk>/', views.MatchDetailView.as_view(), name='match_detail'),
     path('games/', views.GamesView.as_view(), name='games'),
     path('social/', views.SocialView.as_view(), name='social'),
     path('settings/', views.SettingsView.as_view(), name='settings'),

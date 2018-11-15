@@ -131,11 +131,22 @@ class Team(models.Model):
     def all_matches(self):
         return self.matches_a.all().union(self.matches_b.all())
 
+    @property
+    def win_ratio(self):
+        matches_total = self.all_matches.count()
+        if not matches_total:
+            return None
+
+        matches_won = self.matches_won.count()
+        return str(round((matches_won / matches_total) * 100, 2)) + " %"
+
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
+        if not self.leader and self.active:
+            self.active = False
         super(Team, self).save(*args, **kwargs)
 
 
@@ -151,6 +162,14 @@ class Match(models.Model):
     team_2 = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_b',
                                verbose_name='second participating team')
     winner = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_won', verbose_name='winning team')
+
+    @property
+    def duration_fmt(self):
+        beginning = self.beginning
+        seconds = int(self.duration.total_seconds())
+        minutes = seconds // 60
+        seconds = seconds % 60
+        return '{0}m {1}s'.format(minutes, seconds)
 
     def __str__(self):
         return "Match ({0}): {1} vs {2}".format(self.id, self.team_1, self.team_2)
@@ -177,8 +196,8 @@ class Player(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     nickname = models.CharField(max_length=50, unique=True)
     slug = models.SlugField(max_length=50)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
     country = CountryField('country of birth', blank=True)
     birth_date = models.DateField('date of birth')
     image_url = models.URLField('profile image url', max_length=500, blank=True)
@@ -224,6 +243,10 @@ class PlayedMatch(models.Model):
     match = models.ForeignKey(Match, on_delete=models.PROTECT)
     team = models.ForeignKey(Team, on_delete=models.PROTECT)
     # game_won = models.BooleanField('game won')
+
+    @property
+    def game_won(self):
+        return self.match.winner.id == self.team.id
 
     class Meta:
         unique_together = ('player', 'match')

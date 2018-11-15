@@ -48,22 +48,24 @@
 {% block content %}
   <div class="w3-container flex-container" style="flex: 1 1 0">
     <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
-      <ul class="section-bar" style="flex: 1 1 auto">
-        <li onclick="showSection(event, 'Players');" id="players_tab"
-            class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
-          Players
-        </li>
-        <li onclick="showSection(event, 'Teams');" id="teams_tab"
-            class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
-          Teams
-        </li>
-        <li onclick="showSection(event, 'Clans');" id="clans_tab"
-            class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
-          Clans
-        </li>
-      </ul>
+      <header>
+        <ul class="section-bar" style="flex: 1 1 auto">
+          <li onclick="showSection(event, 'players');" id="players_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Players
+          </li>
+          <li onclick="showSection(event, 'teams');" id="teams_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Teams
+          </li>
+          <li onclick="showSection(event, 'clans');" id="clans_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Clans
+          </li>
+        </ul>
+      </header>
 
-      <div id="Players" class="w3-container w3-section section" style="display:block">
+      <div id="players" class="w3-container w3-section section">
         <h3>Players</h3>
         <div class="pagedTable w3-card w3-round">
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
@@ -95,7 +97,7 @@
         </div>
       </div>
 
-      <div id="Teams" class="w3-container w3-section section">
+      <div id="teams" class="w3-container w3-section section">
         <h3>Teams</h3>
         <div class="pagedTable w3-card w3-round">
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
@@ -156,7 +158,7 @@
         </div>
       </div>
 
-      <div id="Clans" class="w3-container w3-section section">
+      <div id="clans" class="w3-container w3-section section">
         <h3>Clans</h3>
         <div class="pagedTable w3-card w3-round">
           <table class="w3-table w3-striped w3-bordered w3-hoverable">

@@ -14,12 +14,6 @@ class CalendarWidget(forms.TextInput):
         )
 
 
-class PlayerEditForm(ModelForm):
-    class Meta:
-        model = Player
-        fields = ['nickname', 'first_name', 'last_name', 'country']
-
-
 class PlayerForm(ModelForm):
     class Meta:
         model = Player
@@ -79,16 +73,6 @@ class ClanForm(ModelForm):
         foundation_date = cleaned_data['founded']
         if foundation_date > datetime.date.today():
             raise ValidationError('Clan cannot be founded in future')
-
-        # Leader must be a member of team
-        leader = cleaned_data['leader']
-        if leader:
-            clan = self.instance
-            if clan:
-                try:
-                    clan.team_members.get(pk=leader.id)
-                except Player.DoesNotExist:
-                    raise ValidationError('Leader must be a member of clan')
 
         return cleaned_data
 

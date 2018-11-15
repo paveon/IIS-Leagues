@@ -6,7 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from django.forms.models import model_to_dict
 from django_countries.fields import Country
-from django.db.models import F
+from django.db.models import F, Q
 from enum import Enum
 from .forms import *
 
@@ -26,7 +26,7 @@ class SignupView(View):
             username = form.cleaned_data.get('username')
             raw_password = form.cleaned_data.get('password1')
             new_user = authenticate(username=username, password=raw_password)
-            player = Player.objects.create(nickname=username, first_name=username, last_name=username)
+            player = Player.objects.create(nickname=username)
             player.user = new_user
             player.save()
 
@@ -383,39 +383,75 @@ class PlayerDetailView(generic.DetailView):
     template_name = "leagues/player_detail.html"
     model = Player
 
+    def edit_player(self):
+        edit_form = PlayerForm(self.request.POST, instance=self.object, prefix='player_form')
+        if edit_form.is_bound and edit_form.is_valid():
+            edit_form.save()
+            new_slug = slugify(context['player'].nickname)
+            return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
+
+    def __init__(self):
+        super().__init__()
+        self.object = None
+        self.actions = {
+            'player_edit': self.edit_player,
+        }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        edit_form = PlayerEditForm(instance=context['player'], prefix='player_edit_form')
-        context['edit_form'] = edit_form
+        edit_form = PlayerForm(instance=context['player'], prefix='player_form')
+        context['player_form'] = edit_form
         return context
 
     # TODO random generace noveho leadera pokud leavne leader klan nebo tym
     def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
         context = super().get_context_data(**kwargs)
+        action_key = request.POST['action']
+        action = self.actions[action_key]
+        action()
+        return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
 
-        if 'player_edit_form' in request.POST:
-            edit_form = PlayerEditForm(request.POST, instance=context['player'], prefix='player_edit_form')
-            if edit_form.is_bound and edit_form.is_valid():
-                edit_form.save()
-                new_slug = slugify(context['player'].nickname)
-                return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
-        elif 'team_id' in request.POST:
-            Player.teams.through.objects.all().filter(player__id=request.POST['player_id'],
-                                                      team__id=request.POST['team_id']).delete()
-            return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
-        elif 'clan_id' in request.POST:
-            Player.clans.through.objects.all().filter(player__id=request.POST['player_id'],
-                                                      team__id=request.POST['clan_id']).delete()
-            return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
+        # if 'player_form' in request.POST:
+        #     edit_form = PlayerForm(request.POST, instance=context['player'], prefix='player_form')
+        #     if edit_form.is_bound and edit_form.is_valid():
+        #         edit_form.save()
+        #         new_slug = slugify(context['player'].nickname)
+        #         return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
+        # elif 'team_id' in request.POST:
+        #     Player.teams.through.objects.all().filter(player__id=request.POST['player_id'],
+        #                                               team__id=request.POST['team_id']).delete()
+        #     return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
+        # elif 'clan_id' in request.POST:
+        #     Player.clans.through.objects.all().filter(player__id=request.POST['player_id'],
+        #                                               team__id=request.POST['clan_id']).delete()
+        #     return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
 
-        return render(request, self.template_name, context)
+        # return render(request, self.template_name, context)
 
 
 class TeamDetailView(generic.DetailView):
     template_name = "leagues/team_detail.html"
     model = Team
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        team = self.get_object()
+        members = team.team_members.all()
+        member_matches = []
+        for member in members:
+            team_matches = PlayedMatch.objects.filter(Q(team=team) & Q(player=member))
+            won_matches = team_matches.filter(match__winner=team)
+            member_matches.append((member, team_matches, won_matches))
+        context['member_matches'] = member_matches
+        return context
+
 
 class ClanDetailView(generic.DetailView):
     template_name = "leagues/clan_detail.html"
     model = Clan
+
+
+class MatchDetailView(generic.DetailView):
+    template_name = "leagues/match_detail.html"
+    model = Match

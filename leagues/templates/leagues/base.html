@@ -13,6 +13,8 @@
   <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css"
+        integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 
   <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -188,7 +190,15 @@
           else {
               let tabs = $('.section-tab');
               if (tabs) {
-                  tabs.first().addClass('w3-border-red');
+                  let firstTab = tabs.first();
+                  firstTab.addClass('w3-border-red');
+                  if (firstTab.attr('id').endsWith('_tab')) {
+                      let sectionID = firstTab.attr('id').slice(0, -4);
+                      let section = $('#' + sectionID);
+                      if (section) {
+                          section.show();
+                      }
+                  }
               }
           }
       });

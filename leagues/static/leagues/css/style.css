@@ -189,3 +189,7 @@ a {
 .pending_button:hover .hover {
     display: inline;
 }
+
+article p {
+    text-align: justify;
+}
