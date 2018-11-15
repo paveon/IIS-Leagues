@@ -1,7 +1,6 @@
 {% extends 'leagues/base.html' %}
 {% block title %}Players | {{ player.nickname }} {% endblock %}
 
-
 {% block left_panel %}
   {% with side_bars_enabled=True %}
     {{ block.super }}
@@ -30,7 +29,7 @@
       </header>
 
       <div id="info" class="w3-container w3-section section" style="position: relative;">
-        {% if user.player == player %}
+        {% if authorized %}
           <button type="button" class="w3-round-large w3-green w3-button"
                   onclick="$('#{{ player_form.prefix }}').show()">
             Edit <i class="fas fa-edit"></i>
@@ -56,9 +55,77 @@
           <p style="margin:0;">{{ player.description }}</p>
         </article>
       </div>
+
+
+      <div id="groups" class="w3-container section">
+        <div class="w3-section flex-container">
+          <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
+            <h3>Teams</h3>
+            <div class="pagedTable w3-card w3-round">
+              <table class="w3-table w3-striped w3-bordered w3-hoverable">
+                <thead>
+                <tr class="">
+                  <th>Team name</th>
+                  {% if authorized %}
+                    <th></th>
+                  {% endif %}
+                </tr>
+                </thead>
+
+                <tbody id="team_rows">
+                {% for team in player.teams.all %}
+                  <tr style="display: none">
+                    <td>
+                      <a href="{% url 'leagues:team_detail' team.slug %}">
+                        {{ team.name }}
+                      </a>
+                    </td>
+                    {% if authorized %}
+                      <td>TEST</td>
+                    {% endif %}
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+              {% include 'leagues/table_footer.html' %}
+            </div>
+          </div>
+
+          <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
+            <h3>Clans</h3>
+            <div class="pagedTable w3-card w3-round">
+              <table class="w3-table w3-striped w3-bordered w3-hoverable">
+                <thead>
+                <tr class="">
+                  <th>Clan name</th>
+                  {% if authorized %}
+                    <th></th>
+                  {% endif %}
+                </tr>
+                </thead>
+
+                <tbody id="clan_rows">
+                {% for clan in player.clans.all %}
+                  <tr style="display: none">
+                    <td>
+                      <a href="{% url 'leagues:clan_detail' clan.slug %}">
+                        {{ clan.name }}
+                      </a>
+                    </td>
+                    {% if authorized %}
+                      <td>TEST</td>
+                    {% endif %}
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+              {% include 'leagues/table_footer.html' %}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-
 {% endblock %}
 
 
@@ -131,7 +198,7 @@
   {% endfor %}
 
   <!--  PLAYER INFO FORM !-->
-    <div id="{{ player_form.prefix }}" class="w3-modal" {% if player_form.errors %}
+  <div id="{{ player_form.prefix }}" class="w3-modal" {% if player_form.errors %}
        style="display: block" {% endif %}>
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
@@ -184,54 +251,13 @@
                   class="w3-button w3-red">Cancel
           </button>
 
-          <input class="formAction" type="hidden" name="post_action" value="player_edit">
-          <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create player">
+          <input class="formAction" type="hidden" name="action" value="player_edit">
+          <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Edit">
         </div>
       </form>
     </div>
   </div>
 
-
-{#  <div id="player_edit" class="w3-modal" {% if edit_form.errors %}#}
-{#       style="display: block" {% endif %}>#}
-{#    <div class="w3-modal-content w3-card-4" style="max-width:600px">#}
-{##}
-{#      <header class="w3-container w3-center w3-light-grey w3-border-bottom">#}
-{#        <h3>Edit '{{ edit_form.first_name.value }}'</h3>#}
-{##}
-{#        <button onclick="$('#player_edit').hide()" type="button"#}
-{#                class="w3-button w3-display-topright w3-red">#}
-{#          <i class="fa fa-times"></i>#}
-{#        </button>#}
-{#      </header>#}
-{##}
-{#      <form method="POST" class="" action="{% url 'leagues:player_detail' player.slug %}" name="player_edit">#}
-{#        <div class="w3-section w3-container">#}
-{#          {% csrf_token %}#}
-{#          {% if edit_form.errors %}#}
-{#            <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">#}
-{#              {{ edit_form.errors }}#}
-{#            </div>#}
-{#          {% endif %}#}
-{##}
-{#          <label><b>{{ edit_form.first_name.label_tag }}</b></label>#}
-{#          {% render_field edit_form.first_name class+="w3-input w3-border w3-margin-bottom" %}#}
-{#          <label><b>{{ edit_form.last_name.label_tag }}</b></label>#}
-{#          {% render_field edit_form.last_name class+="w3-input w3-border w3-margin-bottom" %}#}
-{#          <label><b>{{ edit_form.nickname.label_tag }}</b></label>#}
-{#          {% render_field edit_form.nickname class+="w3-input w3-border w3-margin-bottom" %}#}
-{#        </div>#}
-{#        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">#}
-{#          <button onclick="$('#player_edit').hide()" type="button"#}
-{#                  class="w3-button w3-red">Close#}
-{#          </button>#}
-{##}
-{#          <input class="w3-button w3-green w3-right" type="submit" name="{{ edit_form.prefix }}"#}
-{#                 value="Save changes">#}
-{#        </div>#}
-{#      </form>#}
-{#    </div>#}
-{#  </div>#}
-
 {% endblock %}
+
 

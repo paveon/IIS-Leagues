@@ -384,11 +384,13 @@ class PlayerDetailView(generic.DetailView):
     model = Player
 
     def edit_player(self):
-        edit_form = PlayerForm(self.request.POST, instance=self.object, prefix='player_form')
+        player = self.object
+        user = player.user
+        edit_form = PlayerForm(self.request.POST, instance=player, prefix='player_form')
         if edit_form.is_bound and edit_form.is_valid():
-            edit_form.save()
-            new_slug = slugify(context['player'].nickname)
-            return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
+            player = edit_form.save(commit=False)
+            player.user = user
+            player.save()
 
     def __init__(self):
         super().__init__()
@@ -398,19 +400,18 @@ class PlayerDetailView(generic.DetailView):
         }
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        edit_form = PlayerForm(instance=context['player'], prefix='player_form')
-        context['player_form'] = edit_form
-        return context
-
-    # TODO random generace noveho leadera pokud leavne leader klan nebo tym
-    def post(self, request, *args, **kwargs):
         self.object = self.get_object()
         context = super().get_context_data(**kwargs)
+        edit_form = PlayerForm(instance=self.object, prefix='player_form')
+        context['player_form'] = edit_form
+        context['authorized'] = (self.object.user == self.request.user)
+        return context
+
+    def post(self, request, *args, **kwargs):
         action_key = request.POST['action']
         action = self.actions[action_key]
         action()
-        return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
+        return HttpResponseRedirect(reverse("leagues:player_detail", args=[self.object.slug]))
 
         # if 'player_form' in request.POST:
         #     edit_form = PlayerForm(request.POST, instance=context['player'], prefix='player_form')
