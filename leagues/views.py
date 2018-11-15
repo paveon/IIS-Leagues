@@ -451,6 +451,20 @@ class ClanDetailView(generic.DetailView):
     template_name = "leagues/clan_detail.html"
     model = Clan
 
+    # TODO problem pri 2 tymech ze stejneho klanu ktere hraji zapas proti sobe => zakazat
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        clan = self.get_object()
+        members = clan.clan_members.all()
+        member_matches = []
+        for member in members:
+            clan_matches = PlayedMatch.objects.filter(Q(clan=clan) & Q(player=member))
+            member_matches.append((member, clan_matches))
+        context['member_matches'] = member_matches
+        clan_teams = Team.objects.filter(clan_id=clan.id)
+        context['clan_teams'] = clan_teams
+        return context
+
 
 class MatchDetailView(generic.DetailView):
     template_name = "leagues/match_detail.html"

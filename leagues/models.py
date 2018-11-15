@@ -242,6 +242,7 @@ class PlayedMatch(models.Model):
     player = models.ForeignKey(Player, on_delete=models.PROTECT)
     match = models.ForeignKey(Match, on_delete=models.PROTECT)
     team = models.ForeignKey(Team, on_delete=models.PROTECT)
+    clan = models.ForeignKey(Clan, on_delete=models.PROTECT)
     # game_won = models.BooleanField('game won')
 
     @property
