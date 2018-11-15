@@ -2,6 +2,41 @@
 {% block title %}Clans | {{ clan.name }} {% endblock %}
 
 
+{% block scripts %}
+  <script>
+      function buttonClick(player_id, action) {
+          console.log(player_id);
+          $.ajax({
+              type: 'POST',
+              url: "{% url 'leagues:clan_detail' clan.slug%}",
+              data: {
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'action': action,
+                  'clan_id': {{ clan.id }},
+                  'player_id': player_id
+              },
+              dataType: "json",
+              async: true,
+              success: function (json) {
+                  location.reload();
+              },
+              error: function (xhr, error) {
+                  console.log("AJAX failure");
+                  console.log(xhr);
+                  console.log(error);
+              }
+          });
+      }
+
+      function openDialog(text, confirmCallback) {
+          $('#dialog_text').text(text);
+          $('#dialog_confirm').attr('onclick',
+              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
+          $('#dialog').show();
+      }
+  </script>
+{% endblock %}
+
 {% block left_panel %}
   {% with side_bars_enabled=True %}
     {{ block.super }}
@@ -27,6 +62,10 @@
           <li onclick="showSection(event, 'members');" id="members_tab"
               class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
             Members
+          </li>
+          <li onclick="showSection(event, 'stats');" id="stats_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Statistics
           </li>
         </ul>
       </header>
@@ -104,10 +143,12 @@
             <thead>
             <tr class="">
               <th>Nickname</th>
-              <th>Team</th>
-{#              <th>Games won</th>#}
+              <th>Games won</th>
               <th>Games total</th>
-{#              <th>Win ratio</th>#}
+              <th>Win ratio</th>
+              {% if user.player == clan.leader %}
+              <th>Status</th>
+              {% endif %}
             </tr>
             </thead>
 
@@ -119,18 +160,28 @@
                     {{ member.0.nickname }}
                   </a>
                 </td>
-                <td>
-                  {% if member.1.team.slug %}
-                  <a href="{% url 'leagues:team_detail' member.1.team.slug %}">
-                    {{ member.1.team.name }}
-                  </a>
-                  {% else %}
-                  <p>sakra</p>
-                  {% endif %}
-                </td>
-{#                <td>{{ member.2.count }}</td>#}
+                <td>{{ member.2.count }}</td>
                 <td>{{ member.1.count }}</td>
-{#                <td>{{ member.0.win_ratio|default:"No games" }}</td>#}
+                <td>{{ member.0.win_ratio|default:"No games" }}</td>
+                {% if user.player == clan.leader %}
+                  {% if user.player == member.0 %}
+                    <td class="w3-padding-3 w3-small table_button_center">
+                      <button onclick="openDialog('Do you really wish to leave \'{{ clan.name }}\'',
+                          buttonClick, {{ member.0.id }}, 'leave_clan')"
+                              class="w3-button w3-red table_button leave_button">
+                        Leave
+                      </button>
+                    </td>
+                  {% else %}
+                    <td class="w3-padding-3 w3-small table_button_center">
+                      <button onclick="openDialog('Do you really wish to kick player \'{{ member.0.nickname }}\' from clan \'{{ clan.name }}\' and from all teams from this clan?',
+                          buttonClick, {{ member.0.id }}, 'kick_player')"
+                              class="w3-button w3-red table_button leave_button">
+                        Kick
+                      </button>
+                    </td>
+                  {% endif %}
+                {% endif %}
               </tr>
             {% endfor %}
             </tbody>
@@ -138,6 +189,14 @@
           {% include 'leagues/table_footer.html' %}
         </div>
       </div>
+
+      <div id="stats" class="w3-container w3-section section">
+        <h4>Win ratio: {{ stats.2|default:"No matches" }}</h4>
+        <h4>Member count: {{ clan.clan_members.count }}</h4>
+        <h4>Matches played: {{ stats.0.count }}</h4>
+        <h4>Matches won: {{ stats.1.count }}</h4>
+      </div>
+
     </div>
   </div>
 {% endblock %}
@@ -149,3 +208,29 @@
   {% endwith %}
 {% endblock right_panel %}
 
+{% block endpage %}
+  {% load widget_tweaks %}
+  <div id="dialog" class="w3-modal" style="display: none">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 id="dialog_text">Placeholder Text</h3>
+
+        <button onclick="$('#dialog').hide()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+
+      <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+        <button onclick="$('#dialog').hide()" type="button" id="dialog_decline"
+                class="w3-button w3-red">No
+        </button>
+
+        <button onclick="$('#dialog').hide()" type="button" id="dialog_confirm"
+                class="w3-button w3-green w3-right">Yes
+        </button>
+      </div>
+    </div>
+  </div>
+{% endblock %}

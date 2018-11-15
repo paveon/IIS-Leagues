@@ -138,7 +138,7 @@ class Team(models.Model):
             return None
 
         matches_won = self.matches_won.count()
-        return str(round((matches_won / matches_total) * 100, 2)) + " %"
+        return (str(round((matches_won / matches_total) * 100, 2)) + " %")
 
     def __str__(self):
         return self.name
@@ -216,7 +216,7 @@ class Player(models.Model):
         if not games_total:
             return None
         games_won = self.matches.filter(playedmatch__team=models.F('playedmatch__match_winner')).count()
-        return round((games_won / games_total) * 100, 2)
+        return str(round((games_won / games_total) * 100, 2)) + " %"
 
     @property
     def full_name(self):

@@ -460,14 +460,75 @@ class ClanDetailView(generic.DetailView):
         member_matches = []
         for member in members:
             clan_matches = PlayedMatch.objects.filter(Q(clan=clan) & Q(player=member))
-            count = clan_matches.count()
             won_matches = clan_matches.filter(team=F('match__winner'))
-            won_count = won_matches.count()
-            member_matches.append((member, clan_matches))
+            member_matches.append((member, clan_matches, won_matches))
         context['member_matches'] = member_matches
         clan_teams = Team.objects.filter(clan_id=clan.id)
+
+        all_matches = PlayedMatch.objects.filter(clan=clan)
+        win_matches = all_matches.filter(team=F('match__winner'))
+        win_ratio = None
+        if all_matches.count() != 0:
+            win_ratio = str(round((win_matches.count() / all_matches.count()) * 100, 2)) + " %"
+        stats = (all_matches, win_matches, win_ratio)
+        context['stats'] = stats
         context['clan_teams'] = clan_teams
         return context
+
+    def leave_request(self):
+        player_id = self.request.POST['player_id']
+        clan_id = self.request.POST['clan_id']
+        player = Player.objects.get(pk=player_id)
+        teams = player.teams.all()
+        for team in teams:
+            if team.clan_id == clan_id:
+                player.teams.remove(team)
+
+        player.save()
+
+        group = Clan.objects.get(pk=clan_id)
+        group_members = group.clan_members
+
+        group_members.remove(player)
+        group.leader = group_members.first()
+        group.save()
+
+    def kick_request(self):
+        player_id = self.request.POST['player_id']
+        clan_id = self.request.POST['clan_id']
+        player = Player.objects.get(pk=player_id)
+        teams = player.teams.all()
+        for team in teams:
+            if team.clan_id == clan_id:
+                player.teams.remove(team)
+
+        player.save()
+
+        group = Clan.objects.get(pk=clan_id)
+        group.clan_members.remove(player)
+        group.save()
+
+    def __init__(self):
+        super().__init__()
+        self.actions = {
+            'leave_clan': self.leave_request,
+            'kick_player': self.kick_request,
+        }
+
+    def post(self, request, *args, **kwargs):
+        player_id = request.POST['player_id']
+
+        if request.is_ajax():
+            # Get callable object from action dictionary and call action method
+            action_key = request.POST['action']
+            action = self.actions[action_key]
+            if action == "leave_clan":
+                self.leave_request()
+            else:
+                self.kick_request()
+            return JsonResponse({})
+        else:
+            pass
 
 
 class MatchDetailView(generic.DetailView):
