@@ -120,9 +120,13 @@
                   </a>
                 </td>
                 <td>
-                  <a href="{% url 'leagues:player_detail' team.leader.slug %}">
-                    {{ team.leader.nickname }}
-                  </a>
+                  {% if team.leader %}
+                    <a href="{% url 'leagues:player_detail' team.leader.slug %}">
+                      {{ team.leader.nickname }}
+                    </a>
+                  {% else %}
+                    None
+                  {% endif %}
                 </td>
                 <td>{{ team.matches_won.count }}</td>
                 <td>{{ team.all_matches.count }}</td>
@@ -146,7 +150,7 @@
               <th>Games total</th>
               <th>Win ratio</th>
               {% if user.player == clan.leader %}
-              <th>Status</th>
+                <th>Status</th>
               {% endif %}
             </tr>
             </thead>
@@ -173,9 +177,10 @@
                     </td>
                   {% else %}
                     <td class="w3-padding-3 w3-small table_button_center">
-                      <button onclick="openDialog('Do you really wish to kick player \'{{ member.0.nickname }}\' from clan \'{{ clan.name }}\' and from all teams from this clan?',
-                          buttonClick, {{ member.0.id }}, 'kick_player')"
-                              class="w3-button w3-red table_button leave_button">
+                      <button
+                          onclick="openDialog('Do you really wish to kick player \'{{ member.0.nickname }}\' from clan \'{{ clan.name }}\' and from all teams from this clan?',
+                              buttonClick, {{ member.0.id }}, 'kick_player')"
+                          class="w3-button w3-red table_button leave_button">
                         Kick
                       </button>
                     </td>

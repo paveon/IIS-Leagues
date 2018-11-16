@@ -258,38 +258,47 @@ class SocialView(generic.TemplateView):
         group_pendings = None
         group_members = None
         group = None
-        jsonResponse = {}
+        response = {}
 
-        # TODO force requests => see actions
-        # Check which type of request it is and initialize common variables
-        if request_type == 'join_team':
-            clan_player = player.clan
-            group = Team.objects.get(pk=object_id)
-            clan = group.clan
-            if clan: # If team is part of any clan
-                if not clan_player: # player is not in clan but team is part of clan
-                    jsonResponse['response'] = 'need_clan'
-                    jsonResponse['clan_id'] = group.clan_id
-                elif clan_player == clan: # player's and team's clans are not same
-                    jsonResponse['response'] = 'leave_all_team'
-                else: # join team in one clan
-                    group_members = group.team_members
-                    group_pendings = player.team_pendings
-            else: # team is not part of any clan
-                if not clan_player: # player is not in any clan
-                    group_members = group.team_members
-                    group_pendings = player.team_pendings
-                else:
-                    jsonResponse['response'] = 'leave_all_team'
-        elif request_type == 'join_clan':
-            clan = player.clan
-            teams = player.teams.all().count()
-            if clan or teams > 0:
-                jsonResponse = 'leave_all_clan'
+        # Nested method to avoid code duplication
+        def join_group():
+            if group.leader:
+                # Need confirmation if group has a leader
+                group_pendings.add(player)
             else:
-                group = Clan.objects.get(pk=object_id)
-                group_members = group.clan_members
-                group_pendings = player.clan_pendings
+                # Join immediately
+                group.leader = player
+                group_members.add(player)
+                group.save()
+
+        # Check which type of request it is and initialize common variables
+        if request_type == 'force_join_team':
+            request_type = 'join_team'
+            team = Team.objects.get(pk=object_id)
+            group = team.clan
+            group_pendings = group.clan_pendings
+            join_group()
+
+        if request_type == 'join_team':
+            player_clan = player.clan
+            group = Team.objects.get(pk=object_id)
+            team_clan = group.clan
+            # Check if player is in parent clan of team
+            if team_clan and not player_clan:
+                if team_clan.clan_pendings.filter(pk=player.pk).exists():
+                    group.team_pendings.add(player)
+                else:
+                    response['need_clan'] = (team_clan.name, team_clan.id)
+
+                return response
+
+            group_members = group.team_members
+            group_pendings = player.team_pendings
+
+        elif request_type == 'join_clan':
+            group = Clan.objects.get(pk=object_id)
+            group_members = group.clan_members
+            group_pendings = player.clan_pendings
 
         if group:
             if group.leader:
@@ -301,7 +310,7 @@ class SocialView(generic.TemplateView):
                 group_members.add(player)
                 group.save()
 
-        return jsonResponse
+        return response
 
     def leave_request(self, request_type):
         player_id = self.request.POST['player_id']
@@ -311,32 +320,40 @@ class SocialView(generic.TemplateView):
         group_members = None
         jsonResponse = {}
 
-        if request_type == 'force_leave_clan':
-            teams = player.teams.all()
-            for team in teams:
-                player.teams.remove(team)
-            player.save()
-            clan = player.clan
-            player.clan.remove(clan)
-            player.save()
-        elif request_type == 'leave_team':
-            group = Team.objects.get(pk=object_id)
-            group_members = group.team_members
-        elif request_type == 'leave_clan':
-            teams = player.teams.all().count()
-            if teams > 0:
-                jsonResponse['response'] = 'has_team'
-            else:
-                group = Clan.objects.get(pk=object_id)
-                group_members = group.clan_members
-
-        if group:
+        # Nested method to avoid code duplication
+        def leave_group():
             group_members.remove(player)
             # Check if leaving player is a group leader and revoke the privilege if so
             if group.leader and group.leader.id == player.id:
                 # Pick first player to become a new leader (None if there are no players left)
                 group.leader = group_members.first()
                 group.save()
+
+        if request_type == 'force_leave_clan':
+            # Leave all clan teams and then leave the clan
+            request_type = 'leave_clan'
+            joined_clan_teams = player.teams.all().filter(clan=player.clan)
+            for team in joined_clan_teams:
+                group = team
+                group_members = team.team_members
+                leave_group()
+
+        if request_type == 'leave_team':
+            group = Team.objects.get(pk=object_id)
+            group_members = group.team_members
+        elif request_type == 'leave_clan':
+            group = Clan.objects.get(pk=object_id)
+            group_members = group.clan_members
+            joined_clan_teams = player.teams.all().filter(clan=group)
+
+            # Check if player is in any team under this clan
+            if joined_clan_teams.count() > 0:
+                teams = [(team.name, team.id) for team in joined_clan_teams.all()]
+                jsonResponse['has_clan_teams'] = teams
+                return jsonResponse
+
+        if group:
+            leave_group()
         return jsonResponse
 
     def __init__(self):
@@ -365,21 +382,14 @@ class SocialView(generic.TemplateView):
         joined_teams = list(map(lambda x: (x, MembershipStatus.MEMBER), joined_teams))
         pending_teams = list(map(lambda x: (x, MembershipStatus.PENDING), pending_teams))
 
-        # Split all clans into 3 types and create tuple with membership info for each of them
-        joined_clans = player.clans.all()
-        pending_clans = player.clan_pendings.all()
-        remaining_clans = Clan.objects.all().difference(joined_clans).difference(pending_clans)
-        remaining_clans = list(map(lambda x: (x, MembershipStatus.NOT_MEMBER), remaining_clans))
-        joined_clans = list(map(lambda x: (x, MembershipStatus.MEMBER), joined_clans))
-        pending_clans = list(map(lambda x: (x, MembershipStatus.PENDING), pending_clans))
-
         # Join all 3 types of teams into a single list
         teams = joined_teams + pending_teams + remaining_teams
-        clans = joined_clans + pending_clans + remaining_clans
 
         context['player_list'] = Player.objects.all()
+        context['player'] = player
+        context['clan_pendings'] = player.clan_pendings.all()
         context['team_list'] = teams
-        context['clan_list'] = clans
+        context['clan_list'] = Clan.objects.all()
         context['membership'] = MembershipStatus.__members__
         return context
 
@@ -394,32 +404,6 @@ class SocialView(generic.TemplateView):
             action = self.actions[action_key]
             jsonResponse = action(action_key)
             return JsonResponse(jsonResponse)
-
-        else:
-            if 'leave_team_id' in request.POST:
-                team_id = request.POST['leave_team_id']
-                team = Team.objects.get(pk=team_id)
-                team.team_members.remove(player)
-
-                # Check if leaving player is a team leader and revoke the privilege if so
-                if team.leader and team.leader.id == player.id:
-                    # Pick first player to become a new leader (None if there are no players left)
-                    team.leader = team.team_members.first()
-                    team.save()
-
-            elif 'leave_clan_id' in request.POST:
-                clan_id = request.POST['leave_clan_id']
-                clan = Clan.objects.get(pk=clan_id)
-                clan.clan_members.remove(player)
-
-                # Check if leaving player is a clan leader and revoke the privilege if so
-                if clan.leader and clan.leader.id == player.id:
-                    # Pick first player to become a new leader (None if there are no players left)
-                    clan.leader = clan.clan_members.first()
-                    clan.save()
-
-            else:
-                return render(request, self.template_name, context)
 
         return HttpResponseRedirect(reverse("leagues:social"))
 

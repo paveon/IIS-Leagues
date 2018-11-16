@@ -205,7 +205,8 @@ class Player(models.Model):
     equipment = models.ManyToManyField(Equipment, verbose_name='Equipment used by player')
     games = models.ManyToManyField(Game, verbose_name='Games focused by the player')
     teams = models.ManyToManyField(Team, verbose_name='Team memberships', related_name='team_members')
-    clan = models.ForeignKey(Clan, on_delete=models.SET_NULL, verbose_name='Clan membership', related_name='clan_member', null=True, blank=True,)
+    clan = models.ForeignKey(Clan, on_delete=models.PROTECT, verbose_name='Clan membership',
+                             related_name='clan_members', null=True, blank=True,)
     team_pendings = models.ManyToManyField(Team, related_name='team_pendings')
     clan_pendings = models.ManyToManyField(Clan, related_name='clan_pendings')
     matches = models.ManyToManyField(Match, through='PlayedMatch', verbose_name='Played matches')
