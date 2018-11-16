@@ -103,7 +103,7 @@ class Clan(models.Model):
     country = CountryField('country of origin', blank=True)
     description = models.TextField('description', blank=True, help_text="Description of clan")
     leader = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True,
-                               verbose_name="Leader of the clan")
+                               verbose_name="Leader of the clan", related_name="clan_leader")
     games = models.ManyToManyField(Game, verbose_name='Games focused by the clan')
 
     def __str__(self):
@@ -205,7 +205,7 @@ class Player(models.Model):
     equipment = models.ManyToManyField(Equipment, verbose_name='Equipment used by player')
     games = models.ManyToManyField(Game, verbose_name='Games focused by the player')
     teams = models.ManyToManyField(Team, verbose_name='Team memberships', related_name='team_members')
-    clans = models.ManyToManyField(Clan, verbose_name='Clan memberships', related_name='clan_members')
+    clan = models.ForeignKey(Clan, on_delete=models.SET_NULL, verbose_name='Clan membership', related_name='clan_member', null=True, blank=True,)
     team_pendings = models.ManyToManyField(Team, related_name='team_pendings')
     clan_pendings = models.ManyToManyField(Clan, related_name='clan_pendings')
     matches = models.ManyToManyField(Match, through='PlayedMatch', verbose_name='Played matches')

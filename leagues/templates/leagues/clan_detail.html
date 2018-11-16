@@ -5,7 +5,6 @@
 {% block scripts %}
   <script>
       function buttonClick(player_id, action) {
-          console.log(player_id);
           $.ajax({
               type: 'POST',
               url: "{% url 'leagues:clan_detail' clan.slug%}",

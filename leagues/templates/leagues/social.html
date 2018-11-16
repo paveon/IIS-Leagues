@@ -5,6 +5,13 @@
 
 {% block scripts %}
   <script>
+      function openDialog(text, confirmCallback) {
+          $('#dialog_text').text(text);
+          $('#dialog_confirm').attr('onclick',
+              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
+          $('#dialog').show();
+      }
+
       function buttonClick(id, action) {
           $.ajax({
               type: 'POST',
@@ -18,7 +25,21 @@
               dataType: "json",
               async: true,
               success: function (json) {
-                  location.reload();
+                  if(json['response'] == 'leave_all_team') {
+                      openDialog('This action will remove you from all clans and teams and possibly will join you to team\'s clan! \nDo you really wanna do this?', buttonClick, id, 'force_join_team');
+                  }
+                  else if(json['response'] == 'leave_all_clan') {
+                      openDialog('This action will remove you from all clans and teams! \nDo you really wanna do this?', buttonClick, id, 'force_join_clan');
+                  }
+                  else if(json['response'] == 'need_clan') {
+                      openDialog('You will be invited into team\'s clan too.\nAre you sure you want to join this team?', buttonClick, id, 'force_join_team');
+                  }
+                  else if(json['response'] == 'has_team') {
+                      openDialog('If you leave this clan, you will be automatically removed from all it\'s teams.\nAre you sure you wanna do this?', buttonClick, id, 'force_leave_clan');
+                  }
+                  else {
+                      location.reload();
+                  }
               },
               error: function (xhr, error) {
                   console.log("AJAX failure");
@@ -26,13 +47,6 @@
                   console.log(error);
               }
           });
-      }
-
-      function openDialog(text, confirmCallback) {
-          $('#dialog_text').text(text);
-          $('#dialog_confirm').attr('onclick',
-              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
-          $('#dialog').show();
       }
   </script>
 {% endblock %}
@@ -137,10 +151,18 @@
                         Leave
                       </button>
                     {% elif team.1 == membership.NOT_MEMBER %}
-                      <button onclick="buttonClick({{ team.0.id }}, 'join_team')"
-                              class="w3-button w3-green table_button join_button">
-                        Join
-                      </button>
+                      {% if team.0.clan %}
+                        <button onclick="openDialog('Do you really want to join \'{{ team.0.name }}\' and clan \'{{ team.0.clan.name }}\'?',
+                            buttonClick, {{ team.0.id }}, 'join_team')"
+                                class="w3-button w3-green table_button join_button">
+                          Join
+                        </button>
+                      {% else %}
+                        <button onclick="buttonClick({{ team.0.id }}, 'join_team')"
+                                class="w3-button w3-green table_button join_button">
+                          Join
+                        </button>
+                      {% endif %}
                     {% else %}
                       <button onclick="buttonClick({{ team.0.id }}, 'cancel_team');"
                               class="w3-button w3-orange table_button pending_button">

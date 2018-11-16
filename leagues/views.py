@@ -239,12 +239,16 @@ class SocialView(generic.TemplateView):
         object_id = self.request.POST['object_id']
         player = Player.objects.get(pk=player_id)
 
+        jsonResponse = {}
+
         if request_type == 'cancel_team':
             team = Team.objects.get(pk=object_id)
             player.team_pendings.remove(team)
         elif request_type == 'cancel_clan':
             clan = Clan.objects.get(pk=object_id)
             player.clan_pendings.remove(clan)
+
+        return jsonResponse
 
     # Processes join request for teams and clans
     def join_request(self, request_type):
@@ -254,16 +258,37 @@ class SocialView(generic.TemplateView):
         group_pendings = None
         group_members = None
         group = None
+        jsonResponse = {}
 
         # Check which type of request it is and initialize common variables
         if request_type == 'join_team':
+            clan_player = player.clan
             group = Team.objects.get(pk=object_id)
-            group_members = group.team_members
-            group_pendings = player.team_pendings
+            clan = group.clan
+            if clan: # If team is part of any clan
+                if not clan_player: # player is not in clan but team is part of clan
+                    jsonResponse['response'] = 'need_clan'
+                    jsonResponse['clan_id'] = group.clan_id
+                elif clan_player == clan: # player's and team's clans are not same
+                    jsonResponse['response'] = 'leave_all_team'
+                else: # join team in one clan
+                    group_members = group.team_members
+                    group_pendings = player.team_pendings
+            else: # team is not part of any clan
+                if not clan_player: # player is not in any clan
+                    group_members = group.team_members
+                    group_pendings = player.team_pendings
+                else:
+                    jsonResponse['response'] = 'leave_all_team'
         elif request_type == 'join_clan':
-            group = Clan.objects.get(pk=object_id)
-            group_members = group.clan_members
-            group_pendings = player.clan_pendings
+            clan = player.clan
+            teams = player.teams.all().count()
+            if clan or teams > 0:
+                jsonResponse = 'leave_all_clan'
+            else:
+                group = Clan.objects.get(pk=object_id)
+                group_members = group.clan_members
+                group_pendings = player.clan_pendings
 
         if group:
             if group.leader:
@@ -275,19 +300,34 @@ class SocialView(generic.TemplateView):
                 group_members.add(player)
                 group.save()
 
+        return jsonResponse
+
     def leave_request(self, request_type):
         player_id = self.request.POST['player_id']
         object_id = self.request.POST['object_id']
         player = Player.objects.get(pk=player_id)
         group = None
         group_members = None
+        jsonResponse = {}
 
-        if request_type == 'leave_team':
+        if request_type == 'force_leave_clan':
+            teams = player.teams.all()
+            for team in teams:
+                player.teams.remove(team)
+            player.save()
+            clan = player.clan
+            player.clan.remove(clan)
+            player.save()
+        elif request_type == 'leave_team':
             group = Team.objects.get(pk=object_id)
             group_members = group.team_members
         elif request_type == 'leave_clan':
-            group = Clan.objects.get(pk=object_id)
-            group_members = group.clan_members
+            teams = player.teams.all().count()
+            if teams > 0:
+                jsonResponse['response'] = 'has_team'
+            else:
+                group = Clan.objects.get(pk=object_id)
+                group_members = group.clan_members
 
         if group:
             group_members.remove(player)
@@ -296,6 +336,7 @@ class SocialView(generic.TemplateView):
                 # Pick first player to become a new leader (None if there are no players left)
                 group.leader = group_members.first()
                 group.save()
+        return jsonResponse
 
     def __init__(self):
         super().__init__()
@@ -306,6 +347,9 @@ class SocialView(generic.TemplateView):
             'join_clan': self.join_request,
             'leave_team': self.leave_request,
             'leave_clan': self.leave_request,
+            'force_join_team': self.join_request,
+            'force_join_clan': self.join_request,
+            'force_leave_clan': self.leave_request,
         }
 
     def get_context_data(self, **kwargs):
@@ -347,8 +391,8 @@ class SocialView(generic.TemplateView):
             # Get callable object from action dictionary and call action method
             action_key = request.POST['action']
             action = self.actions[action_key]
-            action(action_key)
-            return JsonResponse({})
+            jsonResponse = action(action_key)
+            return JsonResponse(jsonResponse)
 
         else:
             if 'leave_team_id' in request.POST:
@@ -516,19 +560,10 @@ class ClanDetailView(generic.DetailView):
         }
 
     def post(self, request, *args, **kwargs):
-        player_id = request.POST['player_id']
-
-        if request.is_ajax():
-            # Get callable object from action dictionary and call action method
-            action_key = request.POST['action']
-            action = self.actions[action_key]
-            if action == "leave_clan":
-                self.leave_request()
-            else:
-                self.kick_request()
-            return JsonResponse({})
-        else:
-            pass
+        action_key = request.POST['action']
+        action = self.actions[action_key]
+        action()
+        return JsonResponse({})
 
 
 class MatchDetailView(generic.DetailView):
