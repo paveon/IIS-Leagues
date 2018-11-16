@@ -260,6 +260,7 @@ class SocialView(generic.TemplateView):
         group = None
         jsonResponse = {}
 
+        # TODO force requests => see actions
         # Check which type of request it is and initialize common variables
         if request_type == 'join_team':
             clan_player = player.clan
