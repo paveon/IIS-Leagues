@@ -107,6 +107,10 @@ class SettingsView(generic.TemplateView):
     def process_create_form(self, model_class, form_class):
         model_name = model_class.__name__
         create_form = form_class(self.request.POST, prefix=model_name.lower() + '_form')
+        # TODO kdyz ma hrac mene nez 15 tak se chyba tady ukaze pri debugu ale formular se sekne a nic nezobrazi!!
+        # TODO nejde pridat klan k tymu pokud uz odehral hru
+        # TODO omezit vybery leader tymu muze byt jen nekdo kdo je v tom tymu (stejne klan), hry pro tymy omezeny podle her klanu (nebo se ke specializacim klanu potom prida ta hra tymu?)
+        # TODO add new nevytvori novy formular pokud v predchozim byla chyba takze bud clear tlacitko a nebo to nejak vyresit at se udela prazdny formular po kliknuti na new pri predchozim erroru
         if create_form.is_bound and create_form.is_valid():
             # commit=False doesn't save new model object directly into the DB
             # so we can do additional processing before storing it in the DB with save method of model object
@@ -265,24 +269,42 @@ class SocialView(generic.TemplateView):
         group_members = None
         group = None
         response = {}
+        joining_clan = False
 
         # Nested method to avoid code duplication
         def join_group():
             if group.leader:
                 # Need confirmation if group has a leader
-                group_pendings.add(player)
+                group_pendings.add(group)
+                player.save()
             else:
                 # Join immediately
-                group.leader = player
-                group_members.add(player)
-                group.save()
+                if joining_clan: # remove all other pendings while entering clan without leader
+                    pendings_to_remove = player.clan_pendings.all()
+                    for pending in pendings_to_remove:
+                        group_pendings.remove(pending)
+                        player.save()
+                    pendings_to_remove = player.team_pendings.all()
+                    for pending in pendings_to_remove:
+                        if pending.clan != group and pending.clan: # remove all team pendins with teams which have clans
+                            player.team_pendings.remove(pending)
+                            player.save()
+                    player.clan = group
+                    player.save()
+                    group.leader = player
+                    group.save()
+                else:
+                    group.leader = player
+                    group_members.add(player)
+                    group.save()
 
         # Check which type of request it is and initialize common variables
         if request_type == 'force_join_team':
             request_type = 'join_team'
             team = Team.objects.get(pk=object_id)
             group = team.clan
-            group_pendings = group.clan_pendings
+            group_pendings = player.clan_pendings
+            joining_clan = True
             join_group()
 
         if request_type == 'join_team':
@@ -293,6 +315,7 @@ class SocialView(generic.TemplateView):
             if team_clan and not player_clan:
                 if team_clan.clan_pendings.filter(pk=player.pk).exists():
                     group.team_pendings.add(player)
+                    group.save()
                 else:
                     response['need_clan'] = (team_clan.name, team_clan.id)
 
@@ -303,18 +326,12 @@ class SocialView(generic.TemplateView):
 
         elif request_type == 'join_clan':
             group = Clan.objects.get(pk=object_id)
-            group_members = group.clan_members
+            group_members = Player.objects.filter(clan=group)
             group_pendings = player.clan_pendings
+            joining_clan = True
 
         if group:
-            if group.leader:
-                # Need confirmation if group has a leader
-                group_pendings.add(group)
-            else:
-                # Join immediately
-                group.leader = player
-                group_members.add(player)
-                group.save()
+            join_group()
 
         return response
 
@@ -325,10 +342,20 @@ class SocialView(generic.TemplateView):
         group = None
         group_members = None
         jsonResponse = {}
+        is_clan = False
 
         # Nested method to avoid code duplication
         def leave_group():
-            group_members.remove(player)
+            if is_clan:
+                player.clan = None
+                player.save()
+                pendings = player.team_pendings.all()
+                for pending in pendings:
+                    if pending.clan == group:
+                        player.team_pendings.remove(pending)
+                        player.save()
+            else:
+                group_members.remove(player)
             # Check if leaving player is a group leader and revoke the privilege if so
             if group.leader and group.leader.id == player.id:
                 # Pick first player to become a new leader (None if there are no players left)
@@ -351,6 +378,7 @@ class SocialView(generic.TemplateView):
             group = Clan.objects.get(pk=object_id)
             group_members = group.clan_members
             joined_clan_teams = player.teams.all().filter(clan=group)
+            is_clan = True
 
             # Check if player is in any team under this clan
             if joined_clan_teams.count() > 0:
@@ -487,7 +515,6 @@ class ClanDetailView(generic.DetailView):
     template_name = "leagues/clan_detail.html"
     model = Clan
 
-    # TODO problem pri 2 tymech ze stejneho klanu ktere hraji zapas proti sobe => zakazat
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         clan = self.get_object()
@@ -532,14 +559,19 @@ class ClanDetailView(generic.DetailView):
         player_id = self.request.POST['player_id']
         clan_id = self.request.POST['clan_id']
         player = Player.objects.get(pk=player_id)
+        group = Clan.objects.get(pk=clan_id)
+
         teams = player.teams.all()
         for team in teams:
             if team.clan_id == clan_id:
                 player.teams.remove(team)
+                player.save()
+        pendings = player.team_pendings.all()
+        for pending in pendings:
+            if pending.clan == group:
+                player.team_pendings.remove(pending)
+                player.save()
 
-        player.save()
-
-        group = Clan.objects.get(pk=clan_id)
         group.clan_members.remove(player)
         group.save()
 
