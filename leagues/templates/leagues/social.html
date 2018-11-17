@@ -174,10 +174,12 @@
                         Leave
                       </button>
                     {% elif team.1 == membership.NOT_MEMBER %}
-                      <button onclick="buttonClick({{ team.0.id }}, 'join_team')"
-                              class="w3-button w3-green table_button join_button">
-                        Join
-                      </button>
+                      {% if user.player.clan == team.0.clan or not user.player.clan %}
+                        <button onclick="buttonClick({{ team.0.id }}, 'join_team')"
+                                class="w3-button w3-green table_button join_button">
+                          Join
+                        </button>
+                      {% endif %}
                     {% else %}
                       <button onclick="buttonClick({{ team.0.id }}, 'cancel_team');"
                               class="w3-button w3-orange table_button pending_button">
