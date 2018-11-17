@@ -184,6 +184,8 @@ class SettingsView(generic.TemplateView):
             parameters = self.used_models[action_name]
             return action(*parameters)
         except ValidationError as err:
+            self.context['modal'] = self.request.POST['post_action'].split('_')[0] + '_form'
+            self.context['object_id'] = self.request.POST['object_id']
             return render(request, self.template_name, self.context)
 
 
@@ -247,6 +249,10 @@ class SocialView(generic.TemplateView):
         elif request_type == 'cancel_clan':
             clan = Clan.objects.get(pk=object_id)
             player.clan_pendings.remove(clan)
+
+            # Also remove pendings into clan's teams
+            relations = player.team_pendings.through.objects.filter(team__clan=clan)
+            relations.delete()
 
         return jsonResponse
 

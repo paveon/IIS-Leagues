@@ -1,6 +1,17 @@
 {% extends 'leagues/base.html' %}
 {% block title %}Leagues | Management{% endblock %}
 
+{% if modal %}
+  {% block scripts %}
+    <script>
+        $(document).ready(function () {
+            OpenEditModal('{{ modal }}', {{ object_id }});
+        });
+    </script>
+  {% endblock %}
+{% endif %}
+
+
 {% block content %}
   {% load widget_tweaks %}
 
@@ -373,8 +384,7 @@
 
 
 {% block endpage %}
-  <div id="{{ sponsorship_form.prefix }}" class="w3-modal" {% if sponsorship_form.errors %}
-       style="display: block" {% endif %}>
+  <div id="{{ sponsorship_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create sponsorship</h3>
@@ -416,8 +426,7 @@
   </div>
 
 
-  <div id="{{ sponsor_form.prefix }}" class="w3-modal" {% if sponsor_form.errors %}
-       style="display: block" {% endif %}>
+  <div id="{{ sponsor_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create sponsor</h3>
@@ -450,8 +459,7 @@
   </div>
 
 
-  <div id="{{ tournament_form.prefix }}" class="w3-modal" {% if tournament_form.errors %}
-       style="display: block" {% endif %}>
+  <div id="{{ tournament_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create tournament</h3>
@@ -511,8 +519,7 @@
   </div>
 
 
-  <div id="{{ clan_form.prefix }}" class="w3-modal" {% if clan_form.errors %}
-       style="display: block" {% endif %}>
+  <div id="{{ clan_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create clan</h3>
@@ -565,8 +572,7 @@
   </div>
 
 
-  <div id="{{ team_form.prefix }}" class="w3-modal" {% if team_form.errors %}
-       style="display: block" {% endif %}>
+  <div id="{{ team_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create team</h3>
@@ -627,8 +633,7 @@
   </div>
 
 
-  <div id="{{ player_form.prefix }}" class="w3-modal" {% if player_form.errors %}
-       style="display: block" {% endif %}>
+  <div id="{{ player_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create player</h3>
@@ -692,8 +697,7 @@
   </div>
 
 
-  <div id="{{ gamemode_form.prefix }}" class="w3-modal" {% if gamemode_form.errors %}
-       style="display: block" {% endif %}>
+  <div id="{{ gamemode_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create gamemode</h3>
@@ -735,7 +739,7 @@
   </div>
 
 
-  <div id="{{ genre_form.prefix }}" class="w3-modal" {% if genre_form.errors %} style="display: block" {% endif %}>
+  <div id="{{ genre_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create genre</h3>
@@ -774,7 +778,7 @@
   </div>
 
 
-  <div id="{{ game_form.prefix }}" class="w3-modal" {% if game_form.errors %} style="display: block" {% endif %}>
+  <div id="{{ game_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create game</h3>
