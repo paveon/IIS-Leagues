@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.forms.models import model_to_dict
 from django_countries.fields import Country
 from django.db.models import F, Q
+import json
 from enum import Enum
 from .forms import *
 
@@ -111,6 +112,7 @@ class SettingsView(generic.TemplateView):
         # TODO nejde pridat klan k tymu pokud uz odehral hru
         # TODO omezit vybery leader tymu muze byt jen nekdo kdo je v tom tymu (stejne klan), hry pro tymy omezeny podle her klanu (nebo se ke specializacim klanu potom prida ta hra tymu?)
         # TODO add new nevytvori novy formular pokud v predchozim byla chyba takze bud clear tlacitko a nebo to nejak vyresit at se udela prazdny formular po kliknuti na new pri predchozim erroru
+        # TODO pri vytvareni tournamentu to hodi error a potom po refreshi je to tam, ale hodi to prvni chybu
         if create_form.is_bound and create_form.is_valid():
             # commit=False doesn't save new model object directly into the DB
             # so we can do additional processing before storing it in the DB with save method of model object
@@ -589,6 +591,49 @@ class ClanDetailView(generic.DetailView):
         return JsonResponse({})
 
 
+class TournamentView(generic.TemplateView):
+    template_name = "leagues/tournaments.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tournaments = Tournament.objects.all()
+        matches = Match.objects.all()
+        context['tournaments'] = tournaments
+        context['matches'] = matches
+
+        context['match_form'] = MatchForm({}, prefix='match_create')
+        return context
+
+    def post(self, request, *args, **kwargs):
+        context = super().get_context_data(**kwargs)
+        action_key = request.POST['action']
+        jsonResponse = {}
+        if action_key == 'picked_tournament':
+            form_data_dict = {}
+            form_data_list = json.loads(request.POST['data'])
+            for field in form_data_list:
+                form_data_dict[field["name"]] = field["value"]
+
+            tournament = form_data_dict['match_create-tournament']
+            t = Tournament.objects.filter(id=int(tournament))
+            for record in t:
+                match = Match(tournament=record)
+                match.save()
+                jsonResponse['tournament'] = record.id
+                jsonResponse['match'] = match.id
+                context['match_form'] = MatchForm({'tournament': record}, prefix='match_create')
+            return JsonResponse(jsonResponse)
+        elif action_key == 'closed_modal':
+            m = Match.objects.filter(id=context['match']).delete()
+
+        return HttpResponseRedirect(reverse("leagues:tournaments"))
+
+
 class MatchDetailView(generic.DetailView):
     template_name = "leagues/match_detail.html"
     model = Match
+
+
+class TournamentDetailView(generic.DetailView):
+    template_name = "leagues/tournament_detail.html"
+    model = Tournament

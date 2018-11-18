@@ -1,0 +1,259 @@
+{% extends 'leagues/base.html' %}
+{% block title %}Leagues | Tournaments{% endblock %}
+
+{% block scripts %}
+  <script>
+      function removeAndHide(action, form_id) {
+          form_id.hide()
+          buttonClick(action, form_id)
+      }
+
+      function buttonClick(action, form_id) {
+          formData = form_id.serializeArray();
+          formData = JSON.stringify(formData);
+          $.ajax({
+              type: 'POST',
+              url: "{% url 'leagues:tournaments' %}",
+              data: {
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'action': action,
+                  'data': formData
+              },
+              dataType: "json",
+              async: true,
+              success: function (json) {
+                  if(json['tournament']) {
+                      {% for part in  match_form.fields  %}
+                          {% if part == 'team_1' %}
+                              {% for team in part.queryset %}
+                                console.log({{ team }});
+                              {% endfor %}
+                          {% endif %}
+                          {% if part == 'team_2' %}
+                            console.log("team_2");
+                          {% endif %}
+                      {% endfor %}
+                      $('#team_pick').show();
+                      $('#{{ match_form.prefix }}').hide();
+                  }
+                  else {
+                      location.reload();
+                  }
+              },
+              error: function (xhr, error) {
+                  console.log("AJAX failure");
+                  console.log(xhr);
+                  console.log(error);
+              }
+          });
+      }
+
+      function openDialog(text, confirmCallback) {
+          $('#dialog_text').text(text);
+          $('#dialog_confirm').attr('onclick',
+              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
+          $('#dialog').show();
+      }
+  </script>
+{% endblock %}
+
+{% block left_panel %}
+  {% with side_bars_enabled=True %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock left_panel %}
+
+{% load widget_tweaks %}
+
+{% block content %}
+  <div class="w3-container flex-container" style="flex: 1 1 0">
+    <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
+      <header>
+        <ul class="section-bar">
+          <li onclick="showSection(event, 'tournaments');" id="tournaments_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding w3-border-red">
+            Tournaments
+          </li>
+          <li onclick="showSection(event, 'matches');" id="matches_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Matches
+          </li>
+        </ul>
+      </header>
+
+      <div id="tournaments" class="w3-container w3-section section">
+        <h3>Tournaments</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr>
+              <th>Name</th>
+              <th>Main sponsor</th>
+              <th>Opening date</th>
+              <th>End date</th>
+              <th>Prize</th>
+            </tr>
+            </thead>
+
+            <tbody id="tournaments_rows">
+            {% for tournament in tournaments %}
+              <tr style="display: none">
+                <td><a href="{% url 'leagues:tournament_detail' tournament.slug %}">{{ tournament.name }}</a>
+                </td>
+                <td>
+                  {% for record in tournament.sponsorship_set.all %}
+                    {% if record.type == 'MAIN' %}
+                      {{ record.sponsor.name }}
+                    {% endif %}
+                  {% endfor %}
+                </td>
+                <td>{{ tournament.opening_date }}</td>
+                <td>{{ tournament.end_date }}</td>
+                <td>{{ tournament.prize }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+
+      <div id="matches" class="w3-container w3-section section">
+        <h3>Matches</h3>
+        <div class="pagedTable w3-card w3-round w3-margin-bottom">
+            <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
+                    onclick="$('#{{ match_form.prefix }}').show()">
+              <i class="fa fa-plus"></i> Add new
+            </button>
+            <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Versus</th>
+              <th>Start</th>
+              <th>Duration</th>
+              <th>Winner</th>
+              <th>Tournament</th>
+              <th>Game</th>
+              {% if user.is_authenticated %}
+                <th></th>
+              {% endif %}
+              <th></th>
+            </tr>
+            </thead>
+
+            <tbody>
+            {% for match in matches %}
+              {% if match.done %}
+                <tr style="display: none">
+                  <td><a href="{% url 'leagues:team_detail' match.team_1.slug %}">{{ match.team_1.name }}</a>
+                    VS <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
+                  <td>{{ match.beginning }}</td>
+                  <td>
+                    {% if match.duration %}
+                      {{ match.duration }}
+                    {% else %}
+                      Not ended yet
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if match.duration %}
+                      {{ match.winner }}
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if match.tournament %}
+                      <a href="{% url 'leagues:tournament_detail' match.tournament.slug %}">{{ match.tournament.name }}</a>
+                    {% endif %}
+                  </td>
+                  <td>{{ match.game }}</td>
+                  {% if user.is_authenticated %}
+                    <td>Edit</td>
+                  {% endif %}
+                  <td><a href="{% url 'leagues:match_detail' match.id %}"><i class="fa fa-eye"></i></a></td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block right_panel %}
+  {% with side_bars_enabled=True %}
+    {{ block.super }}
+  {% endwith %}
+{% endblock right_panel %}
+
+{% block endpage %}
+  <div id="{{ match_form.prefix }}" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Create Match</h3>
+
+        <button onclick="$('#{{ match_form.prefix }}').hide()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <form id="tournament_id" method="POST" action="{% url 'leagues:tournaments' %}">
+        <div class="w3-section w3-container">
+          {% csrf_token %}
+
+          <label><b>{{ match_form.tournament.label_tag }}</b></label>
+          {% render_field match_form.tournament class+="w3-input w3-border" %}
+
+        </div>
+
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button onclick="$('#{{ match_form.prefix }}').hide()" type="button"
+                  class="w3-button w3-red">Cancel
+          </button>
+
+          <input class="w3-button w3-green w3-right" id="t_sub" type="submit" value="Next" />
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
+    $("#tournament_id").submit(function(event){
+      event.preventDefault(); //prevent default action
+      buttonClick('picked_tournament', $('#tournament_id'));
+    });
+  </script>
+
+  <div id="team_pick" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Create Match</h3>
+        <button onclick="removeAndHide('closed_modal', $('#team_pick'))" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <form method="POST" action="{% url 'leagues:tournaments' %}">
+        <div class="w3-section w3-container">
+          {% csrf_token %}
+
+          <label><b>{{ match_form.team_1.label_tag }}</b></label>
+          {% render_field match_form.team_1 class+="w3-input w3-border w3-margin-bottom" %}
+
+          <label><b>{{ match_form.team_2.label_tag }}</b></label>
+          {% render_field match_form.team_2 class+="w3-input w3-border w3-margin-bottom" %}
+
+        </div>
+
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button onclick="removeAndHide('closed_modal', $('#team_pick'))" type="button"
+                  class="w3-button w3-red">Cancel
+          </button>
+          <input class="w3-button w3-green w3-right" type="submit" value="Create match">
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

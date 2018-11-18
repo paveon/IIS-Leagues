@@ -71,15 +71,22 @@ def end_date_default():
 
 class Tournament(models.Model):
     name = models.CharField('tournament name', max_length=200, unique=True)
+    slug = models.SlugField(max_length=200, unique=True)
     prize = models.PositiveIntegerField('tournament prize', null=True, blank=True,
                                         help_text='prize pool in dollars')
     opening_date = models.DateField('date of the tournament start', default=datetime.date.today)
     end_date = models.DateField('date of the tournament end', default=end_date_default)
     sponsors = models.ManyToManyField(Sponsor, through='Sponsorship', blank=True)
     description = models.TextField('description', blank=True, help_text="Description of tournament")
+    game = models.ForeignKey(Game, on_delete=models.PROTECT)
+    game_mode = models.ForeignKey(GameMode, on_delete=models.PROTECT)
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        super(Tournament, self).save(*args, **kwargs)
 
 
 class Sponsorship(models.Model):
@@ -120,6 +127,7 @@ class Team(models.Model):
     founded = models.DateField('foundation date', default=datetime.date.today)
     description = models.TextField('description', blank=True, help_text="Description of team")
     active = models.BooleanField('active', default=True)
+    tournaments = models.ManyToManyField(Tournament, through='RegisteredTeams', verbose_name='Registered tournaments')
     leader = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True,
                                verbose_name="Leader of the team")
     game = models.ForeignKey(Game, on_delete=models.SET_NULL, null=True, blank=True,
@@ -152,16 +160,17 @@ class Team(models.Model):
 
 class Match(models.Model):
     beginning = models.DateTimeField('beginning of the match', default=timezone.now)
-    duration = models.DurationField('duration of the match')
-    game = models.ForeignKey(Game, on_delete=models.PROTECT, verbose_name='related game')
-    game_mode = models.ForeignKey(GameMode, on_delete=models.PROTECT, verbose_name='game mode of the match')
+    duration = models.DurationField('duration of the match', null=True, blank=True,)
+    game = models.ForeignKey(Game, on_delete=models.PROTECT, verbose_name='related game', null=True, blank=True,)
+    game_mode = models.ForeignKey(GameMode, on_delete=models.PROTECT, verbose_name='game mode of the match', null=True, blank=True,)
     tournament = models.ForeignKey(Tournament, on_delete=models.PROTECT, null=True, blank=True,
                                    verbose_name='related tournament')
     team_1 = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_a',
-                               verbose_name='first participating team')
+                               verbose_name='first participating team', null=True, blank=True,)
     team_2 = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_b',
-                               verbose_name='second participating team')
-    winner = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_won', verbose_name='winning team')
+                               verbose_name='second participating team', null=True, blank=True,)
+    winner = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_won', verbose_name='winning team', null=True, blank=True,)
+    done = models.BooleanField(verbose_name='team making completed', default=False)
 
     @property
     def duration_fmt(self):
@@ -252,6 +261,11 @@ class PlayedMatch(models.Model):
 
     class Meta:
         unique_together = ('player', 'match')
+
+
+class RegisteredTeams(models.Model):
+    team = models.ForeignKey(Team, on_delete=models.PROTECT)
+    tournament = models.ForeignKey(Tournament, on_delete=models.PROTECT)
 
 
 class Death(models.Model):

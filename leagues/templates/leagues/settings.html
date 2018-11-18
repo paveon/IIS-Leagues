@@ -501,6 +501,12 @@
             </div>
           </div>
 
+          <label><b>{{ tournament_form.game.label_tag }}</b></label>
+          {% render_field tournament_form.game class+="w3-input w3-border" %}
+
+          <label><b>{{ tournament_form.game_mode.label_tag }}</b></label>
+          {% render_field tournament_form.game_mode class+="w3-input w3-border" %}
+
           <label><b>{{ tournament_form.description.label_tag }}</b></label>
           {% render_field tournament_form.description class+="w3-input w3-border" %}
         </div>

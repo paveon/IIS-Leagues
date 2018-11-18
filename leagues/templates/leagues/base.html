@@ -44,7 +44,7 @@
           }
           else {
               let tabID = sessionStorage.getItem(path + "selected_tab");
-              console.log(tabID);
+              {#console.log(tabID);#}
               if (tabID !== "") {
                   let tab = $('#' + tabID);
                   tab.addClass('w3-border-red');
@@ -117,9 +117,8 @@
           });
       }
 
-
       function OpenEditModal(modalID, objectID) {
-          console.log(objectID);
+          {#console.log(objectID);#}
           let objectType = modalID.split('_')[0];
           let modal = $('#' + modalID);
           let modalTitle = $('.modalTitle', modal);
@@ -141,7 +140,7 @@
                   'object_id': objectID,
               },
               success: function (json) {
-                  console.log("AJAX success");
+                  {#console.log("AJAX success");#}
                   $.each(json, function (key, value) {
                       if (key.endsWith('_queryset')) {
                           /* Remove all options from select dropdown and add new
@@ -231,7 +230,8 @@
       <i class="fa fa-user"></i>
     </a>
 
-    <a href="#" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Tournaments">
+    <a href="{% url 'leagues:tournaments' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
+       title="Tournaments">
       <i class="fa fa-trophy"></i>
     </a>
 
