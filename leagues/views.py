@@ -117,11 +117,7 @@ class SettingsView(generic.TemplateView):
             # commit=False doesn't save new model object directly into the DB
             # so we can do additional processing before storing it in the DB with save method of model object
             model_object = create_form.save(commit=False)
-
-            # ... do additional processing
-
             model_object.save()  # save object do DB
-            create_form.save_m2m()  # need to save relations manually with commit=False
             return HttpResponseRedirect(reverse('leagues:settings'))
 
         self.context[model_name.lower() + '_form'] = create_form
@@ -190,7 +186,7 @@ class SettingsView(generic.TemplateView):
             parameters = self.used_models[action_name]
             return action(*parameters)
         except ValidationError as err:
-            self.context['modal'] = self.request.POST['post_action'].split('_')[0] + '_form'
+            self.context['error_modal'] = self.request.POST['post_action'].split('_')[0] + '_form'
             self.context['object_id'] = self.request.POST['object_id']
             return render(request, self.template_name, self.context)
 
@@ -601,30 +597,36 @@ class TournamentView(generic.TemplateView):
         context['tournaments'] = tournaments
         context['matches'] = matches
 
-        context['match_form'] = MatchForm({}, prefix='match_create')
+        context['match_form'] = MatchForm(prefix='match_create')
         return context
 
     def post(self, request, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         action_key = request.POST['action']
-        jsonResponse = {}
+        response_data = {}
         if action_key == 'picked_tournament':
             form_data_dict = {}
             form_data_list = json.loads(request.POST['data'])
             for field in form_data_list:
                 form_data_dict[field["name"]] = field["value"]
 
-            tournament = form_data_dict['match_create-tournament']
-            t = Tournament.objects.filter(id=int(tournament))
-            for record in t:
-                match = Match(tournament=record)
-                match.save()
-                jsonResponse['tournament'] = record.id
-                jsonResponse['match'] = match.id
-                context['match_form'] = MatchForm({'tournament': record}, prefix='match_create')
-            return JsonResponse(jsonResponse)
+            tournament_id = int(form_data_dict['match_create-tournament'])
+            tournament = Tournament.objects.get(pk=tournament_id)
+            match = Match(tournament=tournament)
+            match.save()
+            registered_teams = RegisteredTeams.objects.all().filter(tournament=tournament)
+            match_form = MatchForm(prefix='match_create')
+            match_form.fields['game'] = tournament.game
+            match_form.fields['game_mode'] = tournament.game_mode
+            match_form.fields['team_1'].queryset = registered_teams
+            match_form.fields['team_2'].queryset = registered_teams
+            context['match_form'] = match_form
+            response_data['tournament'] = tournament_id
+            response_data['match'] = match.id
+            return JsonResponse(response_data)
+
         elif action_key == 'closed_modal':
-            m = Match.objects.filter(id=context['match']).delete()
+            Match.objects.filter(id=context['match']).delete()
 
         return HttpResponseRedirect(reverse("leagues:tournaments"))
 

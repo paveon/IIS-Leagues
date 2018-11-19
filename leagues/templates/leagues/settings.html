@@ -1,15 +1,15 @@
 {% extends 'leagues/base.html' %}
 {% block title %}Leagues | Management{% endblock %}
 
-{% if modal %}
-  {% block scripts %}
+{% block scripts %}
+  {% if error_modal %}
     <script>
         $(document).ready(function () {
-            OpenEditModal('{{ modal }}', {{ object_id }});
+            OpenEditModal('{{ error_modal }}', {{ object_id }});
         });
     </script>
-  {% endblock %}
-{% endif %}
+  {% endif %}
+{% endblock %}
 
 
 {% block content %}

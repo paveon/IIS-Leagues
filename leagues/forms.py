@@ -120,20 +120,8 @@ class GameModeForm(ModelForm):
         model = GameMode
         fields = ['name', 'team_player_count', 'description']
 
+
 class MatchForm(ModelForm):
     class Meta:
         model = Match
         fields = ['game', 'game_mode', 'tournament', 'team_1', 'team_2']
-
-    def __init__(self, match_dict, *args, **kwargs):
-        super(MatchForm, self).__init__(*args, **kwargs)
-        try:
-            self.fields['game'] = match_dict['tournament'].game
-            self.fields['game_mode'] = match_dict['tournament'].game_mode
-            # TODO vymyslet tento dotaz aby vybralo vsechny tymy ktere jsou registrovany pro dany turnaj (tyto zaznamy jsou v tabulce RegisteredTeams)
-            self.fields['team_1'].queryset = RegisteredTeams.objects.filter(tournament=match_dict['tournament']).values(
-                "team")
-            self.fields['team_2'].queryset = RegisteredTeams.objects.filter(tournament=match_dict['tournament']).values(
-                "team")
-        except:
-            pass

@@ -9,7 +9,7 @@
       }
 
       function buttonClick(action, form_id) {
-          formData = form_id.serializeArray();
+          let formData = form_id.serializeArray();
           formData = JSON.stringify(formData);
           $.ajax({
               type: 'POST',
