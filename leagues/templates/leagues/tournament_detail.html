@@ -10,10 +10,171 @@
 
 
 {% block content %}
-  <div style="flex: 1 0 auto">
-    <div class="flex-container">
-      <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
-        <h1 style="text-align: center">{{ match.id }}</h1>
+ <div class="w3-container w3-margin-bottom flex-container" style="flex: 1 1 0;">
+    <div class="w3-card w3-round-large w3-white" style="width: 100%; max-width: 1000px">
+      <header>
+        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ team.name }}</h1>
+
+        <ul class="section-bar" style="flex: 1 1 auto">
+          <li onclick="showSection(event, 'info');" id="info_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Informations
+          </li>
+          <li onclick="showSection(event, 'teams');" id="matches_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Participating teams
+          </li>
+          <li onclick="showSection(event, 'matches');" id="matches_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Matches
+          </li>
+          <li onclick="showSection(event, 'sponsors');" id="sponsors_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Sponsors
+          </li>
+        </ul>
+      </header>
+
+      <div id="info" class="w3-container w3-section section">
+
+        <h4>Name:
+          {{ tournament.name }}
+        </h4>
+
+        <h4>Main sponsor:
+          {{ main_sponsor.name }}
+        </h4>
+
+        <h4>Prize:
+          {{ tournament.prize }}
+        </h4>
+
+        <h4>Opening date:
+          {{ tournament.opening_date }}</h4>
+        <h4>
+
+        <h4>End date:
+          {{ tournament.end_date }}
+        </h4>
+
+        <h4>Game of interest:
+          <a href="{% url 'leagues:game_detail' tournament.game.slug %}">{{ tournament.game.name }}</a>
+        </h4>
+
+        <h4>
+          Description:
+        </h4>
+        <article class="w3-container">
+          <p style="margin:0;">{{ tournament.description }}</p>
+        </article>
+      </div>
+
+      <div id="teams" class="w3-container w3-section section">
+        <h3>Participating teams</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Name</th>
+              <th>Games total</th>
+              <th>Win games</th>
+              <th>Win ratio</th>
+            </tr>
+            </thead>
+
+            <tbody id="member_rows">
+            {% for team in team_matches %}
+              <tr style="display: none">
+                <td>
+                  <a href="{% url 'leagues:team_detail' team.0.slug %}">
+                    {{ team.0.name }}
+                  </a>
+                </td>
+                <td>{{ team.1.count }}</td>
+                <td>{{ team.2.count }}</td>
+                <td>{{ team.3|default:"Not played yet" }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+
+      <div id="matches" class="w3-container w3-section section">
+        <h3>Matches</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Versus</th>
+              <th>Start</th>
+              <th>Duration</th>
+              <th>Winner</th>
+              <th>Tournament</th>
+              <th>Game</th>
+              <th></th>
+            </tr>
+            </thead>
+
+            <tbody id="matches_rows">
+            {% for match in matches %}
+              <tr style="display: none;">
+                <td><a href="{% url 'leagues:team_detail' match.team_1.slug %}">{{ match.team_1.name }}</a>
+                  VS <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
+                <td>{{ match.beginning }}</td>
+                <td>
+                  {% if match.duration %}
+                    {{ match.duration }}
+                  {% else %}
+                    Not ended yet
+                  {% endif %}
+                </td>
+                <td>
+                  {% if match.duration %}
+                    {{ match.winner }}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if match.tournament %}
+                    <a href="{% url 'leagues:tournament_detail' match.tournament.slug %}">{{ match.tournament.name }}</a>
+                  {% endif %}
+                </td>
+                <td>{{ match.game }}</td>
+                <td><a href="{% url 'leagues:match_detail' match.id %}"><i class="fa fa-eye"></i></a></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+
+
+      <div id="sponsors" class="w3-container w3-section section">
+        <h3>Sponsors</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Name</th>
+              <th>Amount</th>
+              <th>Type</th>
+            </tr>
+            </thead>
+
+            <tbody id="matches_rows">
+            {% for sponsor in sponsors %}
+              <tr style="display: none;">
+                <td>{{ sponsor.sponsor.name }}</td>
+                <td>{{ sponsor.amount }}</td>
+                <td>{{ sponsor.type }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
       </div>
     </div>
   </div>

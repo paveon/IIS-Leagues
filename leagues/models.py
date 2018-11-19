@@ -1,5 +1,6 @@
 import datetime
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.text import slugify
 from django.conf import settings
@@ -157,6 +158,20 @@ class Team(models.Model):
         matches_won = self.matches_won.count()
         return (str(round((matches_won / matches_total) * 100, 2)) + " %")
 
+    def all_tournament_matches(self, tournament_id):
+        return self.matches_a.filter(tournament_id=tournament_id).union(self.matches_b.filter(tournament_id=tournament_id))
+
+    def win_ratio_tournament(self, tournament_id):
+        matches_total = self.all_tournament_matches(tournament_id).count()
+        if not matches_total:
+            return None
+
+        matches_won = self.matcher_won_tournament(tournament_id).count()
+        return str(round((matches_won / matches_total) * 100, 2)) + "%"
+
+    def matcher_won_tournament(self, tournament_id):
+        return Match.objects.filter(Q(tournament_id=tournament_id) & Q(winner=self.id))
+
     def __str__(self):
         return self.name
 
@@ -287,8 +302,8 @@ class Death(models.Model):
 
 class Assist(models.Model):
     ASSISTANCE_TYPE = (
-        ('HEALING', 'Damage'),
-        ('DAMAGE', 'Healing'),
+        ('HEALING', 'Healing'),
+        ('DAMAGE', 'Damage'),
     )
     death = models.ForeignKey(Death, on_delete=models.PROTECT, verbose_name='Related death')
     player = models.ForeignKey(Player, on_delete=models.PROTECT, verbose_name='Assisting player')

@@ -114,60 +114,41 @@
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr class="">
-              <th>ID</th>
-              <th>Beginning</th>
+              <th>Versus</th>
+              <th>Start</th>
               <th>Duration</th>
-              <th>Game</th>
-              <th>Team A</th>
-              <th>Team B</th>
               <th>Winner</th>
+              <th>Tournament</th>
+              <th>Game</th>
+              <th></th>
             </tr>
             </thead>
 
             <tbody id="matches_rows">
             {% for match in team.all_matches %}
               <tr style="display: none;">
-                <td>
-                  <a href="{% url 'leagues:match_detail' match.id %}">
-                    {{ match.id }}
-                  </a>
-                </td>
+                <td><a href="{% url 'leagues:team_detail' match.team_1.slug %}">{{ match.team_1.name }}</a>
+                  VS <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
                 <td>{{ match.beginning }}</td>
-                <td>{{ match.duration_fmt }}</td>
                 <td>
-                  <a href="{% url 'leagues:game_detail' match.game.slug %}">
-                    {{ match.game }}
-                  </a>
-                </td>
-                <td>
-                  {% if match.team_1 != team %}
-                    <a href="{% url 'leagues:team_detail' match.team_1.slug %}">
-                      {{ match.team_1 }}
-                    </a>
+                  {% if match.duration %}
+                    {{ match.duration }}
                   {% else %}
-                    {{ match.team_1 }}
+                    Not ended yet
                   {% endif %}
                 </td>
                 <td>
-                  {% if match.team_2 != team %}
-                    <a href="{% url 'leagues:team_detail' match.team_2.slug %}">
-                      {{ match.team_2 }}
-                    </a>
-                  {% else %}
-                    {{ match.team_2 }}
+                  {% if match.duration %}
+                    {{ match.winner }}
                   {% endif %}
                 </td>
-                <td style="font-weight: bold;
-                    color:
-                    {% if match.winner == team %}
-                      green
-                    {% else %}
-                      red
-                    {% endif %}
-                    ;">
-
-                  {{ match.winner }}
+                <td>
+                  {% if match.tournament %}
+                    <a href="{% url 'leagues:tournament_detail' match.tournament.slug %}">{{ match.tournament.name }}</a>
+                  {% endif %}
                 </td>
+                <td>{{ match.game }}</td>
+                <td><a href="{% url 'leagues:match_detail' match.id %}"><i class="fa fa-eye"></i></a></td>
               </tr>
             {% endfor %}
             </tbody>

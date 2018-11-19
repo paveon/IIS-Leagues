@@ -669,7 +669,7 @@ class TournamentView(generic.TemplateView):
             winner = choice((team_1, team_2))
             match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2, duration=timedelta(minutes=duration), winner_id=winner)
             match.save()
-            return JsonResponse(response_data)
+            return JsonResponse(response_data) # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...)
         elif action_key == 'match_done':
             team_1 = int(form_data_dict['match_create-team_1'])
             team_2 = int(form_data_dict['match_create-team_2'])
@@ -688,7 +688,48 @@ class MatchDetailView(generic.DetailView):
     template_name = "leagues/match_detail.html"
     model = Match
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        match = self.get_object()
+        players_1 = PlayedMatch.objects.filter(match=match, team=match.team_1)
+        players_2 = PlayedMatch.objects.filter(match=match, team=match.team_2)
+        players = (players_1, players_2)
+        team_1 = None
+        team_2 = None
+
+        for player in players_1:
+            team_1 = Team.objects.get(pk=player.team_id)
+            break
+        for player in players_2:
+            team_2 = Team.objects.get(pk=player.team_id)
+            break
+
+        context['teams'] = (team_1, team_2)
+        context['players'] = players
+        # TODO statistiky, ale hlavne vyresit jak vypisovat postupne jednotlive udalosti (podle casu), jelikoz jsou v jinych tabulkach
+        # TODO pravdepdoobne budeme vypisovat asisty spolu se zabitimi
+        return context
 
 class TournamentDetailView(generic.DetailView):
     template_name = "leagues/tournament_detail.html"
     model = Tournament
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        tournament = self.get_object()
+        teams = Team.objects.filter(tournaments=tournament) # TODO u prize a amount nevim jednotku!!
+        team_matches = []
+        for team in teams:
+            all_matches = team.all_tournament_matches(tournament.id)
+            won_matches = team.matcher_won_tournament(tournament.id)
+            win_rate = team.win_ratio_tournament(tournament.id)
+            team_matches.append((team, all_matches, won_matches, win_rate))
+        matches = Match.objects.filter(tournament=tournament)
+        sponsors = Sponsorship.objects.filter(tournament=tournament)
+        main_sponsor = sponsors.filter(type="MAIN")
+        context['main_sponsor'] = main_sponsor
+        context['team_matches'] = team_matches
+        context['matches'] = matches
+        context['sponsors'] = sponsors
+        return context
+
