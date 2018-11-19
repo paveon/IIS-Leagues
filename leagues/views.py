@@ -7,6 +7,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.forms.models import model_to_dict
 from django_countries.fields import Country
 from django.db.models import F, Q
+from random import randint, choice
+from datetime import timedelta
 import json
 from enum import Enum
 from .forms import *
@@ -113,6 +115,7 @@ class SettingsView(generic.TemplateView):
         # TODO omezit vybery leader tymu muze byt jen nekdo kdo je v tom tymu (stejne klan), hry pro tymy omezeny podle her klanu (nebo se ke specializacim klanu potom prida ta hra tymu?)
         # TODO add new nevytvori novy formular pokud v predchozim byla chyba takze bud clear tlacitko a nebo to nejak vyresit at se udela prazdny formular po kliknuti na new pri predchozim erroru
         # TODO pri vytvareni tournamentu to hodi error a potom po refreshi je to tam, ale hodi to prvni chybu
+        # TODO pri vytvareni hry je hra neaktivni a aktivuje se az ma prirazeny gamemode => momentalni kvuli testovani je default true ale ma byt false (doplnit pri vytvareni hry)
         if create_form.is_bound and create_form.is_valid():
             # commit=False doesn't save new model object directly into the DB
             # so we can do additional processing before storing it in the DB with save method of model object
@@ -604,29 +607,79 @@ class TournamentView(generic.TemplateView):
         context = super().get_context_data(**kwargs)
         action_key = request.POST['action']
         response_data = {}
+
+        form_data_dict = {}
+        form_data_list = json.loads(request.POST['data'])
+        for field in form_data_list:
+            form_data_dict[field["name"]] = field["value"]
+
         if action_key == 'picked_tournament':
-            form_data_dict = {}
-            form_data_list = json.loads(request.POST['data'])
-            for field in form_data_list:
-                form_data_dict[field["name"]] = field["value"]
-
-            tournament_id = int(form_data_dict['match_create-tournament'])
-            tournament = Tournament.objects.get(pk=tournament_id)
-            match = Match(tournament=tournament)
-            match.save()
-            registered_teams = RegisteredTeams.objects.all().filter(tournament=tournament)
-            match_form = MatchForm(prefix='match_create')
-            match_form.fields['game'] = tournament.game
-            match_form.fields['game_mode'] = tournament.game_mode
-            match_form.fields['team_1'].queryset = registered_teams
-            match_form.fields['team_2'].queryset = registered_teams
-            context['match_form'] = match_form
-            response_data['tournament'] = tournament_id
-            response_data['match'] = match.id
+            try:
+                tournament_id = int(form_data_dict['match_create-tournament'])
+                tournament = Tournament.objects.get(pk=tournament_id)
+                registered_teams = RegisteredTeams.objects.all().filter(tournament=tournament)
+                dictionaries = [team.team.as_array() for team in registered_teams]
+                response_data['teams'] = json.dumps({"data": dictionaries})
+                response_data['tournament'] = tournament.id
+                response_data['status'] = "pick_teams"
+            except:
+                games = Game.objects.filter(active=True)
+                dictionaries = [game.as_array() for game in games]
+                response_data['games'] = json.dumps({"data": dictionaries})
+                response_data['status'] = "pick_game"
             return JsonResponse(response_data)
-
-        elif action_key == 'closed_modal':
-            Match.objects.filter(id=context['match']).delete()
+        elif action_key == 'picked_game':
+            game_id = int(form_data_dict['match_create-game'])
+            game = Game.objects.get(pk=game_id)
+            modes = game.game_modes.all()
+            dictionaries = [mode.as_array() for mode in modes]
+            response_data['game_modes'] = json.dumps({"data": dictionaries})
+            response_data['game'] = game_id
+            response_data['status'] = "pick_game_mode"
+            return JsonResponse(response_data)
+        elif action_key == 'picked_game_mode':
+            game = int(form_data_dict['game_mode-game'])
+            game_mode = int(form_data_dict['match_create-game_mode'])
+            possible_teams = Team.objects.filter(game_id=game)
+            dictionaries = [team.as_array() for team in possible_teams]
+            response_data['teams_1'] = json.dumps({"data": dictionaries})
+            response_data['game'] = game
+            response_data['game_mode'] = game_mode
+            response_data['status'] = "pick_team1"
+            return JsonResponse(response_data)
+        elif action_key == 'picked_team1':
+            game = int(form_data_dict['team_1-game'])
+            game_mode = int(form_data_dict['team_1-game_mode'])
+            team_1 = int(form_data_dict['team_1'])
+            team = Team.objects.get(pk=team_1)
+            possible_teams = Team.objects.filter(Q(game_id=game) & ~Q(clan=team.clan))
+            dictionaries = [team.as_array() for team in possible_teams]
+            response_data['teams_2'] = json.dumps({"data": dictionaries})
+            response_data['game'] = game
+            response_data['game_mode'] = game_mode
+            response_data['team_1'] = team_1
+            response_data['status'] = "pick_team2"
+            return JsonResponse(response_data)
+        elif action_key == 'non_turnament_done':
+            game = int(form_data_dict['team_2-game'])
+            game_mode = int(form_data_dict['team_2-game_mode'])
+            team_1 = int(form_data_dict['team_2-team1'])
+            team_2 = int(form_data_dict['team_2'])
+            duration = randint(15, 90)
+            winner = choice((team_1, team_2))
+            match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2, duration=timedelta(minutes=duration), winner_id=winner)
+            match.save()
+            return JsonResponse(response_data)
+        elif action_key == 'match_done':
+            team_1 = int(form_data_dict['match_create-team_1'])
+            team_2 = int(form_data_dict['match_create-team_2'])
+            tournament = int(form_data_dict['tournament'])
+            t = Tournament.objects.get(pk=tournament)
+            duration = randint(15, 90)
+            winner = choice((team_1, team_2))
+            match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1, team_2_id=team_2, duration=timedelta(minutes=duration), winner_id=winner)
+            match.save()
+            return JsonResponse(response_data)
 
         return HttpResponseRedirect(reverse("leagues:tournaments"))
 

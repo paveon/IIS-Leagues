@@ -3,11 +3,6 @@
 
 {% block scripts %}
   <script>
-      function removeAndHide(action, form_id) {
-          form_id.hide()
-          buttonClick(action, form_id)
-      }
-
       function buttonClick(action, form_id) {
           let formData = form_id.serializeArray();
           formData = JSON.stringify(formData);
@@ -22,19 +17,32 @@
               dataType: "json",
               async: true,
               success: function (json) {
-                  if(json['tournament']) {
-                      {% for part in  match_form.fields  %}
-                          {% if part == 'team_1' %}
-                              {% for team in part.queryset %}
-                                console.log({{ team }});
-                              {% endfor %}
-                          {% endif %}
-                          {% if part == 'team_2' %}
-                            console.log("team_2");
-                          {% endif %}
-                      {% endfor %}
-                      $('#team_pick').show();
-                      $('#{{ match_form.prefix }}').hide();
+                  if(json['status'] == "pick_teams") {
+                      var tmp = $.parseJSON(json['teams']);
+                      $('#tournament').attr('value', json['tournament']);
+                      FillTeams(tmp);
+                  }
+                  else if(json['status'] == "pick_game") {
+                      var tmp = $.parseJSON(json['games']);
+                      FillGames(tmp);
+                  }
+                  else if(json['status'] == "pick_game_mode") {
+                      var tmp = $.parseJSON(json['game_modes']);
+                      $('#game_mode-game').attr('value', json['game']);
+                      FillGameMode(tmp);
+                  }
+                  else if(json['status'] == "pick_team1") {
+                      var tmp = $.parseJSON(json['teams_1']);
+                      $('#team_1-game').attr('value', json['game']);
+                      $('#team_1-game_mode').attr('value', json['game_mode']);
+                      FillTeam_1(tmp);
+                  }
+                  else if(json['status'] == "pick_team2") {
+                      var tmp = $.parseJSON(json['teams_2']);
+                      $('#team_2-game').attr('value', json['game']);
+                      $('#team_2-game_mode').attr('value', json['game_mode']);
+                      $('#team_2-team1').attr('value', json['team_1']);
+                      FillTeam_2(tmp);
                   }
                   else {
                       location.reload();
@@ -48,12 +56,102 @@
           });
       }
 
-      function openDialog(text, confirmCallback) {
-          $('#dialog_text').text(text);
-          $('#dialog_confirm').attr('onclick',
-              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
-          $('#dialog').show();
+      function FillGames(parseData) {
+          var data = parseData['data'];
+          for(var i = 0; i < data.length; ++i) {
+              $('#id_match_create-game').append($('<option>', {value: data[i][0], text: data[i][1]}));
+          }
+          $('#game_pick').show();
+          $('#{{ match_form.prefix }}').hide();
       }
+
+      function FillGameMode(parseData) {
+          var data = parseData['data'];
+          for(var i = 0; i < data.length; ++i) {
+              $('#id_match_create-game_mode').append($('<option>', {value: data[i][0], text: data[i][1]}));
+          }
+          $('#game_pick').hide();
+          $('#game_mode_pick').show();
+      }
+
+      function FillTeam_1(parseData) {
+          var data = parseData['data'];
+          for(var i = 0; i < data.length; ++i) {
+              $('#team_1').append($('<option>', {value: data[i][0], text: data[i][1]}));
+          }
+          $('#game_mode_pick').hide();
+          $('#team1_pick').show();
+      }
+
+      function FillTeam_2(parseData) {
+          var data = parseData['data'];
+          for(var i = 0; i < data.length; ++i) {
+              $('#team_2').append($('<option>', {value: data[i][0], text: data[i][1]}));
+          }
+          $('#team1_pick').hide();
+          $('#team2_pick').show();
+      }
+
+      function FillTeams(parseData) {
+          var data = parseData['data'];
+          $('#id_match_create-team_1').append($('<option>', {value:0, text: "---------"}));
+          $('#id_match_create-team_2').append($('<option>', {value:0, text: "---------"}));
+          for(var i = 0; i < data.length; ++i) {
+              $('#id_match_create-team_1').append($('<option>', {value: data[i][0], text: data[i][1]}));
+              $('#id_match_create-team_2').append($('<option>', {value: data[i][0], text: data[i][1]}));
+          }
+          $('#team_pick').show();
+          $('#{{ match_form.prefix }}').hide();
+      }
+
+      function RemoveTeams() {
+          $('#id_match_create-team_1')
+            .find('option')
+            .remove()
+
+          $('#id_match_create-team_2')
+            .find('option')
+            .remove()
+
+          $('#team_pick').hide()
+      }
+
+      function RemoveAll() {
+          $('#team2')
+              .find('option')
+              .remove()
+
+          $('#team1')
+              .find('option')
+              .remove()
+
+          $('#id_match_create-game')
+              .find('option')
+              .remove()
+
+          $('#id_match_create-game_mode')
+              .find('option')
+              .remove()
+
+          $('#team1_pick').hide()
+          $('#team2_pick').hide()
+          $('#game_pick').hide()
+          $('#game_mode_pick').hide()
+      }
+
+      function RemoveOptions(select_id, form_hide_id) {
+          select_id
+              .find('option')
+              .remove()
+
+          form_hide_id.hide()
+      }
+
+      function GoBack(select_id, form_hide_id, form_show_id) {
+          form_show_id.show()
+          RemoveOptions(select_id, form_hide_id)
+      }
+
   </script>
 {% endblock %}
 
@@ -134,44 +232,36 @@
               <th>Winner</th>
               <th>Tournament</th>
               <th>Game</th>
-              {% if user.is_authenticated %}
-                <th></th>
-              {% endif %}
               <th></th>
             </tr>
             </thead>
 
             <tbody>
             {% for match in matches %}
-              {% if match.done %}
-                <tr style="display: none">
-                  <td><a href="{% url 'leagues:team_detail' match.team_1.slug %}">{{ match.team_1.name }}</a>
-                    VS <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
-                  <td>{{ match.beginning }}</td>
-                  <td>
-                    {% if match.duration %}
-                      {{ match.duration }}
-                    {% else %}
-                      Not ended yet
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if match.duration %}
-                      {{ match.winner }}
-                    {% endif %}
-                  </td>
-                  <td>
-                    {% if match.tournament %}
-                      <a href="{% url 'leagues:tournament_detail' match.tournament.slug %}">{{ match.tournament.name }}</a>
-                    {% endif %}
-                  </td>
-                  <td>{{ match.game }}</td>
-                  {% if user.is_authenticated %}
-                    <td>Edit</td>
+              <tr style="display: none">
+                <td><a href="{% url 'leagues:team_detail' match.team_1.slug %}">{{ match.team_1.name }}</a>
+                  VS <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
+                <td>{{ match.beginning }}</td>
+                <td>
+                  {% if match.duration %}
+                    {{ match.duration }}
+                  {% else %}
+                    Not ended yet
                   {% endif %}
-                  <td><a href="{% url 'leagues:match_detail' match.id %}"><i class="fa fa-eye"></i></a></td>
-                </tr>
-              {% endif %}
+                </td>
+                <td>
+                  {% if match.duration %}
+                    {{ match.winner }}
+                  {% endif %}
+                </td>
+                <td>
+                  {% if match.tournament %}
+                    <a href="{% url 'leagues:tournament_detail' match.tournament.slug %}">{{ match.tournament.name }}</a>
+                  {% endif %}
+                </td>
+                <td>{{ match.game }}</td>
+                <td><a href="{% url 'leagues:match_detail' match.id %}"><i class="fa fa-eye"></i></a></td>
+              </tr>
             {% endfor %}
             </tbody>
           </table>
@@ -230,25 +320,49 @@
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create Match</h3>
-        <button onclick="removeAndHide('closed_modal', $('#team_pick'))" type="button"
+        <button onclick="RemoveTeams()" type="button"
                 class="w3-button w3-display-topright w3-red">
           <i class="fa fa-times"></i>
         </button>
       </header>
-      <form method="POST" action="{% url 'leagues:tournaments' %}">
+      <div id="team_pick_error" class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large" hidden>
+        <p></p>
+      </div>
+      <form method="POST" action="{% url 'leagues:tournaments' %}" id="teams_id">
         <div class="w3-section w3-container">
           {% csrf_token %}
 
           <label><b>{{ match_form.team_1.label_tag }}</b></label>
-          {% render_field match_form.team_1 class+="w3-input w3-border w3-margin-bottom" %}
+          <select class="w3-input w3-border w3-margin-bottom" name="match_create-team_1" id="id_match_create-team_1">
+          </select>
 
           <label><b>{{ match_form.team_2.label_tag }}</b></label>
-          {% render_field match_form.team_2 class+="w3-input w3-border w3-margin-bottom" %}
+          <select class="w3-input w3-border w3-margin-bottom" name="match_create-team_2" id="id_match_create-team_2">
+          </select>
 
+          <script>
+            $('select').on('change', function() {
+                HandleDropdowns($(this));
+            });
+
+            function HandleDropdowns(element) {
+                var $element = element;
+                var value = $element.val();
+
+                $.each($('select').not($element), function() { //loop all remaining select elements
+                    var subValue = $(this).val();
+                    if(value != "0" && subValue != "0") {
+                        if (subValue === value) { // if value is same reset
+                            $(this).val(0);
+                        }
+                    }
+                });
+            }
+          </script>
         </div>
-
+        <input type="hidden" name="tournament" id="tournament">
         <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button onclick="removeAndHide('closed_modal', $('#team_pick'))" type="button"
+          <button onclick="RemoveTeams()"
                   class="w3-button w3-red">Cancel
           </button>
           <input class="w3-button w3-green w3-right" type="submit" value="Create match">
@@ -256,4 +370,163 @@
       </form>
     </div>
   </div>
+  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
+    $("#team_pick").submit(function(event){
+        event.preventDefault(); //prevent default action
+        if($('#id_match_create-team_1 option[value="0"]:selected').length != 0 ||
+        $('#id_match_create-team_2 option[value="0"]:selected').length != 0) {
+            $('#team_pick_error').show();
+            $('#team_pick_error p').text("You have to select teams before ...");
+        }
+        else {
+            buttonClick('match_done', $('#teams_id'));
+        }
+    });
+  </script>
+
+  <div id="game_pick" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Create Match</h3>
+        <button onclick="RemoveAll()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <form method="POST" action="{% url 'leagues:tournaments' %}" id="games_id">
+        <div class="w3-section w3-container">
+          {% csrf_token %}
+
+          <label><b>{{ match_form.game.label_tag }}</b></label>
+          <select class="w3-input w3-border w3-margin-bottom" name="match_create-game" id="id_match_create-game">
+          </select>
+
+        </div>
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button type="button" onclick="GoBack($('#id_match_create-game'), $('#game_pick'), $('#{{ match_form.prefix }}'))"
+                  class="w3-button w3-red">Back
+          </button>
+          <input class="w3-button w3-green w3-right" type="submit" value="Next">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
+    $("#games_id").submit(function(event){
+      event.preventDefault(); //prevent default action
+      buttonClick('picked_game', $('#games_id'));
+    });
+  </script>
+
+  <div id="game_mode_pick" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Create Match</h3>
+        <button onclick="RemoveAll()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <form method="POST" action="{% url 'leagues:tournaments' %}" id="game_mode_id">
+        <div class="w3-section w3-container">
+          {% csrf_token %}
+
+          <label><b>{{ match_form.game_mode.label_tag }}</b></label>
+          <select class="w3-input w3-border w3-margin-bottom" name="match_create-game_mode" id="id_match_create-game_mode">
+          </select>
+
+        </div>
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button type="button"  onclick="GoBack($('#id_match_create-game_mode'), $('#game_mode_pick'), $('#game_pick'))"
+                  class="w3-button w3-red">Back
+          </button>
+          <input type="hidden" name="game_mode-game" id="game_mode-game">
+          <input class="w3-button w3-green w3-right" type="submit" value="Next">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
+    $("#game_mode_id").submit(function(event){
+      event.preventDefault(); //prevent default action
+      buttonClick('picked_game_mode', $('#game_mode_id'));
+    });
+  </script>
+
+  <div id="team1_pick" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Create Match</h3>
+        <button onclick="RemoveAll()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <form method="POST" action="{% url 'leagues:tournaments' %}" id="team1_id">
+        <div class="w3-section w3-container">
+          {% csrf_token %}
+
+          <label><b>{{ match_form.team_1.label_tag }}</b></label>
+          <select class="w3-input w3-border w3-margin-bottom" name="team_1" id="team_1">
+          </select>
+
+        </div>
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button type="button"  onclick="GoBack($('#team_1'), $('#team1_pick'), $('#game_mode_pick'))"
+                  class="w3-button w3-red">Back
+          </button>
+          <input type="hidden" name="team_1-game" id="team_1-game">
+          <input type="hidden" name="team_1-game_mode" id="team_1-game_mode">
+          <input class="w3-button w3-green w3-right" type="submit" value="Next">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
+    $("#team1_id").submit(function(event){
+      event.preventDefault(); //prevent default action
+      buttonClick('picked_team1', $('#team1_id'));
+    });
+  </script>
+
+  <div id="team2_pick" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Create Match</h3>
+        <button onclick="RemoveAll()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <form method="POST" action="{% url 'leagues:tournaments' %}" id="team2_id">
+        <div class="w3-section w3-container">
+          {% csrf_token %}
+
+          <label><b>{{ match_form.team_1.label_tag }}</b></label>
+          <select class="w3-input w3-border w3-margin-bottom" name="team_2" id="team_2">
+          </select>
+
+        </div>
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button type="button" onclick="GoBack($('#team_2'), $('#team2_pick'), $('#team1_pick'))"
+                  class="w3-button w3-red">Back
+          </button>
+          <input type="hidden" name="team_2-game" id="team_2-game">
+          <input type="hidden" name="team_2-game_mode" id="team_2-game_mode">
+          <input type="hidden" name="team_2-team1" id="team_2-team1">
+          <input class="w3-button w3-green w3-right" type="submit" value="Create Match">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
+    $("#team2_id").submit(function(event){
+      event.preventDefault(); //prevent default action
+      buttonClick('non_turnament_done', $('#team2_id'));
+    });
+  </script>
 {% endblock %}

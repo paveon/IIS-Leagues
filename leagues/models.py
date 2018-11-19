@@ -33,6 +33,9 @@ class GameMode(models.Model):
                                                          help_text="Number of players in one team")
     description = models.TextField('description', blank=True, help_text="Description of game mode")
 
+    def as_array(self):
+        return [self.id, self.name]
+
     def __str__(self):
         return self.name
 
@@ -46,7 +49,10 @@ class Game(models.Model):
     image_url = models.URLField('game image url', max_length=500, blank=True)
     publisher = models.CharField('game publisher', max_length=200, blank=True)
     description = models.TextField('description', blank=True, help_text="Description of game")
-    game_modes = models.ManyToManyField(GameMode, blank=True, verbose_name='available game modes')
+    game_modes = models.ManyToManyField(GameMode, verbose_name='available game modes')
+
+    def as_array(self):
+        return [self.id, self.name]
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
@@ -135,6 +141,9 @@ class Team(models.Model):
     clan = models.ForeignKey(Clan, on_delete=models.SET_NULL, null=True, blank=True,
                              verbose_name='Related clan')
 
+    def as_array(self):
+        return [self.id, self.name]
+
     @property
     def all_matches(self):
         return self.matches_a.all().union(self.matches_b.all())
@@ -158,6 +167,7 @@ class Team(models.Model):
         super(Team, self).save(*args, **kwargs)
 
 
+
 class Match(models.Model):
     beginning = models.DateTimeField('beginning of the match', default=timezone.now)
     duration = models.DurationField('duration of the match', null=True, blank=True,)
@@ -170,7 +180,6 @@ class Match(models.Model):
     team_2 = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_b',
                                verbose_name='second participating team', null=True, blank=True,)
     winner = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_won', verbose_name='winning team', null=True, blank=True,)
-    done = models.BooleanField(verbose_name='team making completed', default=False)
 
     @property
     def duration_fmt(self):
