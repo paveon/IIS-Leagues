@@ -669,7 +669,7 @@ class TournamentView(generic.TemplateView):
             winner = choice((team_1, team_2))
             match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2, duration=timedelta(minutes=duration), winner_id=winner)
             match.save()
-            return JsonResponse(response_data) # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...)
+            return JsonResponse(response_data) # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...) + neni osetreno zda ma tym dostatek hracu
         elif action_key == 'match_done':
             team_1 = int(form_data_dict['match_create-team_1'])
             team_2 = int(form_data_dict['match_create-team_2'])
@@ -726,10 +726,42 @@ class TournamentDetailView(generic.DetailView):
             team_matches.append((team, all_matches, won_matches, win_rate))
         matches = Match.objects.filter(tournament=tournament)
         sponsors = Sponsorship.objects.filter(tournament=tournament)
-        main_sponsor = sponsors.filter(type="MAIN")
+        main_sponsor = sponsors.filter(type='Main')
         context['main_sponsor'] = main_sponsor
         context['team_matches'] = team_matches
         context['matches'] = matches
         context['sponsors'] = sponsors
         return context
 
+    def post(self, request, *args, **kwargs):
+        action_key = request.POST['action']
+        tournament = self.get_object()
+        response_data = {}
+
+        form_data_dict = {}
+        form_data_list = json.loads(request.POST['data'])
+        for field in form_data_list:
+            form_data_dict[field["name"]] = field["value"]
+
+        if action_key == 'set_teams':
+            clan_id = form_data_dict['clan']
+            teams = Team.objects.filter(clan_id=clan_id, game=tournament.game, active=True)
+            valid_teams = []
+            for team in teams:
+                if Player.objects.filter(team=team).count() >= tournament.game_mode.team_player_count:
+                    valid_team = [team.id, team.name]
+                    valid_teams.append(valid_team)
+            if valid_teams:
+                response_data['teams'] = json.dumps({"data": valid_teams})
+                response_data['status'] = "good"
+            else:
+                response_data['status'] = "error"
+            return JsonResponse(response_data)
+        elif action_key == 'team_selected':
+            team_id = int(form_data_dict['team_select'])
+            team = Team.objects.get(pk=team_id)
+            register = RegisteredTeams(team=team, tournament=tournament)
+            register.save()
+            return JsonResponse(response_data)
+
+        return HttpResponseRedirect(reverse("leagues:tournament_detail", args=[tournament.slug]))

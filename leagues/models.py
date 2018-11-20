@@ -30,8 +30,7 @@ class Genre(models.Model):
 
 class GameMode(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="Name of the game mode")
-    team_player_count = models.PositiveSmallIntegerField(default=5, null=True, blank=True,
-                                                         help_text="Number of players in one team")
+    team_player_count = models.PositiveSmallIntegerField(default=5, help_text="Number of players in one team")
     description = models.TextField('description', blank=True, help_text="Description of game mode")
 
     def as_array(self):

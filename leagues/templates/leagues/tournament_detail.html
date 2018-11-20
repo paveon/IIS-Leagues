@@ -1,6 +1,59 @@
 {% extends 'leagues/base.html' %}
 {% block title %}Tournament | {{ tournament.name }} {% endblock %}
 
+{% block scripts %}
+  <script>
+      function buttonClick(action, form_id) {
+          let formData = form_id.serializeArray();
+          formData = JSON.stringify(formData);
+          $.ajax({
+              type: 'POST',
+              url: "{% url 'leagues:tournament_detail' tournament.slug %}",
+              data: {
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'action': action,
+                  'data': formData
+              },
+              dataType: "json",
+              async: true,
+              success: function (json) {
+                  if(json['status'] == "error") {
+                      $('#team_pick_error').show();
+                      $('#team_pick').show();
+                      $('#team_pick_error p').text("You have no teams to be selected");
+                      $("#team_reg").prop('disabled', true);
+                  }
+                  else if(json['status'] == "good") {
+                      $("#team_reg").prop('disabled', false);
+                      var tmp = $.parseJSON(json['teams']);
+                      var data = tmp['data'];
+                      $('#team_pick_error').hide();
+                      for(var i = 0; i < data.length; ++i) {
+                          $('#team_select').append($('<option>', {value: data[i][0], text: data[i][1]}));
+                      }
+                      $('#team_pick').show();
+                  }
+                  else {
+                      location.reload();
+                  }
+              },
+              error: function (xhr, error) {
+                  console.log("AJAX failure");
+                  console.log(xhr);
+                  console.log(error);
+              }
+          });
+      }
+
+      function Removeteams() {
+          $('#team_select')
+              .find('option')
+              .remove()
+
+          $('#team_pick').hide()
+      }
+  </script>
+{% endblock %}
 
 {% block left_panel %}
   {% with side_bars_enabled=True %}
@@ -72,6 +125,12 @@
       <div id="teams" class="w3-container w3-section section">
         <h3>Participating teams</h3>
         <div class="pagedTable w3-card w3-round">
+          {% if user.player == user.player.clan.leader %}
+            <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
+                      onclick="buttonClick('set_teams', $('#set_teams'))">
+              <i class="fa fa-plus"></i> Register team
+            </button>
+          {% endif %}
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr class="">
@@ -187,3 +246,50 @@
   {% endwith %}
 {% endblock right_panel %}
 
+
+
+{% block endpage %}
+  <div id="team_pick" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Register team</h3>
+        <button onclick="Removeteams()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <div id="team_pick_error" class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large" hidden>
+        <p></p>
+      </div>
+      <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="team_form">
+        <div class="w3-section w3-container">
+          {% csrf_token %}
+
+          <label><b>Pick team</b></label>
+          <select class="w3-input w3-border w3-margin-bottom" name="team_select" id="team_select">
+          </select>
+
+        </div>
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button type="button" onclick="Removeteams()"
+                  class="w3-button w3-red">Cancel
+          </button>
+          <input class="w3-button w3-green w3-right" type="submit" value="Register team" id="team_reg">
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
+    $("#team_form").submit(function(event){
+      event.preventDefault(); //prevent default action
+      buttonClick('team_selected', $('#team_form'));
+    });
+  </script>
+
+  <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="set_teams">
+    {% csrf_token %}
+    <input type="hidden" name="clan" value="{{ user.player.clan.id }}">
+  </form>
+
+{% endblock %}

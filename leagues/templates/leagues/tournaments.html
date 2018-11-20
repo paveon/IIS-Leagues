@@ -76,8 +76,15 @@
 
       function FillTeam_1(parseData) {
           var data = parseData['data'];
-          for(var i = 0; i < data.length; ++i) {
+          var i = 0
+          for(; i < data.length; ++i) {
               $('#team_1').append($('<option>', {value: data[i][0], text: data[i][1]}));
+          }
+          if(i < 2) {
+              $("team1_next").prop('disabled', true);
+          }
+          else {
+              $("team1_next").prop('disabled', false);
           }
           $('#game_mode_pick').hide();
           $('#team1_pick').show();
@@ -88,6 +95,12 @@
           for(var i = 0; i < data.length; ++i) {
               $('#team_2').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
+          if(i < 1) {
+              $("team2_next").prop('disabled', true);
+          }
+          else {
+              $("team2_next").prop('disabled', false);
+          }
           $('#team1_pick').hide();
           $('#team2_pick').show();
       }
@@ -96,9 +109,16 @@
           var data = parseData['data'];
           $('#id_match_create-team_1').append($('<option>', {value:0, text: "---------"}));
           $('#id_match_create-team_2').append($('<option>', {value:0, text: "---------"}));
-          for(var i = 0; i < data.length; ++i) {
+          var i = 0
+          for(; i < data.length; ++i) {
               $('#id_match_create-team_1').append($('<option>', {value: data[i][0], text: data[i][1]}));
               $('#id_match_create-team_2').append($('<option>', {value: data[i][0], text: data[i][1]}));
+          }
+          if(i < 2) {
+              $("teams_next").prop('disabled', true);
+          }
+          else {
+              $("teams_next").prop('disabled', false);
           }
           $('#team_pick').show();
           $('#{{ match_form.prefix }}').hide();
@@ -365,7 +385,7 @@
           <button onclick="RemoveTeams()"
                   class="w3-button w3-red">Cancel
           </button>
-          <input class="w3-button w3-green w3-right" type="submit" value="Create match">
+          <input class="w3-button w3-green w3-right" type="submit" value="Create match" id="teams_next">
         </div>
       </form>
     </div>
@@ -406,7 +426,7 @@
           <button type="button" onclick="GoBack($('#id_match_create-game'), $('#game_pick'), $('#{{ match_form.prefix }}'))"
                   class="w3-button w3-red">Back
           </button>
-          <input class="w3-button w3-green w3-right" type="submit" value="Next">
+          <input class="w3-button w3-green w3-right" type="submit" value="Next" id="game_next">
         </div>
       </form>
     </div>
@@ -442,7 +462,7 @@
                   class="w3-button w3-red">Back
           </button>
           <input type="hidden" name="game_mode-game" id="game_mode-game">
-          <input class="w3-button w3-green w3-right" type="submit" value="Next">
+          <input class="w3-button w3-green w3-right" type="submit" value="Next" id="game_mode_next">
         </div>
       </form>
     </div>
@@ -479,7 +499,7 @@
           </button>
           <input type="hidden" name="team_1-game" id="team_1-game">
           <input type="hidden" name="team_1-game_mode" id="team_1-game_mode">
-          <input class="w3-button w3-green w3-right" type="submit" value="Next">
+          <input class="w3-button w3-green w3-right" type="submit" value="Next" id="team1_next">
         </div>
       </form>
     </div>
@@ -517,7 +537,7 @@
           <input type="hidden" name="team_2-game" id="team_2-game">
           <input type="hidden" name="team_2-game_mode" id="team_2-game_mode">
           <input type="hidden" name="team_2-team1" id="team_2-team1">
-          <input class="w3-button w3-green w3-right" type="submit" value="Create Match">
+          <input class="w3-button w3-green w3-right" type="submit" value="Create Match" id="team2_next">
         </div>
       </form>
     </div>
