@@ -14,7 +14,7 @@
   <div class="w3-container w3-margin-bottom flex-container" style="flex: 1 1 0;">
     <div class="w3-card w3-round-large w3-white" style="width: 100%; max-width: 1000px">
       <header>
-        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ team.name }}</h1>
+        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ game.name }}</h1>
 
         <ul class="section-bar" style="flex: 1 1 auto">
           <li onclick="showSection(event, 'info');" id="info_tab"
@@ -28,22 +28,19 @@
         </ul>
       </header>
       <div id="info" class="w3-container w3-section section">
-        <h4>Name:
-          {{ game.name }}
-        </h4>
 
-        <h4>Release date:
+        <h4><b>Release date:</b>
           {{ game.release_date|default:"None" }}
         </h4>
 
-        <h4>Publisher:
+        <h4><b>Publisher:</b>
           {{ game.publisher|default:"None" }}
         </h4>
 
-        <h4>Genre:
+        <h4><b>Genre:</b>
           <a href="{% url 'leagues:genre_detail' game.genre.slug %}">{{ game.genre.name }}</a>
         </h4>
-        <h4>Game modes:</h4>
+        <h4><b>Game modes:</b></h4>
         <ul>
           {% for mode in game.game_modes.all %}
             <li>
@@ -54,11 +51,11 @@
           {% endfor %}
         </ul>
 
-        <h4>Number of players:
+        <h4><b>Number of players:</b>
           {{ game.player_set.count }}
         </h4>
 
-        <h4>Description:</h4>
+        <h4><b>Description:</b></h4>
         <article class="w3-container">
           <p style="margin:0;">{{ game.description }}</p>
         </article>

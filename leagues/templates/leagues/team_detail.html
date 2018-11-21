@@ -87,7 +87,7 @@
       </header>
 
       <div id="info" class="w3-container w3-section section">
-        <h4>Active:
+        <h4><b>Active:</b>
           {% if team.active %}
             <i class="fas fa-check-circle"></i>
           {% else %}
@@ -95,7 +95,7 @@
           {% endif %}
         </h4>
 
-        <h4>Leader:
+        <h4><b>Leader:</b>
           {% if team.leader %}
             <a href="{% url 'leagues:player_detail' team.leader.slug %}">{{ team.leader }}</a>
           {% else %}
@@ -103,26 +103,23 @@
           {% endif %}
         </h4>
 
-        <h4>Founded: {{ team.founded|default:""|date:"j.n.Y" }}</h4>
+        <h4><b>Founded:</b> {{ team.founded|default:""|date:"j.n.Y" }}</h4>
 
-        <h4>
-          Game of interest:
+        <h4><b>Game of interest:</b>
           {% if team.game %}
             <a href="{% url 'leagues:game_detail' team.game.slug %}">{{ team.game }}</a>
           {% else %}
             None
           {% endif %}
         </h4>
-        <h4>Clan:
+        <h4><b>Clan:</b>
           {% if team.clan %}
             <a href="{% url 'leagues:clan_detail' team.clan.slug %}">{{ team.clan }}</a>
           {% else %}
             None
           {% endif %}
         </h4>
-        <h4>
-          Description:
-        </h4>
+        <h4><b>Description:</b></h4>
         <article class="w3-container">
           <p style="margin:0;">{{ team.description }}</p>
         </article>

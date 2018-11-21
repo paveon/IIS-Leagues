@@ -257,7 +257,7 @@
                 </td>
                 <td>{{ tournament.opening_date }}</td>
                 <td>{{ tournament.end_date }}</td>
-                <td>{{ tournament.prize }}</td>
+                <td>{{ tournament.prize }} $</td>
               </tr>
             {% endfor %}
             </tbody>
@@ -290,7 +290,7 @@
             {% for match in matches %}
               <tr style="display: none">
                 <td><a href="{% url 'leagues:team_detail' match.team_1.slug %}">{{ match.team_1.name }}</a>
-                  VS <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
+                  vs <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
                 <td>{{ match.beginning|date:"j.n.Y" }}</td>
                 <td>
                   {% if match.duration %}

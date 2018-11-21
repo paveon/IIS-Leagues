@@ -71,7 +71,7 @@
  <div class="w3-container w3-margin-bottom flex-container" style="flex: 2 1 0;">
     <div class="w3-card w3-round-large w3-white" style="width: 100%; max-width: 1000px">
       <header>
-        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ team.name }}</h1>
+        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ tournament.name }}</h1>
 
         <ul class="section-bar" style="flex: 1 1 auto">
           <li onclick="showSection(event, 'info');" id="info_tab"
@@ -95,33 +95,27 @@
 
       <div id="info" class="w3-container w3-section section">
 
-        <h4>Name:
-          {{ tournament.name }}
+        <h4><b>Main sponsor:</b>
+          {{ main_sponsor.sponsor.name }}
         </h4>
 
-        <h4>Main sponsor:
-          {{ main_sponsor.name }}
+        <h4><b>Prize:</b>
+          {{ tournament.prize }} $
         </h4>
 
-        <h4>Prize:
-          {{ tournament.prize }}
-        </h4>
-
-        <h4>Opening date:
+        <h4><b>Opening date:</b>
           {{ tournament.opening_date }}
         </h4>
 
-        <h4>End date:
+        <h4><b>End date:</b>
           {{ tournament.end_date }}
         </h4>
 
-        <h4>Game of interest:
+        <h4><b>Game of interest:</b>
           <a href="{% url 'leagues:game_detail' tournament.game.slug %}">{{ tournament.game.name }}</a>
         </h4>
 
-        <h4>
-          Description:
-        </h4>
+        <h4><b>Description:</b></h4>
         <article class="w3-container">
           <p style="margin:0;">{{ tournament.description }}</p>
         </article>
@@ -238,7 +232,7 @@
             {% for sponsor in sponsors %}
               <tr style="display: none;">
                 <td>{{ sponsor.sponsor.name }}</td>
-                <td>{{ sponsor.amount }}</td>
+                <td>{{ sponsor.amount }} $</td>
                 <td>{{ sponsor.type }}</td>
               </tr>
             {% endfor %}
