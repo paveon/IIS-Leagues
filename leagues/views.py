@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.forms.models import model_to_dict
 from django_countries.fields import Country
 from django.db.models import F, Q
-from random import randint, choice
+from random import randint, choice, sample
 from datetime import timedelta
 import json
 from enum import Enum
@@ -115,6 +115,7 @@ class SettingsView(generic.TemplateView):
         # TODO add new nevytvori novy formular pokud v predchozim byla chyba takze bud clear tlacitko a nebo to nejak vyresit at se udela prazdny formular po kliknuti na new pri predchozim erroru
         # TODO pri vytvareni tournamentu to hodi error a potom po refreshi je to tam, ale hodi to prvni chybu
         # TODO pri vytvareni hry je hra neaktivni a aktivuje se az ma prirazeny gamemode => momentalni kvuli testovani je default true ale ma byt false (doplnit pri vytvareni hry)
+        # TODO pri vytvareni hrace se stejnym nickname se chyba zobrazi ale formular zavre takze to vypada jako kdyby se vytvoril
         if create_form.is_bound and create_form.is_valid():
             # commit=False doesn't save new model object directly into the DB
             # so we can do additional processing before storing it in the DB with save method of model object
@@ -497,11 +498,48 @@ class TeamDetailView(generic.DetailView):
         members = team.team_members.all()
         member_matches = []
         for member in members:
-            team_matches = PlayedMatch.objects.filter(Q(team=team) & Q(player=member))
+            team_matches = PlayedMatch.objects.filter(team=team, player=member)
             won_matches = team_matches.filter(match__winner=team)
             member_matches.append((member, team_matches, won_matches))
+
+        registered = []
+        non_registered = []
+        tournaments = Tournament.objects.all()
+        clan = team.clan
+        teams = clan.team_set
+        for tournament in tournaments:
+            if RegisteredTeams.objects.get(tournament=tournament, team=team):
+                registered.append(tournament)
+            elif tournament.game == team.game:
+                non_registered.append((tournament, False))
+                non_registered.append((tournament, True))
+
+        context['registered'] = registered
+        context['non_registered'] = non_registered
         context['member_matches'] = member_matches
         return context
+
+    def post(self, request, *args, **kwargs):
+        action_key = request.POST['action']
+        team = self.get_object()
+        response = {}
+        if action_key == 'leave_tournament':
+            tournament_id = int(request.POST['object_id'])
+            tournaments = RegisteredTeams.objects.filter(team=team, tournament_id=tournament_id)
+            tournaments.delete()
+        elif action_key == 'join_tournament':
+            tournament_id = int(request.POST['object_id'])
+            tournament = Tournament.objects.get(pk=tournament_id)
+            teams = RegisteredTeams.objects.filter(team__clan=team.clan)
+            if teams.filter(tournament_id=tournament_id):
+                response['error'] = "teams"
+            elif Player.objects.filter(teams=team).count() < tournament.game_mode.team_player_count:
+                response['error'] = "players"
+            else:
+                tournaments = RegisteredTeams(team=team, tournament_id=tournament_id)
+                tournaments.save()
+
+        return JsonResponse(response)
 
 
 class ClanDetailView(generic.DetailView):
@@ -513,14 +551,17 @@ class ClanDetailView(generic.DetailView):
         clan = self.get_object()
         members = clan.clan_members.all()
         member_matches = []
+        win_ratio = None
         for member in members:
-            clan_matches = PlayedMatch.objects.filter(Q(clan=clan) & Q(player=member))
+            clan_matches = PlayedMatch.objects.filter(clan=clan, player=member)
             won_matches = clan_matches.filter(team=F('match__winner'))
-            member_matches.append((member, clan_matches, won_matches))
+            if clan_matches:
+                win_ratio = str(round((won_matches.count() / clan_matches.count()) * 100, 2)) + " %"
+            member_matches.append((member, clan_matches, won_matches, win_ratio))
         context['member_matches'] = member_matches
         clan_teams = Team.objects.filter(clan_id=clan.id)
 
-        all_matches = PlayedMatch.objects.filter(clan=clan)
+        all_matches = PlayedMatch.objects.filter(clan=clan).values_list("match").distinct()
         win_matches = all_matches.filter(team=F('match__winner'))
         win_ratio = None
         if all_matches.count() != 0:
@@ -536,7 +577,7 @@ class ClanDetailView(generic.DetailView):
         player = Player.objects.get(pk=player_id)
         teams = player.teams.all()
         for team in teams:
-            if team.clan_id == clan_id:
+            if team.clan_id == int(clan_id):
                 player.teams.remove(team)
 
         player.save()
@@ -556,7 +597,7 @@ class ClanDetailView(generic.DetailView):
 
         teams = player.teams.all()
         for team in teams:
-            if team.clan_id == clan_id:
+            if team.clan_id == int(clan_id):
                 player.teams.remove(team)
                 player.save()
         pendings = player.team_pendings.all()
@@ -666,6 +707,7 @@ class TournamentView(generic.TemplateView):
             team_2 = int(form_data_dict['team_2'])
             minutes = randint(20, 59)
             seconds = randint(0, 59)
+            mode = GameMode.objects.get(pk=game_mode)
             winner = choice((team_1, team_2))
             match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
@@ -683,6 +725,10 @@ class TournamentView(generic.TemplateView):
             match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1, team_2_id=team_2,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
+            tm = Team.objects.get(pk=team_1)
+            num_of_players = Player.objects.filter(team=tm).values_list('id', flat=True)
+            player_list = list(num_of_players)
+            # p = sample(player_list, t.game_mode.team_player_count)
             return JsonResponse(response_data)
 
         return HttpResponseRedirect(reverse("leagues:tournaments"))
@@ -720,7 +766,7 @@ class TournamentDetailView(generic.DetailView):
         team_matches = []
         registered = None
         for team in teams:
-            if team.tournaments.filter(tournaments=tournament):
+            if RegisteredTeams.objects.filter(team=team, tournament=tournament):
                 registered = team
             all_matches = team.all_tournament_matches(tournament.id)
             won_matches = team.matcher_won_tournament(tournament.id)
@@ -728,7 +774,7 @@ class TournamentDetailView(generic.DetailView):
             team_matches.append((team, all_matches, won_matches, win_rate))
         matches = Match.objects.filter(tournament=tournament)
         sponsors = Sponsorship.objects.filter(tournament=tournament)
-        main_sponsor = sponsors.filter(type='Main')
+        main_sponsor = sponsors.get(type='MAIN')
         context['registered'] = registered
         context['main_sponsor'] = main_sponsor
         context['team_matches'] = team_matches

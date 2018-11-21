@@ -11,6 +11,46 @@
 
 
 {% block content %}
+  <div class="w3-container w3-margin-bottom flex-container" style="flex: 2 1 0;">
+    <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 1 auto;">
+      <header>
+        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ gamemode.name }}</h1>
+        <div class="w3-bottombar"></div>
+      </header>
+
+      <div class="w3-container w3-section section" style="display: block;">
+
+        <h4><b>Number of players:</b>
+          {{ gamemode.team_player_count }} vs {{ gamemode.team_player_count }}
+        </h4>
+
+        <h4><b>Description:</b></h4>
+        <article class="w3-container">
+          <p style="margin:0;">{{ gamemode.description }}</p>
+        </article>
+
+        <h3>Games</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr>
+              <th>Name</th>
+            </tr>
+            </thead>
+
+            <tbody id="matches_rows">
+            {% for game in games %}
+              <tr style="display: none;">
+                <td><a href="{% url 'leagues:game_detail' game.slug %}">{{ game.name }}</a></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}
 
 
