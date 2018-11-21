@@ -59,7 +59,6 @@
       <div id="teams" class="w3-container w3-section section">
         <h3>Participating teams</h3>
         <div class="pagedTable w3-card w3-round">
-        {% if teams.0 %}
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr class="">
@@ -74,20 +73,18 @@
               <tr style="display: none">
                 <td>
                   <a href="{% url 'leagues:player_detail' player.0.player.slug %}">
-                    {{ player.0.player.name }}
+                    {{ player.0.name }}
                   </a>
                 </td>
                 <td></td>
                 <td><a href="{% url 'leagues:player_detail' player.1.player.slug %}">
-                    {{ player.1.player.name }}
+                    {{ player.1.name }}
                   </a>
                 </td>
               </tr>
             {% endfor %}
             </tbody>
           </table>
-          {% include 'leagues/table_footer.html' %}
-        {% endif %}
         </div>
       </div>
 

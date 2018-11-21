@@ -607,6 +607,7 @@ class TournamentView(generic.TemplateView):
         context = super().get_context_data(**kwargs)
         action_key = request.POST['action']
         response_data = {}
+        dictionaries = []
 
         form_data_dict = {}
         form_data_list = json.loads(request.POST['data'])
@@ -641,6 +642,10 @@ class TournamentView(generic.TemplateView):
             game = int(form_data_dict['game_mode-game'])
             game_mode = int(form_data_dict['match_create-game_mode'])
             possible_teams = Team.objects.filter(game_id=game)
+            for t in possible_teams:
+                if Player.objects.filter(team=t).count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                    valid_team = [t.id, t.name]
+                    dictionaries.append(valid_team)
             dictionaries = [team.as_array() for team in possible_teams]
             response_data['teams_1'] = json.dumps({"data": dictionaries})
             response_data['game'] = game
@@ -653,7 +658,10 @@ class TournamentView(generic.TemplateView):
             team_1 = int(form_data_dict['team_1'])
             team = Team.objects.get(pk=team_1)
             possible_teams = Team.objects.filter(Q(game_id=game) & ~Q(clan=team.clan))
-            dictionaries = [team.as_array() for team in possible_teams]
+            for t in possible_teams:
+                if Player.objects.filter(team=t).count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                    valid_team = [t.id, t.name]
+                    dictionaries.append(valid_team)
             response_data['teams_2'] = json.dumps({"data": dictionaries})
             response_data['game'] = game
             response_data['game_mode'] = game_mode
@@ -665,9 +673,10 @@ class TournamentView(generic.TemplateView):
             game_mode = int(form_data_dict['team_2-game_mode'])
             team_1 = int(form_data_dict['team_2-team1'])
             team_2 = int(form_data_dict['team_2'])
-            duration = randint(15, 90)
+            minutes = randint(20, 59)
+            seconds = randint(0, 59)
             winner = choice((team_1, team_2))
-            match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2, duration=timedelta(minutes=duration), winner_id=winner)
+            match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2, duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
             return JsonResponse(response_data) # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...) + neni osetreno zda ma tym dostatek hracu
         elif action_key == 'match_done':
@@ -675,9 +684,10 @@ class TournamentView(generic.TemplateView):
             team_2 = int(form_data_dict['match_create-team_2'])
             tournament = int(form_data_dict['tournament'])
             t = Tournament.objects.get(pk=tournament)
-            duration = randint(15, 90)
+            minutes = randint(20, 59)
+            seconds = randint(0, 59)
             winner = choice((team_1, team_2))
-            match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1, team_2_id=team_2, duration=timedelta(minutes=duration), winner_id=winner)
+            match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1, team_2_id=team_2, duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
             return JsonResponse(response_data)
 
@@ -693,18 +703,12 @@ class MatchDetailView(generic.DetailView):
         match = self.get_object()
         players_1 = PlayedMatch.objects.filter(match=match, team=match.team_1)
         players_2 = PlayedMatch.objects.filter(match=match, team=match.team_2)
-        players = (players_1, players_2)
-        team_1 = None
-        team_2 = None
+        players = []
+        if players_1 and players_2:
+            for p1, p2 in players_1, players_2:
+                players.append(p1, p2)
 
-        for player in players_1:
-            team_1 = Team.objects.get(pk=player.team_id)
-            break
-        for player in players_2:
-            team_2 = Team.objects.get(pk=player.team_id)
-            break
-
-        context['teams'] = (team_1, team_2)
+        context['teams'] = (match.team_1, match.team_2)
         context['players'] = players
         # TODO statistiky, ale hlavne vyresit jak vypisovat postupne jednotlive udalosti (podle casu), jelikoz jsou v jinych tabulkach
         # TODO pravdepdoobne budeme vypisovat asisty spolu se zabitimi

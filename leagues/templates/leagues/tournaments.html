@@ -172,6 +172,36 @@
           RemoveOptions(select_id, form_hide_id)
       }
 
+      function HandleDropdowns(element) {
+          var $element = element;
+          var value = $element.val();
+
+          $.each($('#teams_id select').not($element), function() { //loop all remaining select elements
+              var subValue = $(this).val();
+              if(value != "0" && subValue != "0") {
+                  if (subValue === value) { // if value is same reset
+                      $(this).val(0);
+                  }
+              }
+          });
+      }
+
+      function SendTournament() {
+          $('#team_pick_error').hide();
+          buttonClick('picked_tournament', $('#tournament_id'));
+      }
+
+      function SendTeams() {
+          if($('#id_match_create-team_1 option[value="0"]:selected').length != 0 ||
+          $('#id_match_create-team_2 option[value="0"]:selected').length != 0) {
+              $('#team_pick_error').show();
+              $('#team_pick_error p').text("You have to select teams before ...");
+          }
+          else {
+              buttonClick('match_done', $('#teams_id'));
+          }
+      }
+
   </script>
 {% endblock %}
 
@@ -323,18 +353,15 @@
                   class="w3-button w3-red">Cancel
           </button>
 
-          <input class="w3-button w3-green w3-right" id="t_sub" type="submit" value="Next" />
+          <button onclick="SendTournament()" type="button"
+                  class="w3-button w3-green w3-right">Next
+          </button>
+
         </div>
       </form>
     </div>
   </div>
 
-  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
-    $("#tournament_id").submit(function(event){
-      event.preventDefault(); //prevent default action
-      buttonClick('picked_tournament', $('#tournament_id'));
-    });
-  </script>
 
   <div id="team_pick" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
@@ -361,48 +388,25 @@
           </select>
 
           <script>
-            $('select').on('change', function() {
+            $('#teams_id select').on('change', function() {
                 HandleDropdowns($(this));
             });
-
-            function HandleDropdowns(element) {
-                var $element = element;
-                var value = $element.val();
-
-                $.each($('select').not($element), function() { //loop all remaining select elements
-                    var subValue = $(this).val();
-                    if(value != "0" && subValue != "0") {
-                        if (subValue === value) { // if value is same reset
-                            $(this).val(0);
-                        }
-                    }
-                });
-            }
           </script>
         </div>
         <input type="hidden" name="tournament" id="tournament">
         <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button onclick="RemoveTeams()"
+          <button onclick="RemoveTeams()" type="button"
                   class="w3-button w3-red">Cancel
           </button>
-          <input class="w3-button w3-green w3-right" type="submit" value="Create match" id="teams_next">
+
+          <button onclick="SendTeams()" type="button"
+                  class="w3-button w3-green w3-right" id="teams_next">Create Match
+          </button>
+
         </div>
       </form>
     </div>
   </div>
-  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
-    $("#team_pick").submit(function(event){
-        event.preventDefault(); //prevent default action
-        if($('#id_match_create-team_1 option[value="0"]:selected').length != 0 ||
-        $('#id_match_create-team_2 option[value="0"]:selected').length != 0) {
-            $('#team_pick_error').show();
-            $('#team_pick_error p').text("You have to select teams before ...");
-        }
-        else {
-            buttonClick('match_done', $('#teams_id'));
-        }
-    });
-  </script>
 
   <div id="game_pick" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
@@ -426,18 +430,14 @@
           <button type="button" onclick="GoBack($('#id_match_create-game'), $('#game_pick'), $('#{{ match_form.prefix }}'))"
                   class="w3-button w3-red">Back
           </button>
-          <input class="w3-button w3-green w3-right" type="submit" value="Next" id="game_next">
+
+          <button type="button" onclick="buttonClick('picked_game', $('#games_id'))"
+                  class="w3-button w3-green w3-right">Next
+          </button>
         </div>
       </form>
     </div>
   </div>
-
-  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
-    $("#games_id").submit(function(event){
-      event.preventDefault(); //prevent default action
-      buttonClick('picked_game', $('#games_id'));
-    });
-  </script>
 
   <div id="game_mode_pick" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
@@ -461,19 +461,15 @@
           <button type="button"  onclick="GoBack($('#id_match_create-game_mode'), $('#game_mode_pick'), $('#game_pick'))"
                   class="w3-button w3-red">Back
           </button>
+
+          <button type="button" onclick="buttonClick('picked_game_mode', $('#game_mode_id'))"
+                  class="w3-button w3-green w3-right">Next
+          </button>
           <input type="hidden" name="game_mode-game" id="game_mode-game">
-          <input class="w3-button w3-green w3-right" type="submit" value="Next" id="game_mode_next">
         </div>
       </form>
     </div>
   </div>
-
-  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
-    $("#game_mode_id").submit(function(event){
-      event.preventDefault(); //prevent default action
-      buttonClick('picked_game_mode', $('#game_mode_id'));
-    });
-  </script>
 
   <div id="team1_pick" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
@@ -497,20 +493,16 @@
           <button type="button"  onclick="GoBack($('#team_1'), $('#team1_pick'), $('#game_mode_pick'))"
                   class="w3-button w3-red">Back
           </button>
+
+          <button type="button" onclick="buttonClick('picked_team1', $('#team1_id'))"
+                  class="w3-button w3-green w3-right" id="team1_next">Next
+          </button>
           <input type="hidden" name="team_1-game" id="team_1-game">
           <input type="hidden" name="team_1-game_mode" id="team_1-game_mode">
-          <input class="w3-button w3-green w3-right" type="submit" value="Next" id="team1_next">
         </div>
       </form>
     </div>
   </div>
-
-  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
-    $("#team1_id").submit(function(event){
-      event.preventDefault(); //prevent default action
-      buttonClick('picked_team1', $('#team1_id'));
-    });
-  </script>
 
   <div id="team2_pick" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
@@ -534,19 +526,15 @@
           <button type="button" onclick="GoBack($('#team_2'), $('#team2_pick'), $('#team1_pick'))"
                   class="w3-button w3-red">Back
           </button>
+
+          <button type="button" onclick="buttonClick('non_turnament_done', $('#team2_id'))"
+                  class="w3-button w3-green w3-right" id="team1_next" id="team2_next">Create Match
+          </button>
           <input type="hidden" name="team_2-game" id="team_2-game">
           <input type="hidden" name="team_2-game_mode" id="team_2-game_mode">
           <input type="hidden" name="team_2-team1" id="team_2-team1">
-          <input class="w3-button w3-green w3-right" type="submit" value="Create Match" id="team2_next">
         </div>
       </form>
     </div>
   </div>
-
-  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
-    $("#team2_id").submit(function(event){
-      event.preventDefault(); //prevent default action
-      buttonClick('non_turnament_done', $('#team2_id'));
-    });
-  </script>
 {% endblock %}
