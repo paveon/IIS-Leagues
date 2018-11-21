@@ -624,7 +624,7 @@ class TournamentView(generic.TemplateView):
                 response_data['tournament'] = tournament.id
                 response_data['status'] = "pick_teams"
             except:
-                games = Game.objects.filter(active=True)
+                games = Game.objects.filter()
                 dictionaries = [game.as_array() for game in games]
                 response_data['games'] = json.dumps({"data": dictionaries})
                 response_data['status'] = "pick_game"

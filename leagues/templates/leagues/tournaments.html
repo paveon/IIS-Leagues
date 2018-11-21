@@ -81,10 +81,10 @@
               $('#team_1').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
           if(i < 2) {
-              $("team1_next").prop('disabled', true);
+              $("#team1_next").prop('disabled', true);
           }
           else {
-              $("team1_next").prop('disabled', false);
+              $("#team1_next").prop('disabled', false);
           }
           $('#game_mode_pick').hide();
           $('#team1_pick').show();
@@ -96,10 +96,10 @@
               $('#team_2').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
           if(i < 1) {
-              $("team2_next").prop('disabled', true);
+              $("#team2_next").prop('disabled', true);
           }
           else {
-              $("team2_next").prop('disabled', false);
+              $("#team2_next").prop('disabled', false);
           }
           $('#team1_pick').hide();
           $('#team2_pick').show();
@@ -115,10 +115,10 @@
               $('#id_match_create-team_2').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
           if(i < 2) {
-              $("teams_next").prop('disabled', true);
+              $("#teams_next").prop('disabled', true);
           }
           else {
-              $("teams_next").prop('disabled', false);
+              $("#teams_next").prop('disabled', false);
           }
           $('#team_pick').show();
           $('#{{ match_form.prefix }}').hide();
