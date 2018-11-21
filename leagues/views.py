@@ -110,7 +110,6 @@ class SettingsView(generic.TemplateView):
     def process_create_form(self, model_class, form_class):
         model_name = model_class.__name__
         create_form = form_class(self.request.POST, prefix=model_name.lower() + '_form')
-        # TODO kdyz ma hrac mene nez 15 tak se chyba tady ukaze pri debugu ale formular se sekne a nic nezobrazi!!
         # TODO nejde pridat klan k tymu pokud uz odehral hru
         # TODO omezit vybery leader tymu muze byt jen nekdo kdo je v tom tymu (stejne klan), hry pro tymy omezeny podle her klanu (nebo se ke specializacim klanu potom prida ta hra tymu?)
         # TODO add new nevytvori novy formular pokud v predchozim byla chyba takze bud clear tlacitko a nebo to nejak vyresit at se udela prazdny formular po kliknuti na new pri predchozim erroru
@@ -179,6 +178,7 @@ class SettingsView(generic.TemplateView):
 
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
+
         try:
             action_name = request.POST['post_action']
             if action_name.endswith('_create'):
@@ -191,7 +191,9 @@ class SettingsView(generic.TemplateView):
             return action(*parameters)
         except ValidationError as err:
             self.context['error_modal'] = self.request.POST['post_action'].split('_')[0] + '_form'
-            self.context['object_id'] = self.request.POST['object_id']
+            object_id = self.request.POST['object_id']
+            if object_id:
+                self.context['object_id'] = object_id
             return render(request, self.template_name, self.context)
 
 
@@ -261,34 +263,37 @@ class SocialView(generic.TemplateView):
         group_members = None
         group = None
         response = {}
-        joining_clan = False
 
         # Nested method to avoid code duplication
-        def join_group():
+        def join_group(clan):
             if group.leader:
                 # Need confirmation if group has a leader
                 group_pendings.add(group)
                 player.save()
             else:
-                # Join immediately
-                if joining_clan:  # remove all other pendings while entering clan without leader
-                    pendings_to_remove = player.clan_pendings.all()
-                    for pending in pendings_to_remove:
-                        group_pendings.remove(pending)
-                        player.save()
-                    pendings_to_remove = player.team_pendings.all()
-                    for pending in pendings_to_remove:
-                        if pending.clan != group and pending.clan:  # remove all team pendins with teams which have clans
-                            player.team_pendings.remove(pending)
-                            player.save()
+                # Join immediately and become new leader
+                group.leader = player
+                if clan:
+                    # remove all other clan pendings while entering clan without leader
+                    player.clan_pendings.remove(*player.clan_pendings.all())
+
+                    # remove pendings of teams from other clans, ignore teams without clan
+                    pendings = player.team_pendings.filter(Q(clan__isnull=False) & ~Q(clan=group))
+                    player.team_pendings.remove(*pendings)
+
                     player.clan = group
                     player.save()
-                    group.leader = player
-                    group.save()
+
+                    # pendings_to_remove = player.clan_pendings.all()
+                    # for pending in pendings_to_remove:
+                    #     group_pendings.remove(pending)
+                    # pendings_to_remove = player.team_pendings.all()
+                    # for pending in pendings_to_remove:
+                    #     if pending.clan != group and pending.clan:  # remove all team pendins with teams which have clans
+                    #         player.team_pendings.remove(pending)
                 else:
-                    group.leader = player
                     group_members.add(player)
-                    group.save()
+                group.save()
 
         # Check which type of request it is and initialize common variables
         if request_type == 'force_join_team':
@@ -296,8 +301,7 @@ class SocialView(generic.TemplateView):
             team = Team.objects.get(pk=object_id)
             group = team.clan
             group_pendings = player.clan_pendings
-            joining_clan = True
-            join_group()
+            join_group(True)
 
         if request_type == 'join_team':
             player_clan = player.clan
@@ -315,15 +319,13 @@ class SocialView(generic.TemplateView):
 
             group_members = group.team_members
             group_pendings = player.team_pendings
+            join_group(False)
 
         elif request_type == 'join_clan':
             group = Clan.objects.get(pk=object_id)
             group_members = Player.objects.filter(clan=group)
             group_pendings = player.clan_pendings
-            joining_clan = True
-
-        if group:
-            join_group()
+            join_group(True)
 
         return response
 
@@ -665,9 +667,9 @@ class TournamentView(generic.TemplateView):
             game_mode = int(form_data_dict['match_create-game_mode'])
             possible_teams = Team.objects.filter(game_id=game)
             for t in possible_teams:
-                if Player.objects.filter(team=t).count() >= GameMode.objects.get(pk=game_mode).team_player_count:
-                    valid_team = [t.id, t.name]
-                    dictionaries.append(valid_team)
+                # if Player.objects.filter(team=t).count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                valid_team = [t.id, t.name]
+                dictionaries.append(valid_team)
             response_data['teams_1'] = json.dumps({"data": dictionaries})
             response_data['game'] = game
             response_data['game_mode'] = game_mode
@@ -680,9 +682,9 @@ class TournamentView(generic.TemplateView):
             team = Team.objects.get(pk=team_1)
             possible_teams = Team.objects.filter(Q(game_id=game) & ~Q(clan=team.clan))
             for t in possible_teams:
-                if Player.objects.filter(team=t).count() >= GameMode.objects.get(pk=game_mode).team_player_count:
-                    valid_team = [t.id, t.name]
-                    dictionaries.append(valid_team)
+                # if Player.objects.filter(team=t).count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                valid_team = [t.id, t.name]
+                dictionaries.append(valid_team)
             response_data['teams_2'] = json.dumps({"data": dictionaries})
             response_data['game'] = game
             response_data['game_mode'] = game_mode

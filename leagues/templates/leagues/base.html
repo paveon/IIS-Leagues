@@ -170,7 +170,12 @@
                       }
                       else {
                           let field = $('#id_' + modalID + '-' + key);
-                          field.val(value);
+                          if (field.attr('type') === 'checkbox') {
+                              field.prop('checked', value);
+                          }
+                          else {
+                              field.val(value);
+                          }
                       }
                   });
                   modalTitle.text('Edit \'' + formUnique.val() + '\'');
