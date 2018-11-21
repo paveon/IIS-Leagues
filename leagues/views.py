@@ -696,15 +696,18 @@ class TournamentView(generic.TemplateView):
         elif action_key == 'non_turnament_done':
             game = int(form_data_dict['team_2-game'])
             game_mode = int(form_data_dict['team_2-game_mode'])
-            team_1 = int(form_data_dict['team_2-team1'])
-            team_2 = int(form_data_dict['team_2'])
+            team_1_id = int(form_data_dict['team_2-team1'])
+            team_2_id = int(form_data_dict['team_2'])
             minutes = randint(20, 59)
             seconds = randint(0, 59)
             mode = GameMode.objects.get(pk=game_mode)
-            winner = choice((team_1, team_2))
-            match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2,
+            winner = choice((team_1_id, team_2_id))
+            match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1_id, team_2_id=team_2_id,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
+            team_1 = Team.objects.get(pk=team_1_id)
+            players = list(team_1.team_members.all().values_list('id', flat=True))
+
             return JsonResponse(
                 response_data)  # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...) + neni osetreno zda ma tym dostatek hracu
         elif action_key == 'match_done':
