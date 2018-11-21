@@ -6,6 +6,7 @@ from django.utils.text import slugify
 from django.conf import settings
 from django.template.defaultfilters import slugify
 from django_countries.fields import CountryField
+from datetime import date
 import re
 
 
@@ -92,6 +93,18 @@ class Tournament(models.Model):
     description = models.TextField('description', blank=True, help_text="Description of tournament")
     game = models.ForeignKey(Game, on_delete=models.PROTECT)
     game_mode = models.ForeignKey(GameMode, on_delete=models.PROTECT)
+
+    @property
+    def in_progress(self):
+        return (self.opening_date < date.today() < self.end_date)
+
+    @property
+    def upcoming(self):
+        return date.today() < self.opening_date
+
+    @property
+    def finished(self):
+        return date.today() > self.end_date
 
     def __str__(self):
         return self.name

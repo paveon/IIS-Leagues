@@ -495,11 +495,48 @@ class TeamDetailView(generic.DetailView):
         members = team.team_members.all()
         member_matches = []
         for member in members:
-            team_matches = PlayedMatch.objects.filter(Q(team=team) & Q(player=member))
+            team_matches = PlayedMatch.objects.filter(team=team, player=member)
             won_matches = team_matches.filter(match__winner=team)
             member_matches.append((member, team_matches, won_matches))
+
+        registered = []
+        non_registered = []
+        tournaments = Tournament.objects.all()
+        clan = team.clan
+        teams = clan.team_set
+        for tournament in tournaments:
+            if RegisteredTeams.objects.get(tournament=tournament, team=team):
+                registered.append(tournament)
+            elif tournament.game == team.game:
+                non_registered.append((tournament, False))
+                non_registered.append((tournament, True))
+
+        context['registered'] = registered
+        context['non_registered'] = non_registered
         context['member_matches'] = member_matches
         return context
+
+    def post(self, request, *args, **kwargs):
+        action_key = request.POST['action']
+        team = self.get_object()
+        response = {}
+        if action_key == 'leave_tournament':
+            tournament_id = int(request.POST['object_id'])
+            tournaments = RegisteredTeams.objects.filter(team=team, tournament_id=tournament_id)
+            tournaments.delete()
+        elif action_key == 'join_tournament':
+            tournament_id = int(request.POST['object_id'])
+            tournament = Tournament.objects.get(pk=tournament_id)
+            teams = RegisteredTeams.objects.filter(team__clan=team.clan)
+            if teams.filter(tournament_id=tournament_id):
+                response['error'] = "teams"
+            elif Player.objects.filter(teams=team).count() < tournament.game_mode.team_player_count:
+                response['error'] = "players"
+            else:
+                tournaments = RegisteredTeams(team=team, tournament_id=tournament_id)
+                tournaments.save()
+
+        return JsonResponse(response)
 
 
 class ClanDetailView(generic.DetailView):
@@ -511,14 +548,17 @@ class ClanDetailView(generic.DetailView):
         clan = self.get_object()
         members = clan.clan_members.all()
         member_matches = []
+        win_ratio = None
         for member in members:
-            clan_matches = PlayedMatch.objects.filter(Q(clan=clan) & Q(player=member))
+            clan_matches = PlayedMatch.objects.filter(clan=clan, player=member)
             won_matches = clan_matches.filter(team=F('match__winner'))
-            member_matches.append((member, clan_matches, won_matches))
+            if clan_matches:
+                win_ratio = str(round((won_matches.count() / clan_matches.count()) * 100, 2)) + " %"
+            member_matches.append((member, clan_matches, won_matches, win_ratio))
         context['member_matches'] = member_matches
         clan_teams = Team.objects.filter(clan_id=clan.id)
 
-        all_matches = PlayedMatch.objects.filter(clan=clan)
+        all_matches = PlayedMatch.objects.filter(clan=clan).values_list("match").distinct()
         win_matches = all_matches.filter(team=F('match__winner'))
         win_ratio = None
         if all_matches.count() != 0:
@@ -664,10 +704,14 @@ class TournamentView(generic.TemplateView):
             team_2 = int(form_data_dict['team_2'])
             minutes = randint(20, 59)
             seconds = randint(0, 59)
+            mode = GameMode.objects.get(pk=game_mode)
             winner = choice((team_1, team_2))
             match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
+            # for i in range(mode.team_player_count): TODO neresi se zaznam do PlayedMatch ani v match_done => o elif nize
+            #
+            # played = PlayedMatch(match=match, team)
             return JsonResponse(
                 response_data)  # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...) + neni osetreno zda ma tym dostatek hracu
         elif action_key == 'match_done':
@@ -718,7 +762,7 @@ class TournamentDetailView(generic.DetailView):
         team_matches = []
         registered = None
         for team in teams:
-            if team.tournaments.filter(tournaments=tournament):
+            if RegisteredTeams.objects.filter(team=team, tournament=tournament):
                 registered = team
             all_matches = team.all_tournament_matches(tournament.id)
             won_matches = team.matcher_won_tournament(tournament.id)
