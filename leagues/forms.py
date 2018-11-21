@@ -108,6 +108,23 @@ class GameForm(ModelForm):
             'release_date': CalendarWidget()
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        date = cleaned_data['release_date']
+        if date and date > datetime.date.today():
+            raise ValidationError('Games that are not released yet are not allowed')
+
+        game = self.instance
+        submit_genre = cleaned_data['genre']
+        if game:
+            oldest_match = game.match_set.all().order_by('-beginning')
+            if game.genre != submit_genre and game.match_set.all().count() > 0:
+                raise ValidationError('Cannot change genre of game with existing matches')
+
+
+
+        return cleaned_data
+
 
 class GenreForm(ModelForm):
     class Meta:

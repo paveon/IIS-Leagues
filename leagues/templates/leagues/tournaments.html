@@ -17,27 +17,27 @@
               dataType: "json",
               async: true,
               success: function (json) {
-                  if(json['status'] == "pick_teams") {
+                  if (json['status'] == "pick_teams") {
                       var tmp = $.parseJSON(json['teams']);
                       $('#tournament').attr('value', json['tournament']);
                       FillTeams(tmp);
                   }
-                  else if(json['status'] == "pick_game") {
+                  else if (json['status'] == "pick_game") {
                       var tmp = $.parseJSON(json['games']);
                       FillGames(tmp);
                   }
-                  else if(json['status'] == "pick_game_mode") {
+                  else if (json['status'] == "pick_game_mode") {
                       var tmp = $.parseJSON(json['game_modes']);
                       $('#game_mode-game').attr('value', json['game']);
                       FillGameMode(tmp);
                   }
-                  else if(json['status'] == "pick_team1") {
+                  else if (json['status'] == "pick_team1") {
                       var tmp = $.parseJSON(json['teams_1']);
                       $('#team_1-game').attr('value', json['game']);
                       $('#team_1-game_mode').attr('value', json['game_mode']);
                       FillTeam_1(tmp);
                   }
-                  else if(json['status'] == "pick_team2") {
+                  else if (json['status'] == "pick_team2") {
                       var tmp = $.parseJSON(json['teams_2']);
                       $('#team_2-game').attr('value', json['game']);
                       $('#team_2-game_mode').attr('value', json['game_mode']);
@@ -58,7 +58,7 @@
 
       function FillGames(parseData) {
           var data = parseData['data'];
-          for(var i = 0; i < data.length; ++i) {
+          for (var i = 0; i < data.length; ++i) {
               $('#id_match_create-game').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
           $('#game_pick').show();
@@ -67,7 +67,7 @@
 
       function FillGameMode(parseData) {
           var data = parseData['data'];
-          for(var i = 0; i < data.length; ++i) {
+          for (var i = 0; i < data.length; ++i) {
               $('#id_match_create-game_mode').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
           $('#game_pick').hide();
@@ -77,10 +77,10 @@
       function FillTeam_1(parseData) {
           var data = parseData['data'];
           var i = 0
-          for(; i < data.length; ++i) {
+          for (; i < data.length; ++i) {
               $('#team_1').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
-          if(i < 2) {
+          if (i < 2) {
               $("#team1_next").prop('disabled', true);
           }
           else {
@@ -92,10 +92,10 @@
 
       function FillTeam_2(parseData) {
           var data = parseData['data'];
-          for(var i = 0; i < data.length; ++i) {
+          for (var i = 0; i < data.length; ++i) {
               $('#team_2').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
-          if(i < 1) {
+          if (i < 1) {
               $("#team2_next").prop('disabled', true);
           }
           else {
@@ -107,14 +107,14 @@
 
       function FillTeams(parseData) {
           var data = parseData['data'];
-          $('#id_match_create-team_1').append($('<option>', {value:0, text: "---------"}));
-          $('#id_match_create-team_2').append($('<option>', {value:0, text: "---------"}));
+          $('#id_match_create-team_1').append($('<option>', {value: 0, text: "---------"}));
+          $('#id_match_create-team_2').append($('<option>', {value: 0, text: "---------"}));
           var i = 0
-          for(; i < data.length; ++i) {
+          for (; i < data.length; ++i) {
               $('#id_match_create-team_1').append($('<option>', {value: data[i][0], text: data[i][1]}));
               $('#id_match_create-team_2').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
-          if(i < 2) {
+          if (i < 2) {
               $("#teams_next").prop('disabled', true);
           }
           else {
@@ -126,12 +126,12 @@
 
       function RemoveTeams() {
           $('#id_match_create-team_1')
-            .find('option')
-            .remove()
+              .find('option')
+              .remove()
 
           $('#id_match_create-team_2')
-            .find('option')
-            .remove()
+              .find('option')
+              .remove()
 
           $('#team_pick').hide()
       }
@@ -176,9 +176,9 @@
           var $element = element;
           var value = $element.val();
 
-          $.each($('#teams_id select').not($element), function() { //loop all remaining select elements
+          $.each($('#teams_id select').not($element), function () { //loop all remaining select elements
               var subValue = $(this).val();
-              if(value != "0" && subValue != "0") {
+              if (value != "0" && subValue != "0") {
                   if (subValue === value) { // if value is same reset
                       $(this).val(0);
                   }
@@ -192,8 +192,8 @@
       }
 
       function SendTeams() {
-          if($('#id_match_create-team_1 option[value="0"]:selected').length != 0 ||
-          $('#id_match_create-team_2 option[value="0"]:selected').length != 0) {
+          if ($('#id_match_create-team_1 option[value="0"]:selected').length != 0 ||
+              $('#id_match_create-team_2 option[value="0"]:selected').length != 0) {
               $('#team_pick_error').show();
               $('#team_pick_error p').text("You have to select teams before ...");
           }
@@ -214,8 +214,8 @@
 {% load widget_tweaks %}
 
 {% block content %}
-  <div class="w3-container flex-container" style="flex: 1 1 0">
-    <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto;">
+  <div class="w3-container flex-container" style="flex: 2 1 0">
+    <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 1 auto;">
       <header>
         <ul class="section-bar">
           <li onclick="showSection(event, 'tournaments');" id="tournaments_tab"
@@ -269,11 +269,11 @@
       <div id="matches" class="w3-container w3-section section">
         <h3>Matches</h3>
         <div class="pagedTable w3-card w3-round w3-margin-bottom">
-            <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                    onclick="$('#{{ match_form.prefix }}').show()">
-              <i class="fa fa-plus"></i> Add new
-            </button>
-            <table class="w3-table w3-striped w3-bordered w3-hoverable">
+          <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
+                  onclick="$('#{{ match_form.prefix }}').show()">
+            <i class="fa fa-plus"></i> Add new
+          </button>
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr class="">
               <th>Versus</th>
@@ -388,9 +388,9 @@
           </select>
 
           <script>
-            $('#teams_id select').on('change', function() {
-                HandleDropdowns($(this));
-            });
+              $('#teams_id select').on('change', function () {
+                  HandleDropdowns($(this));
+              });
           </script>
         </div>
         <input type="hidden" name="tournament" id="tournament">
@@ -427,7 +427,8 @@
 
         </div>
         <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button" onclick="GoBack($('#id_match_create-game'), $('#game_pick'), $('#{{ match_form.prefix }}'))"
+          <button type="button"
+                  onclick="GoBack($('#id_match_create-game'), $('#game_pick'), $('#{{ match_form.prefix }}'))"
                   class="w3-button w3-red">Back
           </button>
 
@@ -453,12 +454,13 @@
           {% csrf_token %}
 
           <label><b>{{ match_form.game_mode.label_tag }}</b></label>
-          <select class="w3-input w3-border w3-margin-bottom" name="match_create-game_mode" id="id_match_create-game_mode">
+          <select class="w3-input w3-border w3-margin-bottom" name="match_create-game_mode"
+                  id="id_match_create-game_mode">
           </select>
 
         </div>
         <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button"  onclick="GoBack($('#id_match_create-game_mode'), $('#game_mode_pick'), $('#game_pick'))"
+          <button type="button" onclick="GoBack($('#id_match_create-game_mode'), $('#game_mode_pick'), $('#game_pick'))"
                   class="w3-button w3-red">Back
           </button>
 
@@ -490,7 +492,7 @@
 
         </div>
         <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button"  onclick="GoBack($('#team_1'), $('#team1_pick'), $('#game_mode_pick'))"
+          <button type="button" onclick="GoBack($('#team_1'), $('#team1_pick'), $('#game_mode_pick'))"
                   class="w3-button w3-red">Back
           </button>
 
