@@ -3,8 +3,9 @@
 
 {% block scripts %}
   <script>
-      function openDialog(text, type, confirmCallback) {
-          $('#confirm_bar').show()
+      function openDialog(text, confirmCallback) {
+          console.log(confirmCallback.name);
+          $('#confirm_bar').show();
           $('#dialog_text').text(text);
           if (confirmCallback) {
               $('#dialog_confirm').attr('onclick',
@@ -17,12 +18,11 @@
       function buttonClick(id, action) {
           $.ajax({
               type: 'POST',
-              url: "{% url 'leagues:social' %}",
+              url: "{% url 'leagues:team_detail' team.slug %}",
               data: {
                   'csrfmiddlewaretoken': '{{ csrf_token }}',
                   'action': action,
                   'object_id': id,
-                  'player_id': {{ user.player.id }}
               },
               dataType: "json",
               async: true,
@@ -189,10 +189,9 @@
                       {% endif %}
                     </td>
                   {% if user.player == user.player.clan.leader %}
-                    {% if tournament.opening_date > now %}
+                    {% if tournament.upcoming %}
                       <td class="w3-padding-3 w3-small table_button_center">
-                        <button onclick="openDialog('Do you really wish to leave \'{{ tournament.name }}\'?',
-                            buttonClick, {{ tournament.id }}, 'leave_tournament')"
+                        <button onclick="openDialog('Do you really wish to leave \'{{ tournament.name }}\'?', buttonClick, {{ tournament.id }}, 'leave_tournament')"
                                 class="w3-button w3-red table_button leave_button">
                           Leave
                         </button>
@@ -222,18 +221,17 @@
 
                 <tbody id="matches_rows">
                 {% for tournament in non_registered %}
-                  <tr style="display: none;">
-                    <td><a href="{% url 'leagues:team_detail' tournament.slug %}">{{ tournament.name }}</a></td>
-                    <td class="w3-padding-3 w3-small table_button_center">
-                      {% if tournament and tournament.opening_date > now %}
+                  {% if tournament.upcoming %}
+                    <tr style="display: none;">
+                      <td><a href="{% url 'leagues:team_detail' tournament.slug %}">{{ tournament.name }}</a></td>
+                      <td class="w3-padding-3 w3-small table_button_center">
                         <button onclick="buttonClick({{ tournament.id }}, 'join_tournament')"
                                 class="w3-button w3-green table_button join_button">
                           Join
                         </button>
-                      {% else %}
-                      {% endif %}
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                  {% endif %}
                 {% endfor %}
                 </tbody>
               </table>

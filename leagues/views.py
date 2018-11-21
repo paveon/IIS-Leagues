@@ -502,17 +502,8 @@ class TeamDetailView(generic.DetailView):
             won_matches = team_matches.filter(match__winner=team)
             member_matches.append((member, team_matches, won_matches))
 
-        registered = []
-        non_registered = []
-        tournaments = Tournament.objects.all()
-        clan = team.clan
-        teams = clan.team_set
-        for tournament in tournaments:
-            if RegisteredTeams.objects.get(tournament=tournament, team=team):
-                registered.append(tournament)
-            elif tournament.game == team.game:
-                non_registered.append((tournament, False))
-                non_registered.append((tournament, True))
+        registered = Tournament.objects.filter(team=team)
+        non_registered = Tournament.objects.filter(Q(game=team.game) & ~Q(team=team))
 
         context['registered'] = registered
         context['non_registered'] = non_registered
