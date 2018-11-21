@@ -49,7 +49,7 @@ class GameMode(models.Model):
 class Game(models.Model):
     name = models.CharField('name of the game', max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True)
-    genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True, blank=True,
+    genre = models.ForeignKey(Genre, on_delete=models.PROTECT,
                               verbose_name='genre of the game')
     release_date = models.DateField('release date of the game', null=True, blank=True)
     image_url = models.URLField('game image url', max_length=500, blank=True)
@@ -187,19 +187,21 @@ class Team(models.Model):
         super(Team, self).save(*args, **kwargs)
 
 
-
 class Match(models.Model):
     beginning = models.DateTimeField('beginning of the match', default=timezone.now)
     duration = models.DurationField('duration of the match', null=True, blank=True,)
-    game = models.ForeignKey(Game, on_delete=models.PROTECT, verbose_name='related game', null=True, blank=True,)
-    game_mode = models.ForeignKey(GameMode, on_delete=models.PROTECT, verbose_name='game mode of the match', null=True, blank=True,)
+    game = models.ForeignKey(Game, on_delete=models.PROTECT,
+                             verbose_name='related game', null=True, blank=True,)
+    game_mode = models.ForeignKey(GameMode, on_delete=models.PROTECT,
+                                  verbose_name='game mode of the match')
     tournament = models.ForeignKey(Tournament, on_delete=models.PROTECT, null=True, blank=True,
                                    verbose_name='related tournament')
     team_1 = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_a',
                                verbose_name='first participating team', null=True, blank=True,)
     team_2 = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_b',
                                verbose_name='second participating team', null=True, blank=True,)
-    winner = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_won', verbose_name='winning team', null=True, blank=True,)
+    winner = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='matches_won',
+                               verbose_name='winning team', null=True, blank=True,)
 
     @property
     def duration_fmt(self):

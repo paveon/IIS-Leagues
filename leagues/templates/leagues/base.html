@@ -67,6 +67,14 @@
           }
       }
 
+      function CloseModal(modalID) {
+          let modal = $('#' + modalID);
+          let errorDiv = $('.formErrors', modal);
+          errorDiv.hide();
+          modal.hide();
+      }
+
+
       function OpenCreateModal(modalID) {
           let objectType = modalID.split('_')[0];
           let modal = $('#' + modalID);
@@ -230,7 +238,8 @@
       <i class="fa fa-user"></i>
     </a>
 
-    <a href="{% url 'leagues:tournaments' %}" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
+    <a href="{% url 'leagues:tournaments' %}"
+       class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white"
        title="Tournaments">
       <i class="fa fa-trophy"></i>
     </a>
@@ -289,8 +298,13 @@
             <div class="w3-container">
               <h4 class="w3-center">{{ user.player.nickname }}</h4>
               <p class="w3-center">
-                <img src="{% static 'leagues/images/default_avatar.png' %}" class="w3-circle"
-                     style="height:106px;width:106px" alt="Avatar">
+                {% if user.player.image_url %}
+                  <img src="{{ user.player.image_url }}" class="w3-circle"
+                       style="height:106px;width:106px" alt="Avatar">
+                {% else %}
+                  <img src="{% static 'leagues/images/default_avatar.png' %}" class="w3-circle"
+                       style="height:106px;width:106px" alt="Avatar">
+                {% endif %}
               </p>
               <hr>
               <p><i class="fa fa-pencil fa-fw w3-margin-right w3-text-theme"></i> Designer, UI</p>
