@@ -91,11 +91,14 @@ class TeamForm(ModelForm):
         if foundation_date > datetime.date.today():
             raise ValidationError('Team cannot be founded in future')
 
-        # When editing, foundation date cannot be after first match (if any)
         if team:
-            older_matches = team.all_matches.filter(beginning__gt=foundation_date)
-            if older_matches:
-                raise ValidationError('Team cannot be founded after first played match')
+            # When editing, foundation date cannot be after first match (if any)
+            matches = team.all_matches.all()
+            for match in matches:
+                # queryset filter somehow doesnt work on datetimes...
+                begin_datetime = match.beginning
+                if begin_datetime.date() < foundation_date:
+                    raise ValidationError('Team cannot be founded after first played match')
 
         return cleaned_data
 
@@ -110,18 +113,28 @@ class GameForm(ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        date = cleaned_data['release_date']
-        if date and date > datetime.date.today():
-            raise ValidationError('Games that are not released yet are not allowed')
+        release_date = cleaned_data['release_date']
+        if release_date and release_date > datetime.date.today():
+            raise ValidationError('Game not released yet')
 
         game = self.instance
         submit_genre = cleaned_data['genre']
+        submit_modes = cleaned_data['game_modes']
         if game:
-            oldest_match = game.match_set.all().order_by('-beginning')
+            if release_date:
+                matches = game.match_set.all()
+                for match in matches:
+                    begin_datetime = match.beginning
+                    if begin_datetime.date() < release_date:
+                        raise ValidationError('Game cannot be released after first played match')
+
             if game.genre != submit_genre and game.match_set.all().count() > 0:
                 raise ValidationError('Cannot change genre of game with existing matches')
 
-
+            removed_modes = game.game_modes.all().difference(submit_modes)
+            for mode in removed_modes:
+                if Match.objects.filter(game_mode=mode).exists():
+                    raise ValidationError('Cannot remove game mode with existing matches')
 
         return cleaned_data
 

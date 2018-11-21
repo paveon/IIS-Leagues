@@ -5,7 +5,11 @@
   {% if error_modal %}
     <script>
         $(document).ready(function () {
-            OpenEditModal('{{ error_modal }}', {{ object_id }});
+            {% if object_id %}
+                OpenEditModal('{{ error_modal }}', {{ object_id }});
+            {% else %}
+                OpenCreateModal('{{ error_modal }}');
+            {% endif %}
         });
     </script>
   {% endif %}
