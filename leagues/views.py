@@ -667,9 +667,9 @@ class TournamentView(generic.TemplateView):
             game_mode = int(form_data_dict['match_create-game_mode'])
             possible_teams = Team.objects.filter(game_id=game)
             for t in possible_teams:
-                # if Player.objects.filter(team=t).count() >= GameMode.objects.get(pk=game_mode).team_player_count:
-                valid_team = [t.id, t.name]
-                dictionaries.append(valid_team)
+                if t.team_members.all().count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                    valid_team = [t.id, t.name]
+                    dictionaries.append(valid_team)
             response_data['teams_1'] = json.dumps({"data": dictionaries})
             response_data['game'] = game
             response_data['game_mode'] = game_mode
@@ -682,9 +682,11 @@ class TournamentView(generic.TemplateView):
             team = Team.objects.get(pk=team_1)
             possible_teams = Team.objects.filter(Q(game_id=game) & ~Q(clan=team.clan))
             for t in possible_teams:
-                # if Player.objects.filter(team=t).count() >= GameMode.objects.get(pk=game_mode).team_player_count:
-                valid_team = [t.id, t.name]
-                dictionaries.append(valid_team)
+                t1 = Team.objects.get(pk=team_1)
+                players = t.team_members.all().difference(t1.team_members.all())
+                if players.count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                    valid_team = [t.id, t.name]
+                    dictionaries.append(valid_team)
             response_data['teams_2'] = json.dumps({"data": dictionaries})
             response_data['game'] = game
             response_data['game_mode'] = game_mode
