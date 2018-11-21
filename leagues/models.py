@@ -30,8 +30,14 @@ class Genre(models.Model):
 
 class GameMode(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="Name of the game mode")
+    slug = models.SlugField(max_length=100, unique=True)
     team_player_count = models.PositiveSmallIntegerField(default=5, help_text="Number of players in one team")
     description = models.TextField('description', blank=True, help_text="Description of game mode")
+
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.name)
+        self.name = strip_spaces(self.name)
+        super(GameMode, self).save(*args, **kwargs)
 
     def as_array(self):
         return [self.id, self.name]

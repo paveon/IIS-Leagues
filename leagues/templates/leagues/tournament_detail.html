@@ -52,6 +52,11 @@
 
           $('#team_pick').hide()
       }
+
+      function teamUnreg() {
+          $('#team_unreg').val({{ registered.id }})
+          buttonClick('unregister', $('#unreg_form'))
+      }
   </script>
 {% endblock %}
 
@@ -103,8 +108,8 @@
         </h4>
 
         <h4>Opening date:
-          {{ tournament.opening_date }}</h4>
-        <h4>
+          {{ tournament.opening_date }}
+        </h4>
 
         <h4>End date:
           {{ tournament.end_date }}
@@ -126,10 +131,17 @@
         <h3>Participating teams</h3>
         <div class="pagedTable w3-card w3-round">
           {% if user.player == user.player.clan.leader %}
-            <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                      onclick="buttonClick('set_teams', $('#set_teams'))">
-              <i class="fa fa-plus"></i> Register team
-            </button>
+            {% if registered != None %}
+              <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
+                        onclick="teamUnreg()">
+                <i class="fa fa-plus"></i> Unregister {{ registered.name }}
+              </button>
+            {% else %}
+              <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
+                        onclick="buttonClick('set_teams', $('#set_teams'))">
+                <i class="fa fa-plus"></i> Register team
+              </button>
+            {% endif %}
           {% endif %}
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
@@ -274,22 +286,23 @@
           <button type="button" onclick="Removeteams()"
                   class="w3-button w3-red">Cancel
           </button>
-          <input class="w3-button w3-green w3-right" type="submit" value="Register team" id="team_reg">
+
+          <button type="button" onclick="buttonClick('team_selected', $('#team_form'))"
+                  class="w3-button w3-green w3-right" id="team_reg">Register team
+          </button>
         </div>
       </form>
     </div>
   </div>
 
-  <script> {# TODO nejak vyresit protoze tady volat skript je blbost #}
-    $("#team_form").submit(function(event){
-      event.preventDefault(); //prevent default action
-      buttonClick('team_selected', $('#team_form'));
-    });
-  </script>
-
   <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="set_teams">
     {% csrf_token %}
     <input type="hidden" name="clan" value="{{ user.player.clan.id }}">
+  </form>
+
+  <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="unreg_form">
+    {% csrf_token %}
+    <input type="hidden" name="team" id="team_unreg">
   </form>
 
 {% endblock %}

@@ -34,24 +34,38 @@
       <div id="info" class="w3-container w3-section section">
 
         <h4>Start:
-          {{ match.beginning }}
+          {{ match.beginning|date:"j.n.Y, G:m:s" }}
         </h4>
 
         <h4>Duration:
-          {{ match.duration }}
+          {{ match.duration_fmt }}
         </h4>
 
         <h4>Tournament:
-          {{ match.tournament|default:"Not part of any tournament" }}
+          {% if match.tournament %}
+          <a href="{% url 'leagues:tournament_detail' match.tournament.slug %} ">
+            {{ match.tournament }}
+          </a>
+          {% else %}
+            Not part of any tournament
+          {% endif %}
+        </h4>
+
+        <h4>Game:
+          <a href="{% url 'leagues:game_detail' match.game.slug %} ">{{ match.game.name }}</a>
+        </h4>
+
+        <h4>Game mode:
+          <a href="{% url 'leagues:game_mode_detail' match.game_mode.slug %} ">{{ match.game_mode.name }}</a>
         </h4>
 
         <h4>Teams:
-          <a href="{% url 'leagues:team_detail' match.team_1.slug %} }">{{ match.team_1.name }}</a> VS
-          <a href="{% url 'leagues:team_detail' match.team_2.slug %} }">{{ match.team_2.name }}</a>
+          <a href="{% url 'leagues:team_detail' match.team_1.slug %} ">{{ match.team_1.name }}</a> VS
+          <a href="{% url 'leagues:team_detail' match.team_2.slug %} ">{{ match.team_2.name }}</a>
         </h4>
 
         <h4>Winner:
-          <a href="{% url 'leagues:team_detail' match.winner.slug %} }">{{ match.winner.name }}</a>
+          <a href="{% url 'leagues:team_detail' match.winner.slug %} ">{{ match.winner.name }}</a>
         </h4>
 
       </div>
