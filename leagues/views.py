@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.forms.models import model_to_dict
 from django_countries.fields import Country
 from django.db.models import F, Q
-from random import randint, choice
+from random import randint, choice, sample
 from datetime import timedelta
 import json
 from enum import Enum
@@ -116,6 +116,7 @@ class SettingsView(generic.TemplateView):
         # TODO add new nevytvori novy formular pokud v predchozim byla chyba takze bud clear tlacitko a nebo to nejak vyresit at se udela prazdny formular po kliknuti na new pri predchozim erroru
         # TODO pri vytvareni tournamentu to hodi error a potom po refreshi je to tam, ale hodi to prvni chybu
         # TODO pri vytvareni hry je hra neaktivni a aktivuje se az ma prirazeny gamemode => momentalni kvuli testovani je default true ale ma byt false (doplnit pri vytvareni hry)
+        # TODO pri vytvareni hrace se stejnym nickname se chyba zobrazi ale formular zavre takze to vypada jako kdyby se vytvoril
         if create_form.is_bound and create_form.is_valid():
             # commit=False doesn't save new model object directly into the DB
             # so we can do additional processing before storing it in the DB with save method of model object
@@ -574,7 +575,7 @@ class ClanDetailView(generic.DetailView):
         player = Player.objects.get(pk=player_id)
         teams = player.teams.all()
         for team in teams:
-            if team.clan_id == clan_id:
+            if team.clan_id == int(clan_id):
                 player.teams.remove(team)
 
         player.save()
@@ -594,7 +595,7 @@ class ClanDetailView(generic.DetailView):
 
         teams = player.teams.all()
         for team in teams:
-            if team.clan_id == clan_id:
+            if team.clan_id == int(clan_id):
                 player.teams.remove(team)
                 player.save()
         pendings = player.team_pendings.all()
@@ -709,9 +710,6 @@ class TournamentView(generic.TemplateView):
             match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1, team_2_id=team_2,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
-            # for i in range(mode.team_player_count): TODO neresi se zaznam do PlayedMatch ani v match_done => o elif nize
-            #
-            # played = PlayedMatch(match=match, team)
             return JsonResponse(
                 response_data)  # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...) + neni osetreno zda ma tym dostatek hracu
         elif action_key == 'match_done':
@@ -725,6 +723,10 @@ class TournamentView(generic.TemplateView):
             match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1, team_2_id=team_2,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
+            tm = Team.objects.get(pk=team_1)
+            num_of_players = Player.objects.filter(team=tm).values_list('id', flat=True)
+            player_list = list(num_of_players)
+            # p = sample(player_list, t.game_mode.team_player_count)
             return JsonResponse(response_data)
 
         return HttpResponseRedirect(reverse("leagues:tournaments"))
