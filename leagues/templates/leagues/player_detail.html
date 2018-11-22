@@ -49,7 +49,7 @@
         <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ player.nickname }}</h1>
         {% if player.clan %}
           <h3 style="text-align:center;"><a href="{% url 'leagues:clan_detail' player.clan.slug %}"
-               style="text-align: center; font-family: 'Audiowide', cursive;">
+                                            style="text-align: center; font-family: 'Audiowide', cursive;">
             CLAN: {{ player.clan.name }}
           </a></h3>
         {% endif %}
@@ -70,7 +70,7 @@
       </header>
 
       <div id="info" class="w3-container w3-section section" style="position: relative;">
-        {% if authorized %}
+        {% if user.player == player %}
           <button type="button" class="w3-round-large w3-green w3-button w3-margin-right"
                   onclick="$('#{{ player_form.prefix }}').show()">
             Edit <i class="fas fa-edit"></i>
@@ -104,45 +104,70 @@
       </div>
 
 
-      <div id="teams" class="w3-container section">
-        <div class="w3-section flex-container">
-          <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
-            <h3>Teams</h3>
-            <div class="pagedTable w3-card w3-round">
-              <table class="w3-table w3-striped w3-bordered w3-hoverable">
-                <thead>
-                <tr class="">
-                  <th>Team name</th>
-                  {% if user.player == player %}
-                    <th></th>
-                  {% endif %}
-                </tr>
-                </thead>
+      <div id="teams" class="w3-container w3-section section">
+        <h3>Teams</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr>
+              <th>Team name</th>
+              {% if user.player == player %}
+                <th></th>
+              {% endif %}
+            </tr>
+            </thead>
 
-                <tbody id="team_rows">
-                {% for team in player.teams.all %}
-                  <tr style="display: none">
-                    <td>
-                      <a href="{% url 'leagues:team_detail' team.slug %}">
-                        {{ team.name }}
-                      </a>
-                    </td>
-                    {% if user.player == player %}
-                      <td class="w3-padding-3 w3-small table_button_center">
-                        <button onclick="openDialog('Do you really wish to leave team \'{{ team.name }}\'',
-                            buttonClick, {{ team.id }}, 'leave_team')"
-                                class="w3-button w3-red table_button leave_button">
-                          Leave
-                        </button>
-                      </td>
-                    {% endif %}
-                  </tr>
-                {% endfor %}
-                </tbody>
-              </table>
-              {% include 'leagues/table_footer.html' %}
-            </div>
-          </div>
+            <tbody id="team_rows">
+            {% for team in player.teams.all %}
+              <tr>
+                <td>
+                  <a href="{% url 'leagues:team_detail' team.slug %}">
+                    {{ team.name }}
+                  </a>
+                </td>
+                {% if user.player == player %}
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    <button onclick="openDialog('Do you really wish to leave team \'{{ team.name }}\'',
+                        buttonClick, {{ team.id }}, 'leave_team')"
+                            class="w3-button w3-red table_button leave_button">
+                      Leave
+                    </button>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+      <div id="stats" class="w3-container w3-section section">
+        <h3>Statistics</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Game</th>
+              <th>K/D ratio</th>
+              <th>Win ratio</th>
+            </tr>
+            </thead>
+
+            <tbody id="stat_rows">
+            {% for record in player_stats %}
+              <tr style="display: none">
+                <td>
+                  <a href="{% url 'leagues:game_detail' record.0.slug %}">
+                    {{ record.0.name }}
+                  </a>
+                </td>
+                <td>{{ record.1 }}</td>
+                <td>{{ record.2 }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
         </div>
       </div>
     </div>

@@ -466,11 +466,25 @@ class PlayerDetailView(generic.DetailView):
         teams = player.teams.remove(team)
 
     def get_context_data(self, **kwargs):
-        self.object = self.get_object()
         context = super().get_context_data(**kwargs)
+        player = self.get_object()
         edit_form = PlayerForm(instance=self.object, prefix='player_form')
+        games = Game.objects.filter(id__in=PlayedMatch.objects.filter(player=player).values_list("match__game_id"))
+        player_stats = []
+        for game in games:
+            death_obj = Death.objects.filter(match__game=game)
+            try:
+                kill_death = death_obj.filter(killer=player).count() / death_obj.filter(victim=player).count()
+            except:
+                kill_death = None
+            won_games = PlayedMatch.objects.filter(match__game=game, player=player, match__winner__in=player.teams.all()).count()
+            try:
+                win_ratio = round((won_games / PlayedMatch.objects.filter(match__game=game, player=player).count()) * 100, 2)
+            except:
+                win_ratio = None
+            player_stats.append((game, kill_death, str(win_ratio) + "%"))
+        context['player_stats'] = player_stats
         context['player_form'] = edit_form
-        context['authorized'] = (self.object.user == self.request.user)
         return context
 
     def post(self, request, *args, **kwargs):
