@@ -1,6 +1,40 @@
 {% extends 'leagues/base.html' %}
 {% block title %}Players | {{ player.nickname }} {% endblock %}
 
+
+{% block scripts %}
+  <script>
+      function buttonClick(object_id, action) {
+          $.ajax({
+              type: 'POST',
+              url: "{% url 'leagues:player_detail' player.slug %}",
+              data: {
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'action': action,
+                  'object_id': object_id,
+              },
+              dataType: "json",
+              async: true,
+              success: function (json) {
+                  location.reload();
+              },
+              error: function (xhr, error) {
+                  console.log("AJAX failure");
+                  console.log(xhr);
+                  console.log(error);
+              }
+          });
+      }
+
+      function openDialog(text, confirmCallback) {
+          $('#dialog_text').text(text);
+          $('#dialog_confirm').attr('onclick',
+              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
+          $('#dialog').show();
+      }
+  </script>
+{% endblock %}
+
 {% block left_panel %}
   {% with side_bars_enabled=True %}
     {{ block.super }}
@@ -13,14 +47,20 @@
     <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 1 auto;">
       <header>
         <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ player.nickname }}</h1>
+        {% if player.clan %}
+          <h3 style="text-align:center;"><a href="{% url 'leagues:clan_detail' player.clan.slug %}"
+               style="text-align: center; font-family: 'Audiowide', cursive;">
+            CLAN: {{ player.clan.name }}
+          </a></h3>
+        {% endif %}
         <ul class="section-bar" style="flex: 1 1 auto">
           <li onclick="showSection(event, 'info');" id="info_tab"
               class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
             Player info
           </li>
-          <li onclick="showSection(event, 'groups');" id="groups_tab"
+          <li onclick="showSection(event, 'teams');" id="teams_tab"
               class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
-            Groups
+            Teams
           </li>
           <li onclick="showSection(event, 'stats');" id="stats_tab"
               class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
@@ -31,10 +71,17 @@
 
       <div id="info" class="w3-container w3-section section" style="position: relative;">
         {% if authorized %}
-          <button type="button" class="w3-round-large w3-green w3-button"
+          <button type="button" class="w3-round-large w3-green w3-button w3-margin-right"
                   onclick="$('#{{ player_form.prefix }}').show()">
             Edit <i class="fas fa-edit"></i>
           </button>
+          {% if player.clan %}
+            <button class="w3-round-large w3-red w3-button"
+                    onclick="openDialog('Do you really wish to leave clan \'{{ player.clan.name }}\'',
+                        buttonClick, {{ player.clan.id }}, 'leave_clan')">
+              Leave clan
+            </button>
+          {% endif %}
         {% endif %}
         {% if player.image_url %}
           <div class="w3-display-topright w3-border w3-padding" style="top:30px;right: 30px;">
@@ -43,21 +90,21 @@
           </div>
         {% endif %}
         <!-- PLAYER INFO !-->
-        <h5><b>First name:</b> {{ player.first_name }}</h5>
-        <h5><b>Last name:</b> {{ player.last_name }}</h5>
-        <h5><b>Age:</b> {{ player.age }}</h5>
-        <h5><b>Birth date:</b> {{ player.birth_date|date:"j.n.Y" }}</h5>
-        <h5><b>Country of origin:</b> {{ player.country }}</h5>
-        <h5>
+        <h4><b>First name:</b> {{ player.first_name }}</h4>
+        <h4><b>Last name:</b> {{ player.last_name }}</h4>
+        <h4><b>Age:</b> {{ player.age }}</h4>
+        <h4><b>Birth date:</b> {{ player.birth_date|date:"j.n.Y" }}</h4>
+        <h4><b>Country of origin:</b> {{ player.country.name }}</h4>
+        <h4>
           <b>Description:</b>
-        </h5>
+        </h4>
         <article class="w3-container">
           <p style="margin:0;">{{ player.description }}</p>
         </article>
       </div>
 
 
-      <div id="groups" class="w3-container section">
+      <div id="teams" class="w3-container section">
         <div class="w3-section flex-container">
           <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
             <h3>Teams</h3>
@@ -66,7 +113,7 @@
                 <thead>
                 <tr class="">
                   <th>Team name</th>
-                  {% if authorized %}
+                  {% if user.player == player %}
                     <th></th>
                   {% endif %}
                 </tr>
@@ -80,40 +127,14 @@
                         {{ team.name }}
                       </a>
                     </td>
-                    {% if authorized %}
-                      <td>TEST</td>
-                    {% endif %}
-                  </tr>
-                {% endfor %}
-                </tbody>
-              </table>
-              {% include 'leagues/table_footer.html' %}
-            </div>
-          </div>
-
-          <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
-            <h3>Clans</h3>
-            <div class="pagedTable w3-card w3-round">
-              <table class="w3-table w3-striped w3-bordered w3-hoverable">
-                <thead>
-                <tr class="">
-                  <th>Clan name</th>
-                  {% if authorized %}
-                    <th></th>
-                  {% endif %}
-                </tr>
-                </thead>
-
-                <tbody id="clan_rows">
-                {% for clan in player.clans.all %}
-                  <tr style="display: none">
-                    <td>
-                      <a href="{% url 'leagues:clan_detail' clan.slug %}">
-                        {{ clan.name }}
-                      </a>
-                    </td>
-                    {% if authorized %}
-                      <td>TEST</td>
+                    {% if user.player == player %}
+                      <td class="w3-padding-3 w3-small table_button_center">
+                        <button onclick="openDialog('Do you really wish to leave team \'{{ team.name }}\'',
+                            buttonClick, {{ team.id }}, 'leave_team')"
+                                class="w3-button w3-red table_button leave_button">
+                          Leave
+                        </button>
+                      </td>
                     {% endif %}
                   </tr>
                 {% endfor %}
@@ -138,64 +159,29 @@
 
 {% block endpage %}
   {% load widget_tweaks %}
-  <!--  LEAVE TEAM ALLERT !-->
-  {% for team in player.teams.all %}
-    <div id="team_alert{{ team.id }}" class="w3-modal" style="display: none">
-      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+  <div id="dialog" class="w3-modal" style="display: none">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
-        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-          <h3>Do you really want to leave {{ team.name }}</h3>
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 id="dialog_text">Placeholder Text</h3>
 
-          <button onclick="$('#team_alert' + {{ team.id }}).hide()" type="button"
-                  class="w3-button w3-display-topright w3-red">
-            <i class="fa fa-times"></i>
-          </button>
-        </header>
+        <button onclick="$('#dialog').hide()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
 
-        <form method="POST" class="" action="{% url 'leagues:player_detail' player.slug %}"
-              name="team_leave">{% csrf_token %}
-          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-            <button onclick="$('#team_alert' + {{ team.id }}).hide()" type="button"
-                    class="w3-button w3-red">No
-            </button>
-            <input type="hidden" name="player_id" value="{{ player.id }}">
-            <input type="hidden" name="team_id" value="{{ team.id }}">
-            <input class="w3-button w3-green w3-right" type="submit" name="{{ team.name }}"
-                   value="Yes">
-          </div>
-        </form>
+      <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+        <button onclick="$('#dialog').hide()" type="button" id="dialog_decline"
+                class="w3-button w3-red">No
+        </button>
+
+        <button onclick="$('#dialog').hide()" type="button" id="dialog_confirm"
+                class="w3-button w3-green w3-right">Yes
+        </button>
       </div>
     </div>
-  {% endfor %}
-  <!--  LEAVE CLAN ALLERT !-->
-  {% for clan in player.clans.all %}
-    <div id="clan_alert{{ clan.id }}" class="w3-modal" style="display: none">
-      <div class="w3-modal-content w3-card-4" style="max-width:600px">
-
-        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-          <h3>Do you really want to leave {{ clan.name }}</h3>
-
-          <button onclick="$('#clan_alert' + {{ clan.id }}).hide()" type="button"
-                  class="w3-button w3-display-topright w3-red">
-            <i class="fa fa-times"></i>
-          </button>
-        </header>
-
-        <form method="POST" class="" action="{% url 'leagues:player_detail' player.slug %}"
-              name="clan_leave">{% csrf_token %}
-          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-            <button onclick="$('#clan_alert' + {{ clan.id }}).hide()" type="button"
-                    class="w3-button w3-red">No
-            </button>
-            <input type="hidden" name="player_id" value="{{ player.id }}">
-            <input type="hidden" name="clan_id" value="{{ clan.id }}">
-            <input class="w3-button w3-green w3-right" type="submit" name="{{ clan.name }}"
-                   value="Yes">
-          </div>
-        </form>
-      </div>
-    </div>
-  {% endfor %}
+  </div>
 
   <!--  PLAYER INFO FORM !-->
   <div id="{{ player_form.prefix }}" class="w3-modal" {% if player_form.errors %}
