@@ -683,8 +683,13 @@ class TournamentView(generic.TemplateView):
             possible_teams = Team.objects.filter(Q(game_id=game) & ~Q(clan=team.clan))
             for t in possible_teams:
                 t1 = Team.objects.get(pk=team_1)
-                players = t.team_members.all().difference(t1.team_members.all())
-                if players.count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                players1 = t.team_members.all()
+                players2 = t1.team_members.all()
+                players = players1.difference(players2).count()
+                players1 = players1.count() - players
+                count = GameMode.objects.get(pk=game_mode).team_player_count
+                # if distinct number of player of both teams can make together
+                if (players1 + players2.count()) >= (2*count) and (players1 + players) >= count:
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)
             response_data['teams_2'] = json.dumps({"data": dictionaries})
@@ -705,26 +710,55 @@ class TournamentView(generic.TemplateView):
             match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1_id, team_2_id=team_2_id,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
-            team_1 = Team.objects.get(pk=team_1_id)
-            players = list(team_1.team_members.all().values_list('id', flat=True))
 
-            return JsonResponse(
-                response_data)  # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...) + neni osetreno zda ma tym dostatek hracu
+            # random players for first team
+            team_1 = Team.objects.get(pk=team_1_id)
+            players = set(team_1.team_members.all().values_list('id', flat=True))
+            count = mode.team_player_count
+            p = sample(players, count)
+            for i in range(0, count):
+                played = PlayedMatch(player_id=p[i], team=team_1, clan=team_1.clan, match=match)
+                played.save()
+
+            # random players for second team
+            team_2 = Team.objects.get(pk=team_2_id)
+            players = set(team_2.team_members.all().values_list('id', flat=True))
+            players.intersection(p)
+            p = sample(players, count)
+            for i in range(0, count):
+                played = PlayedMatch(player_id=p[i], team=team_2, clan=team_2.clan, match=match)
+                played.save()
+
+            return JsonResponse(response_data)  # TODO generovani udalosti
         elif action_key == 'match_done':
-            team_1 = int(form_data_dict['match_create-team_1'])
-            team_2 = int(form_data_dict['match_create-team_2'])
+            team_1_id = int(form_data_dict['match_create-team_1'])
+            team_2_id = int(form_data_dict['match_create-team_2'])
             tournament = int(form_data_dict['tournament'])
             t = Tournament.objects.get(pk=tournament)
             minutes = randint(20, 59)
             seconds = randint(0, 59)
-            winner = choice((team_1, team_2))
-            match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1, team_2_id=team_2,
+            winner = choice((team_1_id, team_2_id))
+            match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1_id, team_2_id=team_2_id,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
-            tm = Team.objects.get(pk=team_1)
-            num_of_players = Player.objects.filter(team=tm).values_list('id', flat=True)
-            player_list = list(num_of_players)
-            # p = sample(player_list, t.game_mode.team_player_count)
+
+            # random players for first team
+            team_1 = Team.objects.get(pk=team_1_id)
+            players = set(team_1.team_members.all().values_list('id', flat=True))
+            count = t.game_mode.team_player_count
+            p = sample(players, count)
+            for i in range(0, count):
+                played = PlayedMatch(player_id=p[i], team=team_1, clan=team_1.clan, match=match)
+                played.save()
+
+            # random players for second team
+            team_2 = Team.objects.get(pk=team_2_id)
+            players = set(team_2.team_members.all().values_list('id', flat=True))
+            p = sample(players, count)
+            for i in range(0, count):
+                played = PlayedMatch(player_id=p[i], team=team_2, clan=team_2.clan, match=match)
+                played.save()
+
             return JsonResponse(response_data)
 
         return HttpResponseRedirect(reverse("leagues:tournaments"))
