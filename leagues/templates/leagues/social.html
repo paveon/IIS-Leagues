@@ -6,6 +6,7 @@
 {% block scripts %}
   <script>
       function buttonClick(id, action) {
+          let url = '{{ request.build_absolute_uri }}';
           let data = {
               'action': action,
               'object_id': id,
@@ -18,11 +19,11 @@
               } else if (json['need_clan']) {
                   openDialog('Do you wish to join team\'s clan?', buttonClick, id, 'force_join_team');
               } else {
-                  location.reload();
+                  window.location.href = url;
               }
           }
 
-          baseButtonClick(data, '{% url 'leagues:social' %}', callback);
+          baseButtonClick(data, url, callback);
       }
   </script>
 {% endblock %}

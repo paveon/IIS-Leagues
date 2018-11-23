@@ -337,29 +337,23 @@ class PlayerDetailView(generic.DetailView):
     model = Player
 
     def edit_player(self):
-        player = self.object
-        user = player.user
-        edit_form = PlayerForm(self.request.POST, instance=player, prefix='player_form')
+        user = self.player.user
+        edit_form = PlayerForm(self.request.POST, instance=self.player, prefix='player_form')
         if edit_form.is_bound and edit_form.is_valid():
             player = edit_form.save(commit=False)
             player.user = user
             player.save()
 
     def leave_clan(self):
-        player = self.get_object()
-        teams = player.teams.filter(clan=player.clan)
-        player.teams.remove(*teams)
+        leave_clan(self.player.clan, self.player, self.response)
 
-        team_pendings = player.team_pendings.filter(clan=player.clan)
-        player.team_pendings.remove(*team_pendings)
+    def force_leave_clan(self):
+        force_leave_clan(self.player.clan, self.player)
 
-        player.clan = None
-        player.save()
-
-    def leave_team(self, team_id):
-        player = self.get_object()
+    def leave_team(self):
+        team_id = self.request.POST['object_id']
         team = Team.objects.get(pk=team_id)
-        teams = player.teams.remove(team)
+        leave_team(team, self.player)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -373,9 +367,11 @@ class PlayerDetailView(generic.DetailView):
                 kill_death = death_obj.filter(killer=player).count() / death_obj.filter(victim=player).count()
             except:
                 kill_death = None
-            won_games = PlayedMatch.objects.filter(match__game=game, player=player, match__winner__in=player.teams.all()).count()
+            won_games = PlayedMatch.objects.filter(match__game=game, player=player,
+                                                   match__winner__in=player.teams.all()).count()
             try:
-                win_ratio = round((won_games / PlayedMatch.objects.filter(match__game=game, player=player).count()) * 100, 2)
+                win_ratio = round(
+                    (won_games / PlayedMatch.objects.filter(match__game=game, player=player).count()) * 100, 2)
             except:
                 win_ratio = None
             player_stats.append((game, kill_death, str(win_ratio) + "%"))
@@ -383,20 +379,30 @@ class PlayerDetailView(generic.DetailView):
         context['player_form'] = edit_form
         return context
 
+    def __init__(self):
+        super().__init__()
+        self.object = None
+        self.player = None
+        self.object_id = None
+        self.action_key = None
+        self.response = {}
+        self.actions = {
+            'player_edit': self.edit_player,
+            'leave_clan': self.leave_clan,
+            'leave_team': self.leave_team,
+            'force_leave_clan': self.force_leave_clan
+        }
+
     def post(self, request, *args, **kwargs):
-        action_key = request.POST['action']
-        player = self.get_object()
-        if action_key == 'player_edit':
-            self.edit_player()
-        elif action_key == 'leave_clan':
-            self.leave_clan()
-            return JsonResponse({})
+        self.object = self.get_object()
+        self.player = self.object
+        self.action_key = request.POST['action']
+        action = self.actions[self.action_key]
+        action()
+        if request.is_ajax():
+            return JsonResponse(self.response)
         else:
-            self.leave_team(request.POST['object_id'])
-            return JsonResponse({})
-
-        return HttpResponseRedirect(reverse("leagues:player_detail", args=[player.slug]))
-
+            return HttpResponseRedirect(reverse("leagues:player_detail", args=[self.player.slug]))
 
 
 def force_join_team(team, player):
@@ -682,8 +688,8 @@ class TournamentView(generic.TemplateView):
             event_time += randint(15, event_interval)
             if event_time >= match.duration_seconds:
                 break
-            num_of_assists = randint(0,match.game_mode.team_player_count - 2)
-            who = randint(1,2)
+            num_of_assists = randint(0, match.game_mode.team_player_count - 2)
+            who = randint(1, 2)
             if who == 1:
                 victim = sample(players_1, 1)
                 killer = sample(players_2, 1)
@@ -695,7 +701,8 @@ class TournamentView(generic.TemplateView):
                 possible_assists = players_1.copy()
                 possible_assists.remove(killer[0])
 
-            death = Death(match=match, victim_id=victim[0], killer_id=killer[0], match_time=timedelta(seconds=event_time))
+            death = Death(match=match, victim_id=victim[0], killer_id=killer[0],
+                          match_time=timedelta(seconds=event_time))
             death.save()
             for i in range(num_of_assists):
                 assist_type = choice(['HEALING', 'DAMAGE'])
@@ -766,7 +773,7 @@ class TournamentView(generic.TemplateView):
                 players1 = players1.count() - players
                 count = GameMode.objects.get(pk=game_mode).team_player_count
                 # if distinct number of player of both teams can make together
-                if (players1 + players2.count()) >= (2*count) and (players1 + players) >= count:
+                if (players1 + players2.count()) >= (2 * count) and (players1 + players) >= count:
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)
             response_data['teams_2'] = json.dumps({"data": dictionaries})
@@ -861,7 +868,7 @@ class MatchDetailView(generic.DetailView):
         deaths = Death.objects.filter(match=match)
 
         context['deaths'] = deaths
-        context['assist_num'] = range(1, match.game_mode.team_player_count-1)
+        context['assist_num'] = range(1, match.game_mode.team_player_count - 1)
         context['teams'] = (match.team_1, match.team_2)
         context['players'] = players
         # TODO footer tabulky u statistik se jebe (rika ze ukazuje 5 ale je tam vse)

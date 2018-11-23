@@ -5,12 +5,22 @@
 {% block scripts %}
   <script>
       function buttonClick(object_id, action) {
+          let url = '{{ request.build_absolute_uri }}';
           let data = {
               'action': action,
               'object_id': object_id
           };
 
-          baseButtonClick(data, '{% url 'leagues:player_detail' player.slug %}', location.reload);
+          function callback(json) {
+              if (json['has_clan_teams']) {
+                  openDialog('Do you really wish to leave all clan\'s teams?',
+                      buttonClick, object_id, 'force_leave_clan');
+              } else {
+                  window.location = url;
+              }
+          }
+
+          baseButtonClick(data, '{% url 'leagues:player_detail' player.slug %}', callback);
       }
   </script>
 {% endblock %}
@@ -28,10 +38,13 @@
       <header>
         <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ player.nickname }}</h1>
         {% if player.clan %}
-          <h3 style="text-align:center;"><a href="{% url 'leagues:clan_detail' player.clan.slug %}"
-                                            style="text-align: center; font-family: 'Audiowide', cursive;">
-            CLAN: {{ player.clan.name }}
-          </a></h3>
+          <h3 style="text-align: center; font-family: 'Audiowide', cursive;">
+            CLAN:
+            <a href="{% url 'leagues:clan_detail' player.clan.slug %}"
+               style="text-align: center; font-family: 'Audiowide', cursive;">
+              {{ player.clan.name }}
+            </a>
+          </h3>
         {% endif %}
         <ul class="section-bar" style="flex: 1 1 auto">
           <li onclick="showSection(event, 'info');" id="info_tab"
