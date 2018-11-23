@@ -76,23 +76,28 @@
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr class="">
-              <th><a href="{% url 'leagues:team_detail' teams.0.slug %} }">{{ teams.0.name }}</a></th>
-              <th>VS</th>
-              <th><a href="{% url 'leagues:team_detail' teams.1.slug %} }">{{ teams.1.name }}</a></th>
+              <th style="text-align: center;"><a href="{% url 'leagues:team_detail' teams.0.slug %} }">
+                <h4 style="text-align: center; font-family: 'Audiowide', cursive;">{{ teams.0.name }}</h4>
+              </a></th>
+              <th style="text-align: center;"><h4>VS</h4></th>
+              <th style="text-align: center;"><a href="{% url 'leagues:team_detail' teams.1.slug %} }">
+                <h4 style="text-align: center; font-family: 'Audiowide', cursive;">{{ teams.1.name }}</h4>
+              </a></th>
             </tr>
             </thead>
 
             <tbody id="member_rows">
             {% for player in players %}
-              <tr style="display: none">
-                <td>
+              <tr>
+                <td  style="text-align: center;">
                   <a href="{% url 'leagues:player_detail' player.0.player.slug %}">
-                    {{ player.0.name }}
+                    {{ player.0.player.nickname }}
                   </a>
                 </td>
                 <td></td>
-                <td><a href="{% url 'leagues:player_detail' player.1.player.slug %}">
-                    {{ player.1.name }}
+                <td style="text-align: center;">
+                  <a href="{% url 'leagues:player_detail' player.1.player.slug %}">
+                    {{ player.1.player.nickname }}
                   </a>
                 </td>
               </tr>
@@ -109,12 +114,36 @@
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr class="">
-              <th>??</th>
+              <th>Match time</th>
+              <th>Killer</th>
+              <th>Victim</th>
+              {% for i in assist_num %}
+                <th>Assist{{ i }}</th>
+              {% endfor %}
             </tr>
             </thead>
 
             <tbody id="matches_rows">
-            <tr><td>TBD</td></tr>
+            {% for death in deaths %}
+              <tr>
+              <td>{{ death.match_time_fmt }}</td>
+              <td>
+                <a href="{% url 'leagues:player_detail' death.killer.slug %}">
+                  {{ death.killer.nickname }}
+                </a>
+              </td>
+              <td>
+                <a href="{% url 'leagues:player_detail' death.victim.slug %}">
+                  {{ death.victim.nickname }}
+                </a>
+              </td>
+                {% for assist in death.assist_set.all %}
+                  <td>
+                    <a href="{% url 'leagues:player_detail' assist.player.slug %}">
+                      {{ assist.player.nickname }}</a> [{{ assist.type }}]</td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
             </tbody>
           </table>
           {% include 'leagues/table_footer.html' %}

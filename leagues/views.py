@@ -345,43 +345,58 @@ class PlayerDetailView(generic.DetailView):
             player.user = user
             player.save()
 
-    def __init__(self):
-        super().__init__()
-        self.object = None
-        self.actions = {
-            'player_edit': self.edit_player,
-        }
+    def leave_clan(self):
+        player = self.get_object()
+        teams = player.teams.filter(clan=player.clan)
+        player.teams.remove(*teams)
+
+        team_pendings = player.team_pendings.filter(clan=player.clan)
+        player.team_pendings.remove(*team_pendings)
+
+        player.clan = None
+        player.save()
+
+    def leave_team(self, team_id):
+        player = self.get_object()
+        team = Team.objects.get(pk=team_id)
+        teams = player.teams.remove(team)
 
     def get_context_data(self, **kwargs):
-        self.object = self.get_object()
         context = super().get_context_data(**kwargs)
+        player = self.get_object()
         edit_form = PlayerForm(instance=self.object, prefix='player_form')
+        games = Game.objects.filter(id__in=PlayedMatch.objects.filter(player=player).values_list("match__game_id"))
+        player_stats = []
+        for game in games:
+            death_obj = Death.objects.filter(match__game=game)
+            try:
+                kill_death = death_obj.filter(killer=player).count() / death_obj.filter(victim=player).count()
+            except:
+                kill_death = None
+            won_games = PlayedMatch.objects.filter(match__game=game, player=player, match__winner__in=player.teams.all()).count()
+            try:
+                win_ratio = round((won_games / PlayedMatch.objects.filter(match__game=game, player=player).count()) * 100, 2)
+            except:
+                win_ratio = None
+            player_stats.append((game, kill_death, str(win_ratio) + "%"))
+        context['player_stats'] = player_stats
         context['player_form'] = edit_form
-        context['authorized'] = (self.object.user == self.request.user)
         return context
 
     def post(self, request, *args, **kwargs):
         action_key = request.POST['action']
-        action = self.actions[action_key]
-        action()
-        return HttpResponseRedirect(reverse("leagues:player_detail", args=[self.object.slug]))
+        player = self.get_object()
+        if action_key == 'player_edit':
+            self.edit_player()
+        elif action_key == 'leave_clan':
+            self.leave_clan()
+            return JsonResponse({})
+        else:
+            self.leave_team(request.POST['object_id'])
+            return JsonResponse({})
 
-        # if 'player_form' in request.POST:
-        #     edit_form = PlayerForm(request.POST, instance=context['player'], prefix='player_form')
-        #     if edit_form.is_bound and edit_form.is_valid():
-        #         edit_form.save()
-        #         new_slug = slugify(context['player'].nickname)
-        #         return HttpResponseRedirect(reverse("leagues:player_detail", args=(new_slug,)))
-        # elif 'team_id' in request.POST:
-        #     Player.teams.through.objects.all().filter(player__id=request.POST['player_id'],
-        #                                               team__id=request.POST['team_id']).delete()
-        #     return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
-        # elif 'clan_id' in request.POST:
-        #     Player.clans.through.objects.all().filter(player__id=request.POST['player_id'],
-        #                                               team__id=request.POST['clan_id']).delete()
-        #     return HttpResponseRedirect(reverse("leagues:player_detail", args=(kwargs['slug'],)))
+        return HttpResponseRedirect(reverse("leagues:player_detail", args=[player.slug]))
 
-        # return render(request, self.template_name, context)
 
 
 def force_join_team(team, player):
@@ -660,6 +675,35 @@ class TournamentView(generic.TemplateView):
         context['match_form'] = MatchForm(prefix='match_create')
         return context
 
+    def generateStats(self, match, players_1, players_2):
+        event_interval = match.duration_seconds // (30 + 1)
+        event_time = 0
+        while 1:
+            event_time += randint(15, event_interval)
+            if event_time >= match.duration_seconds:
+                break
+            num_of_assists = randint(0,match.game_mode.team_player_count - 2)
+            who = randint(1,2)
+            if who == 1:
+                victim = sample(players_1, 1)
+                killer = sample(players_2, 1)
+                possible_assists = players_2.copy()
+                possible_assists.remove(killer[0])
+            else:
+                victim = sample(players_2, 1)
+                killer = sample(players_1, 1)
+                possible_assists = players_1.copy()
+                possible_assists.remove(killer[0])
+
+            death = Death(match=match, victim_id=victim[0], killer_id=killer[0], match_time=timedelta(seconds=event_time))
+            death.save()
+            for i in range(num_of_assists):
+                assist_type = choice(['HEALING', 'DAMAGE'])
+                assist_player = sample(possible_assists, 1)
+                possible_assists.remove(assist_player[0])
+                assist = Assist(death=death, player_id=assist_player[0], type=assist_type)
+                assist.save()
+
     def post(self, request, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         action_key = request.POST['action']
@@ -716,8 +760,13 @@ class TournamentView(generic.TemplateView):
             possible_teams = Team.objects.filter(Q(game_id=game) & ~Q(clan=team.clan))
             for t in possible_teams:
                 t1 = Team.objects.get(pk=team_1)
-                players = t.team_members.all().difference(t1.team_members.all())
-                if players.count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                players1 = t.team_members.all()
+                players2 = t1.team_members.all()
+                players = players1.difference(players2).count()
+                players1 = players1.count() - players
+                count = GameMode.objects.get(pk=game_mode).team_player_count
+                # if distinct number of player of both teams can make together
+                if (players1 + players2.count()) >= (2*count) and (players1 + players) >= count:
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)
             response_data['teams_2'] = json.dumps({"data": dictionaries})
@@ -738,26 +787,59 @@ class TournamentView(generic.TemplateView):
             match = Match(game_id=game, game_mode_id=game_mode, team_1_id=team_1_id, team_2_id=team_2_id,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
-            team_1 = Team.objects.get(pk=team_1_id)
-            players = list(team_1.team_members.all().values_list('id', flat=True))
 
-            return JsonResponse(
-                response_data)  # TODO priradit nahodne hrace daneho tymu do zapasu (playedmatch...) + neni osetreno zda ma tym dostatek hracu
+            # random players for first team
+            team_1 = Team.objects.get(pk=team_1_id)
+            players = set(team_1.team_members.all().values_list('id', flat=True))
+            count = mode.team_player_count
+            p1 = sample(players, count)
+            for i in range(0, count):
+                played = PlayedMatch(player_id=p1[i], team=team_1, clan=team_1.clan, match=match)
+                played.save()
+
+            # random players for second team
+            team_2 = Team.objects.get(pk=team_2_id)
+            players = set(team_2.team_members.all().values_list('id', flat=True))
+            players.intersection(p1)
+            p2 = sample(players, count)
+            for i in range(0, count):
+                played = PlayedMatch(player_id=p2[i], team=team_2, clan=team_2.clan, match=match)
+                played.save()
+
+            self.generateStats(match, p1, p2)
+
+            return JsonResponse(response_data)  # TODO generovani udalosti
         elif action_key == 'match_done':
-            team_1 = int(form_data_dict['match_create-team_1'])
-            team_2 = int(form_data_dict['match_create-team_2'])
+            team_1_id = int(form_data_dict['match_create-team_1'])
+            team_2_id = int(form_data_dict['match_create-team_2'])
             tournament = int(form_data_dict['tournament'])
             t = Tournament.objects.get(pk=tournament)
             minutes = randint(20, 59)
             seconds = randint(0, 59)
-            winner = choice((team_1, team_2))
-            match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1, team_2_id=team_2,
+            winner = choice((team_1_id, team_2_id))
+            match = Match(tournament=t, game=t.game, game_mode=t.game_mode, team_1_id=team_1_id, team_2_id=team_2_id,
                           duration=timedelta(minutes=minutes, seconds=seconds), winner_id=winner)
             match.save()
-            tm = Team.objects.get(pk=team_1)
-            num_of_players = Player.objects.filter(team=tm).values_list('id', flat=True)
-            player_list = list(num_of_players)
-            # p = sample(player_list, t.game_mode.team_player_count)
+
+            # random players for first team
+            team_1 = Team.objects.get(pk=team_1_id)
+            players = set(team_1.team_members.all().values_list('id', flat=True))
+            count = t.game_mode.team_player_count
+            p1 = sample(players, count)
+            for i in range(0, count):
+                played = PlayedMatch(player_id=p1[i], team=team_1, clan=team_1.clan, match=match)
+                played.save()
+
+            # random players for second team
+            team_2 = Team.objects.get(pk=team_2_id)
+            players = set(team_2.team_members.all().values_list('id', flat=True))
+            p2 = sample(players, count)
+            for i in range(0, count):
+                played = PlayedMatch(player_id=p2[i], team=team_2, clan=team_2.clan, match=match)
+                played.save()
+
+            self.generateStats(match, p1, p2)
+
             return JsonResponse(response_data)
 
         return HttpResponseRedirect(reverse("leagues:tournaments"))
@@ -770,17 +852,19 @@ class MatchDetailView(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         match = self.get_object()
-        players_1 = PlayedMatch.objects.filter(match=match, team=match.team_1)
-        players_2 = PlayedMatch.objects.filter(match=match, team=match.team_2)
+        players_1 = list(PlayedMatch.objects.filter(match=match, team=match.team_1))
+        players_2 = list(PlayedMatch.objects.filter(match=match, team=match.team_2))
         players = []
-        if players_1 and players_2:
-            for p1, p2 in players_1, players_2:
-                players.append(p1, p2)
+        for i in range(len(players_1)):
+            players.append((players_1[i], players_2[i]))
 
+        deaths = Death.objects.filter(match=match)
+
+        context['deaths'] = deaths
+        context['assist_num'] = range(1, match.game_mode.team_player_count-1)
         context['teams'] = (match.team_1, match.team_2)
         context['players'] = players
-        # TODO statistiky, ale hlavne vyresit jak vypisovat postupne jednotlive udalosti (podle casu), jelikoz jsou v jinych tabulkach
-        # TODO pravdepdoobne budeme vypisovat asisty spolu se zabitimi
+        # TODO footer tabulky u statistik se jebe (rika ze ukazuje 5 ale je tam vse)
         return context
 
 

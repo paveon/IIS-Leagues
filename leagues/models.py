@@ -218,11 +218,14 @@ class Match(models.Model):
 
     @property
     def duration_fmt(self):
-        beginning = self.beginning
         seconds = int(self.duration.total_seconds())
         minutes = seconds // 60
         seconds = seconds % 60
         return '{0}m {1}s'.format(minutes, seconds)
+
+    @property
+    def duration_seconds(self):
+        return int(self.duration.total_seconds())
 
     def __str__(self):
         return "Match ({0}): {1} vs {2}".format(self.id, self.team_1, self.team_2)
@@ -314,11 +317,17 @@ class RegisteredTeams(models.Model):
 
 class Death(models.Model):
     match = models.ForeignKey(Match, on_delete=models.PROTECT, verbose_name='Related match')
-    match_time = models.TimeField(default=timezone.now)
+    match_time = models.DurationField()
     victim = models.ForeignKey(Player, on_delete=models.PROTECT, related_name='deaths', verbose_name='Killed player')
     killer = models.ForeignKey(Player, on_delete=models.PROTECT, related_name='kills', null=True, blank=True,
                                verbose_name='Killer')
 
+    @property
+    def match_time_fmt(self):
+        seconds = int(self.match_time.total_seconds())
+        minutes = seconds // 60
+        seconds = seconds % 60
+        return '{0}m {1}s'.format(minutes, seconds)
 
 class Assist(models.Model):
     ASSISTANCE_TYPE = (
