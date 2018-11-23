@@ -3,14 +3,20 @@
 
 {% block scripts %}
   <script>
-      function buttonClick(id, action) {
+      function buttonClick(object_id, action) {
           let data = {
               'action': action,
-              'object_id': id,
+              'object_id': object_id,
           };
 
           function callback(json) {
-              if ('error' in json) {
+              if (json['has_clan_teams']) {
+                  openDialog('Do you really wish to leave all clan\'s teams?',
+                      buttonClick, object_id, 'force_leave_clan');
+              } else if (json['need_clan']) {
+                  openDialog('Do you wish to join team\'s clan?',
+                      buttonClick, object_id, 'force_join_team');
+              } else if ('error' in json) {
                   $('#confirm_bar').hide();
                   openDialog(json['error']);
               } else {

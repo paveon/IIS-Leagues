@@ -12,15 +12,17 @@
 
           function callback(json) {
               if (json['has_clan_teams']) {
-                  openDialog('Do you really wish to leave all clan\'s teams?', buttonClick, id, 'force_leave_clan');
+                  openDialog('Do you really wish to leave all clan\'s teams?',
+                      buttonClick, player_id, 'force_leave_clan');
               } else if (json['need_clan']) {
-                  openDialog('Do you wish to join team\'s clan?', buttonClick, id, 'force_join_team');
+                  openDialog('Do you wish to join team\'s clan?',
+                      buttonClick, player_id, 'force_join_team');
               } else {
                   location.reload();
               }
           }
 
-          baseButtonClick(data, '{% url 'leagues:clan_detail' clan.slug%}', callback);
+          baseButtonClick(data, '{% url 'leagues:clan_detail' clan.slug %}', callback);
       }
   </script>
 {% endblock %}
