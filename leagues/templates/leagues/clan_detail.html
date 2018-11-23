@@ -5,33 +5,22 @@
 {% block scripts %}
   <script>
       function buttonClick(player_id, action) {
-          $.ajax({
-              type: 'POST',
-              url: "{% url 'leagues:clan_detail' clan.slug%}",
-              data: {
-                  'csrfmiddlewaretoken': '{{ csrf_token }}',
-                  'action': action,
-                  'clan_id': {{ clan.id }},
-                  'player_id': player_id
-              },
-              dataType: "json",
-              async: true,
-              success: function (json) {
-                  location.reload();
-              },
-              error: function (xhr, error) {
-                  console.log("AJAX failure");
-                  console.log(xhr);
-                  console.log(error);
-              }
-          });
-      }
+          let data = {
+              'action': action,
+              'player_id': player_id
+          };
 
-      function openDialog(text, confirmCallback) {
-          $('#dialog_text').text(text);
-          $('#dialog_confirm').attr('onclick',
-              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
-          $('#dialog').show();
+          function callback(json) {
+              if (json['has_clan_teams']) {
+                  openDialog('Do you really wish to leave all clan\'s teams?', buttonClick, id, 'force_leave_clan');
+              } else if (json['need_clan']) {
+                  openDialog('Do you wish to join team\'s clan?', buttonClick, id, 'force_join_team');
+              } else {
+                  location.reload();
+              }
+          }
+
+          baseButtonClick(data, '{% url 'leagues:clan_detail' clan.slug%}', callback);
       }
   </script>
 {% endblock %}
@@ -69,8 +58,25 @@
         </ul>
       </header>
 
-      <div id="info" class="w3-container w3-section section">
-        <h4><b></b>Active:</b>
+      <div id="info" class="w3-container w3-section section" style="position: relative;">
+
+        <div class="w3-display-topright" style="right: 20px; top:10px">
+          {% if user.player.clan == clan %}
+            <button type="button" class="w3-button w3-round w3-red"
+                    onclick="openDialog('Do you really wish to leave this clan?',
+                        buttonClick, {{ user.player.id }}, 'leave_clan')">
+              Leave
+            </button>
+          {% else %}
+            <button type="button" class="w3-button w3-round w3-green"
+                    onclick="buttonClick({{ user.player.id }}, 'join_clan')">
+              Leave
+            </button>
+          {% endif %}
+        </div>
+
+
+        <h4><b>Active:</b>
           {% if clan.active %}
             <i class="fas fa-check-circle"></i>
           {% else %}
@@ -138,6 +144,45 @@
       </div>
 
       <div id="members" class="w3-container w3-section section">
+        {% if user.player == clan.leader %}
+          <h3>Membership requests</h3>
+          <div class="pagedTable w3-card w3-round w3-margin-bottom">
+            <table class="w3-table w3-striped w3-bordered w3-hoverable">
+              <thead>
+              <tr class="">
+                <th>Nickname</th>
+                <th></th>
+              </tr>
+              </thead>
+
+              <tbody id="requests_rows">
+              {% for player in membership_requests %}
+                <tr style="display: none">
+                  <td>
+                    <a href="{% url 'leagues:player_detail' player.slug %}">
+                      {{ player.nickname }}
+                    </a>
+                  </td>
+
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    <button onclick="buttonClick({{ player.id }}, 'accept_request')"
+                            class="w3-button w3-green table_button green_button">
+                      Accept
+                    </button>
+                    <button onclick="buttonClick({{ player.id }}, 'decline_request')"
+                            class="w3-button w3-red table_button red_button">
+                      Decline
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            {% include 'leagues/table_footer.html' %}
+          </div>
+        {% endif %}
+
+
         <h3>Members</h3>
         <div class="pagedTable w3-card w3-round">
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
@@ -148,7 +193,7 @@
               <th>Games total</th>
               <th>Win ratio</th>
               {% if user.player == clan.leader %}
-                <th>Status</th>
+                <th></th>
               {% endif %}
             </tr>
             </thead>
@@ -161,28 +206,21 @@
                     {{ member.0.nickname }}
                   </a>
                 </td>
-                <td>{{ member.2.count }}</td>
-                <td>{{ member.1.count }}</td>
-                <td>{{ member.3 }}</td>
+                <td>{{ member.2 }}</td>
+                <td>{{ member.1 }}</td>
+                <td>{{ member.3|default:"No games" }}</td>
                 {% if user.player == clan.leader %}
-                  {% if user.player == member.0 %}
-                    <td class="w3-padding-3 w3-small table_button_center">
-                      <button onclick="openDialog('Do you really wish to leave \'{{ clan.name }}\'',
-                          buttonClick, {{ member.0.id }}, 'leave_clan')"
-                              class="w3-button w3-red table_button leave_button">
-                        Leave
-                      </button>
-                    </td>
-                  {% else %}
-                    <td class="w3-padding-3 w3-small table_button_center">
-                      <button
-                          onclick="openDialog('Do you really wish to kick player \'{{ member.0.nickname }}\' from clan \'{{ clan.name }}\' and from all teams from this clan?',
-                              buttonClick, {{ member.0.id }}, 'kick_player')"
-                          class="w3-button w3-red table_button leave_button">
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    {% if member.0 != clan.leader %}
+                      <button class="w3-button w3-red table_button red_button"
+                              onclick="openDialog('Do you really wish to kick player ' +
+                                  '\'{{ member.0.nickname }}\' from clan \'{{ clan.name }}\'' +
+                                  'and from all teams from this clan?',
+                                  buttonClick, {{ member.0.id }}, 'kick_player')">
                         Kick
                       </button>
-                    </td>
-                  {% endif %}
+                    {% endif %}
+                  </td>
                 {% endif %}
               </tr>
             {% endfor %}
@@ -195,8 +233,8 @@
       <div id="stats" class="w3-container w3-section section">
         <h4>Win ratio: {{ stats.2|default:"No matches" }}</h4>
         <h4>Member count: {{ clan.clan_members.count }}</h4>
-        <h4>Matches played: {{ stats.0.count }}</h4>
-        <h4>Matches won: {{ stats.1.count }}</h4>
+        <h4>Matches played: {{ stats.0 }}</h4>
+        <h4>Matches won: {{ stats.1 }}</h4>
       </div>
 
     </div>

@@ -159,14 +159,14 @@ a {
     height: 26px;
 }
 
-.join_button:hover {
+.green_button:hover {
     color: black !important;
     font-weight: bold;
     background-color: white !important;
     border: 2px solid green !important;
 }
 
-.leave_button:hover {
+.red_button:hover {
     color: black !important;
     font-weight: bold;
     background-color: white !important;

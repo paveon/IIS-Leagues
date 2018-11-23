@@ -3,48 +3,22 @@
 
 {% block scripts %}
   <script>
-      function openDialog(text, confirmCallback) {
-          console.log(confirmCallback.name);
-          $('#confirm_bar').show();
-          $('#dialog_text').text(text);
-          if (confirmCallback) {
-              $('#dialog_confirm').attr('onclick',
-                  confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
-          }
-          $('#dialog').show();
-      }
-
-
       function buttonClick(id, action) {
-          $.ajax({
-              type: 'POST',
-              url: "{% url 'leagues:team_detail' team.slug %}",
-              data: {
-                  'csrfmiddlewaretoken': '{{ csrf_token }}',
-                  'action': action,
-                  'object_id': id,
-              },
-              dataType: "json",
-              async: true,
-              success: function (json) {
-                  if (json['error'] == "players") {
-                      openDialog('Not enough players in team to join tournament');
-                      $('#confirm_bar').hide();
-                  }
-                  else if (json['error'] == "teams") {
-                      openDialog('Another team from your clan is already registered for this tournament');
-                      $('#confirm_bar').hide();
-                  }
-                  else {
-                      location.reload();
-                  }
-              },
-              error: function (xhr, error) {
-                  console.log("AJAX failure");
-                  console.log(xhr);
-                  console.log(error);
+          let data = {
+              'action': action,
+              'object_id': id,
+          };
+
+          function callback(json) {
+              if ('error' in json) {
+                  $('#confirm_bar').hide();
+                  openDialog(json['error']);
+              } else {
+                  location.reload();
               }
-          });
+          }
+
+          baseButtonClick(data, '{% url 'leagues:team_detail' team.slug %}', callback);
       }
   </script>
 {% endblock %}
@@ -60,7 +34,16 @@
   <div class="w3-container w3-margin-bottom flex-container" style="flex: 2 1 0;">
     <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 1 auto;">
       <header>
-        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ team.name }}</h1>
+        <h1 style="text-align: center; font-family: 'Audiowide', cursive;">
+          {{ team.name }}
+        </h1>
+        {% if team.clan %}
+          <a href="{% url 'leagues:clan_detail' team.clan.slug %}">
+            <h4 style="text-align: center; font-family: 'Audiowide', cursive;">
+              {{ team.clan }}
+            </h4>
+          </a>
+        {% endif %}
 
         <ul class="section-bar" style="flex: 1 1 auto">
           <li onclick="showSection(event, 'info');" id="info_tab"
@@ -71,9 +54,9 @@
               class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
             Members
           </li>
-          <li  onclick="showSection(event, 'tournaments');" id="tournaments_tab"
-            class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
-          Tournaments
+          <li onclick="showSection(event, 'tournaments');" id="tournaments_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Tournaments
           </li>
           <li onclick="showSection(event, 'matches');" id="matches_tab"
               class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
@@ -86,7 +69,23 @@
         </ul>
       </header>
 
-      <div id="info" class="w3-container w3-section section">
+      <div id="info" class="w3-container w3-section section" style="position: relative;">
+        <div class="w3-display-topright" style="right: 20px; top:10px">
+          {% if team in user.player.teams.all %}
+            <button type="button" class="w3-button w3-round w3-red"
+                    onclick="openDialog('Do you really wish to leave this team?',
+                        buttonClick, {{ user.player.id }}, 'leave_team')">
+              Leave
+            </button>
+          {% else %}
+            <button type="button" class="w3-button w3-round w3-green"
+                    onclick="buttonClick({{ user.player.id }}, 'join_team')">
+              Join
+            </button>
+          {% endif %}
+        </div>
+
+
         <h4><b>Active:</b>
           {% if team.active %}
             <i class="fas fa-check-circle"></i>
@@ -126,6 +125,62 @@
       </div>
 
       <div id="members" class="w3-container w3-section section">
+        {% if user.player == team.leader %}
+          <h3>Membership requests</h3>
+          <div class="pagedTable w3-card w3-round w3-margin-bottom">
+            <table class="w3-table w3-striped w3-bordered w3-hoverable">
+              <thead>
+              <tr class="">
+                <th>Nickname</th>
+                <th>Clan</th>
+                <th></th>
+              </tr>
+              </thead>
+
+              <tbody id="requests_rows">
+              {% for player in membership_requests %}
+                <tr style="display: none">
+                  <td>
+                    <a href="{% url 'leagues:player_detail' player.slug %}">
+                      {{ player.nickname }}
+                    </a>
+                  </td>
+
+                  <td>
+                    {% if player.clan %}
+                      <a href="{% url 'leagues:clan_detail' player.clan.slug %}">
+                        {{ player.clan }}
+                      </a>
+                    {% else %}
+                      None
+                    {% endif %}
+                  </td>
+
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    <button onclick="buttonClick({{ player.id }}, 'accept_request')"
+                            class="w3-button w3-green table_button green_button"
+                        {% if team.clan and player.clan != team.clan %}
+                            disabled
+                        {% endif %}>
+                      Accept
+                    </button>
+                    <button onclick="buttonClick({{ player.id }}, 'decline_request')"
+                            class="w3-button w3-red table_button red_button"
+                        {% if team.clan and player.clan != team.clan %}
+                            disabled
+                        {% endif %}>
+                      Decline
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            {% include 'leagues/table_footer.html' %}
+          </div>
+        {% endif %}
+
+
         <h3>Members</h3>
         <div class="pagedTable w3-card w3-round">
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
@@ -135,6 +190,9 @@
               <th>Games won</th>
               <th>Games total</th>
               <th>Win ratio</th>
+              {% if user.player == team.leader %}
+                <th></th>
+              {% endif %}
             </tr>
             </thead>
 
@@ -149,6 +207,19 @@
                 <td>{{ member.2.count }}</td>
                 <td>{{ member.1.count }}</td>
                 <td>{{ member.0.win_ratio|default:"No games" }}</td>
+                {% if user.player == team.leader %}
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    {% if team.leader != member.0 %}
+                      <button
+                          onclick="openDialog('Do you really wish to kick player ' +
+                              '\'{{ member.0.nickname }}\' from your team?',
+                              buttonClick, {{ member.0.id }}, 'kick_player')"
+                          class="w3-button w3-red table_button red_button">
+                        Kick
+                      </button>
+                    {% endif %}
+                  </td>
+                {% endif %}
               </tr>
             {% endfor %}
             </tbody>
@@ -158,57 +229,62 @@
       </div>
 
       <div id="tournaments" class="w3-container w3-section section">
-      {% if user.player == user.player.clan.leader %}
-        <div class="w3-section flex-container">
-          <div class="w3-margin-right" style="flex: 1 1 0">
-      {% endif %}
-            <h3>Registered tournaments</h3>
-            <div class="pagedTable w3-card w3-round">
-              <table class="w3-table w3-striped w3-bordered w3-hoverable">
-                <thead>
-                <tr class="">
-                  <th>Name</th>
-                  <th>Status</th>
-                  {% if user.player == user.player.clan.leader %}
-                    <th></th>
-                  {% endif %}
-                </tr>
-                </thead>
+        {% if user.player == user.player.clan.leader %}
+          <div class="w3-section flex-container">
+          <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
+        {% endif %}
+        <h3>Registered tournaments</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Name</th>
+              <th>Status</th>
+              {% if user.player == user.player.clan.leader %}
+                <th></th>
+              {% endif %}
+            </tr>
+            </thead>
 
-                <tbody id="matches_rows">
-                {% for tournament in registered %}
-                  <tr style="display: none;">
-                    <td><a href="{% url 'leagues:tournament_detail' tournament.slug %}">{{ tournament.name }}</a></td>
-                    <td>
-                      {% if tournament.in_progress %}
-                        In progress
-                      {% elif tournament.upcoming %}
-                        Upcoming
-                      {% else %}
-                        Finished
-                      {% endif %}
-                    </td>
-                  {% if user.player == user.player.clan.leader %}
-                    {% if tournament.upcoming %}
-                      <td class="w3-padding-3 w3-small table_button_center">
-                        <button onclick="openDialog('Do you really wish to leave \'{{ tournament.name }}\'?', buttonClick, {{ tournament.id }}, 'leave_tournament')"
-                                class="w3-button w3-red table_button leave_button">
-                          Leave
-                        </button>
-                      </td>
-                    {% else %}
-                      <td></td>
-                    {% endif %}
+            <tbody id="matches_rows">
+            {% for tournament in registered %}
+              <tr style="display: none;">
+                <td>
+                  <a href="{% url 'leagues:tournament_detail' tournament.slug %}">
+                    {{ tournament.name }}
+                  </a>
+                </td>
+                <td>
+                  {% if tournament.in_progress %}
+                    In progress
+                  {% elif tournament.upcoming %}
+                    Upcoming
+                  {% else %}
+                    Finished
                   {% endif %}
-                  </tr>
-                {% endfor %}
-                </tbody>
-              </table>
-              {% include 'leagues/table_footer.html' %}
-            </div>
-      {% if user.player == user.player.clan.leader %}
+                </td>
+                {% if user.player == user.player.clan.leader %}
+                  {% if tournament.upcoming %}
+                    <td class="w3-padding-3 w3-small table_button_center">
+                      <button class="w3-button w3-red table_button red_button"
+                              onclick="openDialog('Do you really wish to leave \'{{ tournament.name }}\'?',
+                                  buttonClick, {{ tournament.id }}, 'leave_tournament')">
+                        Leave
+                      </button>
+                    </td>
+                  {% else %}
+                    <td></td>
+                  {% endif %}
+                {% endif %}
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+        {% if user.player == user.player.clan.leader %}
           </div>
-          <div style="flex: 1 1 0">
+          <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
             <h3>Tournaments to register</h3>
             <div class="pagedTable w3-card w3-round">
               <table class="w3-table w3-striped w3-bordered w3-hoverable">
@@ -226,7 +302,7 @@
                       <td><a href="{% url 'leagues:team_detail' tournament.slug %}">{{ tournament.name }}</a></td>
                       <td class="w3-padding-3 w3-small table_button_center">
                         <button onclick="buttonClick({{ tournament.id }}, 'join_tournament')"
-                                class="w3-button w3-green table_button join_button">
+                                class="w3-button w3-green table_button green_button">
                           Join
                         </button>
                       </td>
@@ -238,8 +314,8 @@
               {% include 'leagues/table_footer.html' %}
             </div>
           </div>
-        </div>
-      {% endif %}
+          </div>
+        {% endif %}
       </div>
 
       <div id="matches" class="w3-container w3-section section">
@@ -315,7 +391,8 @@
   <div id="dialog" class="w3-modal" style="display: none">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
 
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom"
+              style="padding: 0 60px 0 60px">
         <h3 id="dialog_text">Placeholder Text</h3>
 
         <button onclick="$('#dialog').hide()" type="button"

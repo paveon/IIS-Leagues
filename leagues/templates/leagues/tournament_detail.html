@@ -4,58 +4,44 @@
 {% block scripts %}
   <script>
       function buttonClick(action, form_id) {
-          let formData = form_id.serializeArray();
-          formData = JSON.stringify(formData);
-          $.ajax({
-              type: 'POST',
-              url: "{% url 'leagues:tournament_detail' tournament.slug %}",
-              data: {
-                  'csrfmiddlewaretoken': '{{ csrf_token }}',
-                  'action': action,
-                  'data': formData
-              },
-              dataType: "json",
-              async: true,
-              success: function (json) {
-                  if(json['status'] == "error") {
-                      $('#team_pick_error').show();
-                      $('#team_pick').show();
-                      $('#team_pick_error p').text("You have no teams to be selected");
-                      $("#team_reg").prop('disabled', true);
+          let formData = $('#' + form_id).serializeArray();
+
+          let data = {
+              'action': action,
+              'data': JSON.stringify(formData)
+          };
+
+          function callback(json) {
+              if (json['status'] === "error") {
+                  $('#team_pick_error').show();
+                  $('#team_pick').show();
+                  $('#team_pick_error p').text("You have no teams to be selected");
+                  $("#team_reg").prop('disabled', true);
+              } else if (json['status'] === "good") {
+                  $("#team_reg").prop('disabled', false);
+                  let tmp = $.parseJSON(json['teams']);
+                  let data = tmp['data'];
+                  $('#team_pick_error').hide();
+                  for (let i = 0; i < data.length; ++i) {
+                      $('#team_select').append($('<option>', {value: data[i][0], text: data[i][1]}));
                   }
-                  else if(json['status'] == "good") {
-                      $("#team_reg").prop('disabled', false);
-                      var tmp = $.parseJSON(json['teams']);
-                      var data = tmp['data'];
-                      $('#team_pick_error').hide();
-                      for(var i = 0; i < data.length; ++i) {
-                          $('#team_select').append($('<option>', {value: data[i][0], text: data[i][1]}));
-                      }
-                      $('#team_pick').show();
-                  }
-                  else {
-                      location.reload();
-                  }
-              },
-              error: function (xhr, error) {
-                  console.log("AJAX failure");
-                  console.log(xhr);
-                  console.log(error);
+                  $('#team_pick').show();
+              } else {
+                  location.reload();
               }
-          });
+          }
+
+          baseButtonClick(data, '{% url 'leagues:tournament_detail' tournament.slug %}', callback);
       }
 
-      function Removeteams() {
-          $('#team_select')
-              .find('option')
-              .remove()
-
-          $('#team_pick').hide()
+      function RemoveTeams() {
+          $('#team_select').find('option').remove();
+          $('#team_pick').hide();
       }
 
       function teamUnreg() {
-          $('#team_unreg').val({{ registered.id }})
-          buttonClick('unregister', $('#unreg_form'))
+          $('#team_unreg').val({{ registered.id }});
+          buttonClick('unregister', 'unreg_form')
       }
   </script>
 {% endblock %}
@@ -68,7 +54,7 @@
 
 
 {% block content %}
- <div class="w3-container w3-margin-bottom flex-container" style="flex: 2 1 0;">
+  <div class="w3-container w3-margin-bottom flex-container" style="flex: 2 1 0;">
     <div class="w3-card w3-round-large w3-white" style="width: 100%; max-width: 1000px">
       <header>
         <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ tournament.name }}</h1>
@@ -127,12 +113,12 @@
           {% if user.player == user.player.clan.leader %}
             {% if registered != None %}
               <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                        onclick="teamUnreg()">
+                      onclick="teamUnreg()">
                 <i class="fa fa-plus"></i> Unregister {{ registered.name }}
               </button>
             {% else %}
               <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                        onclick="buttonClick('set_teams', $('#set_teams'))">
+                      onclick="buttonClick('set_teams', 'set_teams')">
                 <i class="fa fa-plus"></i> Register team
               </button>
             {% endif %}
@@ -259,7 +245,7 @@
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Register team</h3>
-        <button onclick="Removeteams()" type="button"
+        <button onclick="RemoveTeams()" type="button"
                 class="w3-button w3-display-topright w3-red">
           <i class="fa fa-times"></i>
         </button>
@@ -271,17 +257,17 @@
         <div class="w3-section w3-container">
           {% csrf_token %}
 
-          <label><b>Pick team</b></label>
+          <label for="team_select"><b>Pick team</b></label>
           <select class="w3-input w3-border w3-margin-bottom" name="team_select" id="team_select">
           </select>
 
         </div>
         <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button" onclick="Removeteams()"
+          <button type="button" onclick="RemoveTeams()"
                   class="w3-button w3-red">Cancel
           </button>
 
-          <button type="button" onclick="buttonClick('team_selected', $('#team_form'))"
+          <button type="button" onclick="buttonClick('team_selected', 'team_form')"
                   class="w3-button w3-green w3-right" id="team_reg">Register team
           </button>
         </div>

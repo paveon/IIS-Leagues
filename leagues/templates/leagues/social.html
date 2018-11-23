@@ -5,60 +5,24 @@
 
 {% block scripts %}
   <script>
-      function openDialog(text, confirmCallback) {
-          $('#dialog_text').text(text);
-
-          if (confirmCallback) {
-              $('#dialog_confirm').attr('onclick',
-                  confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
-          }
-          $('#dialog').show();
-      }
-
       function buttonClick(id, action) {
-          $.ajax({
-              type: 'POST',
-              url: "{% url 'leagues:social' %}",
-              data: {
-                  'csrfmiddlewaretoken': '{{ csrf_token }}',
-                  'action': action,
-                  'object_id': id,
-                  'player_id': {{ user.player.id }}
-              },
-              dataType: "json",
-              async: true,
-              success: function (json) {
-                  if (json['has_clan_teams']) {
-                      openDialog('Do you really wish to leave all clan\'s teams?', buttonClick, id, 'force_leave_clan');
-                  }
-                  else if (json['need_clan']) {
-                      openDialog('Do you wish to join team\'s clan?', buttonClick, id, 'force_join_team');
-                  }
-                  else {
-                      location.reload();
-                  }
-                  {#if(json['response'] === 'leave_all_team') {#}
-                  {#    openDialog('This action will remove you from all clans and teams and possibly will join you to team\'s clan! \nDo you really wanna do this?', buttonClick, id, 'force_join_team');#}
-                  {# }#}
-                  {#else if(json['response'] === 'leave_all_clan') {#}
-                  {#    openDialog('This action will remove you from all clans and teams! \nDo you really wanna do this?', buttonClick, id, 'force_join_clan');#}
-                  {# }#}
-                  {#else if(json['response'] === 'need_clan') {#}
-                  {#    openDialog('You will be invited into team\'s clan too.\nAre you sure you want to join this team?', buttonClick, id, 'force_join_team');#}
-                  {# }#}
-                  {#else if(json['response'] === 'has_team') {#}
-                  {#    openDialog('If you leave this clan, you will be automatically removed from all it\'s teams.\nAre you sure you wanna do this?', buttonClick, id, 'force_leave_clan');#}
-                  {# }#}
-                  {#else {#}
-                  {#    #}
-                  {# }#}
-              },
-              error: function (xhr, error) {
-                  console.log("AJAX failure");
-                  console.log(xhr);
-                  console.log(error);
+          let data = {
+              'action': action,
+              'object_id': id,
+              'player_id': {{ user.player.id }}
+          };
+
+          function callback(json) {
+              if (json['has_clan_teams']) {
+                  openDialog('Do you really wish to leave all clan\'s teams?', buttonClick, id, 'force_leave_clan');
+              } else if (json['need_clan']) {
+                  openDialog('Do you wish to join team\'s clan?', buttonClick, id, 'force_join_team');
+              } else {
+                  location.reload();
               }
-          });
+          }
+
+          baseButtonClick(data, '{% url 'leagues:social' %}', callback);
       }
   </script>
 {% endblock %}
@@ -171,13 +135,13 @@
                     {% if team.1 == membership.MEMBER %}
                       <button onclick="openDialog('Do you really wish to leave \'{{ team.0.name }}\'?',
                           buttonClick, {{ team.0.id }}, 'leave_team')"
-                              class="w3-button w3-red table_button leave_button">
+                              class="w3-button w3-red table_button red_button">
                         Leave
                       </button>
                     {% elif team.1 == membership.NOT_MEMBER %}
                       {% if user.player.clan == team.0.clan or not user.player.clan or not team.0.clan %}
                         <button onclick="buttonClick({{ team.0.id }}, 'join_team')"
-                                class="w3-button w3-green table_button join_button">
+                                class="w3-button w3-green table_button green_button">
                           Join
                         </button>
                       {% endif %}
@@ -235,7 +199,7 @@
                       {% if player.clan == clan %}
                         <button onclick="openDialog('Do you really wish to leave \'{{ clan.name }}\'?',
                             buttonClick, {{ clan.id }}, 'leave_clan')"
-                                class="w3-button w3-red table_button leave_button">
+                                class="w3-button w3-red table_button red_button">
                           Leave
                         </button>
                       {% endif %}
@@ -248,7 +212,7 @@
                         </button>
                       {% else %}
                         <button onclick="buttonClick({{ clan.id }}, 'join_clan')"
-                                class="w3-button w3-green table_button join_button">
+                                class="w3-button w3-green table_button green_button">
                           Join
                         </button>
                       {% endif %}

@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.views import generic, View
@@ -164,11 +164,6 @@ class SettingsView(generic.TemplateView):
                 # opening create form
                 class_name = self.request.GET['type'].split('_')[0]
                 pair = self.used_models[class_name]
-                class_name = pair[1].__name__
-                # if class_name == 'TeamForm' or class_name == 'ClanForm':
-                #     queryset = Player.objects.all().annotate(value=F('nickname')).values('id', 'value')
-                #     data = {'leader': list(queryset)}
-                #     return JsonResponse(data)
                 return JsonResponse({})
 
         else:
@@ -234,168 +229,74 @@ class MembershipStatus(Enum):
 class SocialView(generic.TemplateView):
     template_name = "leagues/social.html"
 
-    def cancel_request(self, request_type):
-        player_id = self.request.POST['player_id']
-        object_id = self.request.POST['object_id']
-        player = Player.objects.get(pk=player_id)
+    def cancel_team(self):
+        team = Team.objects.get(pk=self.object_id)
+        self.player.team_pendings.remove(team)
 
-        jsonResponse = {}
+    # TODO: zkontrolovat jestli funguje
+    def cancel_clan(self):
+        clan = Clan.objects.get(pk=self.object_id)
+        self.player.clan_pendings.remove(clan)
 
-        if request_type == 'cancel_team':
-            team = Team.objects.get(pk=object_id)
-            player.team_pendings.remove(team)
-        elif request_type == 'cancel_clan':
-            clan = Clan.objects.get(pk=object_id)
-            player.clan_pendings.remove(clan)
+        # Also remove pendings into clan teams
+        pendings = self.player.team_pendings.filter(clan=clan)
+        self.player.team_pendings.remove(*pendings)
 
-            # Also remove pendings into clan's teams
-            relations = player.team_pendings.through.objects.filter(team__clan=clan)
-            relations.delete()
+    def join_team(self):
+        team = Team.objects.get(pk=self.object_id)
+        join_team(team, self.player, self.response)
 
-        return jsonResponse
+    def join_clan(self):
+        clan = Clan.objects.get(pk=self.object_id)
+        if clan.leader:
+            self.player.clan_pendings.add(clan)
+        else:
+            # Clan has no members, join immediately and become new leader
+            # First remove all other clan pendings
+            pendings = self.player.clan_pendings.all()
+            self.player.clan_pendings.remove(*pendings)
 
-    # Processes join request for teams and clans
-    def join_request(self, request_type):
-        player_id = self.request.POST['player_id']
-        object_id = self.request.POST['object_id']
-        player = Player.objects.get(pk=player_id)
-        group_pendings = None
-        group_members = None
-        group = None
-        response = {}
+            # Also remove pendings of teams from other clans, ignore teams without clan
+            pendings = self.player.team_pendings.filter(Q(clan__isnull=False) & ~Q(clan=clan))
+            self.player.team_pendings.remove(*pendings)
 
-        # Nested method to avoid code duplication
-        def join_group(clan):
-            if group.leader:
-                # Need confirmation if group has a leader
-                group_pendings.add(group)
-                player.save()
-            else:
-                # Join immediately and become new leader
-                group.leader = player
-                if clan:
-                    # remove all other clan pendings while entering clan without leader
-                    player.clan_pendings.remove(*player.clan_pendings.all())
+            self.player.clan = clan
+            self.player.save()
+            clan.leader = self.player
+            clan.save()
 
-                    # remove pendings of teams from other clans, ignore teams without clan
-                    pendings = player.team_pendings.filter(Q(clan__isnull=False) & ~Q(clan=group))
-                    player.team_pendings.remove(*pendings)
+    def force_join_team(self):
+        team = Team.objects.get(pk=self.object_id)
+        force_join_team(team, self.player)
 
-                    player.clan = group
-                    player.save()
+    def leave_team(self):
+        team = Team.objects.get(pk=self.object_id)
+        leave_team(team, self.player)
 
-                    # pendings_to_remove = player.clan_pendings.all()
-                    # for pending in pendings_to_remove:
-                    #     group_pendings.remove(pending)
-                    # pendings_to_remove = player.team_pendings.all()
-                    # for pending in pendings_to_remove:
-                    #     if pending.clan != group and pending.clan:  # remove all team pendins with teams which have clans
-                    #         player.team_pendings.remove(pending)
-                else:
-                    group_members.add(player)
-                group.save()
+    def leave_clan(self):
+        clan = Clan.objects.get(pk=self.object_id)
+        leave_clan(clan, self.player, self.response)
 
-        # Check which type of request it is and initialize common variables
-        if request_type == 'force_join_team':
-            request_type = 'join_team'
-            team = Team.objects.get(pk=object_id)
-            group = team.clan
-            group_pendings = player.clan_pendings
-            join_group(True)
-
-        if request_type == 'join_team':
-            player_clan = player.clan
-            group = Team.objects.get(pk=object_id)
-            team_clan = group.clan
-            # Check if player is in parent clan of team
-            if team_clan and not player_clan:
-                if team_clan.clan_pendings.filter(pk=player.pk).exists():
-                    group.team_pendings.add(player)
-                    group.save()
-                else:
-                    response['need_clan'] = (team_clan.name, team_clan.id)
-
-                return response
-
-            group_members = group.team_members
-            group_pendings = player.team_pendings
-            join_group(False)
-
-        elif request_type == 'join_clan':
-            group = Clan.objects.get(pk=object_id)
-            group_members = Player.objects.filter(clan=group)
-            group_pendings = player.clan_pendings
-            join_group(True)
-
-        return response
-
-    def leave_request(self, request_type):
-        player_id = self.request.POST['player_id']
-        object_id = self.request.POST['object_id']
-        player = Player.objects.get(pk=player_id)
-        group = None
-        group_members = None
-        jsonResponse = {}
-        is_clan = False
-
-        # Nested method to avoid code duplication
-        def leave_group():
-            if is_clan:
-                player.clan = None
-                player.save()
-                pendings = player.team_pendings.all()
-                for pending in pendings:
-                    if pending.clan == group:
-                        player.team_pendings.remove(pending)
-                        player.save()
-            else:
-                group_members.remove(player)
-            # Check if leaving player is a group leader and revoke the privilege if so
-            if group.leader and group.leader.id == player.id:
-                # Pick first player to become a new leader (None if there are no players left)
-                group.leader = group_members.first()
-                group.save()
-
-        if request_type == 'force_leave_clan':
-            # Leave all clan teams and then leave the clan
-            request_type = 'leave_clan'
-            joined_clan_teams = player.teams.all().filter(clan=player.clan)
-            for team in joined_clan_teams:
-                group = team
-                group_members = team.team_members
-                leave_group()
-
-        if request_type == 'leave_team':
-            group = Team.objects.get(pk=object_id)
-            group_members = group.team_members
-        elif request_type == 'leave_clan':
-            group = Clan.objects.get(pk=object_id)
-            group_members = group.clan_members
-            joined_clan_teams = player.teams.all().filter(clan=group)
-            is_clan = True
-
-            # Check if player is in any team under this clan
-            if joined_clan_teams.count() > 0:
-                teams = [(team.name, team.id) for team in joined_clan_teams.all()]
-                jsonResponse['has_clan_teams'] = teams
-                return jsonResponse
-
-        if group:
-            leave_group()
-        return jsonResponse
+    def force_leave_clan(self):
+        clan = Clan.objects.get(pk=self.object_id)
+        force_leave_clan(clan, self.player)
 
     def __init__(self):
         super().__init__()
+        self.player_id = None
+        self.object_id = None
+        self.player = None
+        self.action_key = None
+        self.response = {}
         self.actions = {
-            'cancel_team': self.cancel_request,
-            'cancel_clan': self.cancel_request,
-            'join_team': self.join_request,
-            'join_clan': self.join_request,
-            'leave_team': self.leave_request,
-            'leave_clan': self.leave_request,
-            'force_join_team': self.join_request,
-            'force_join_clan': self.join_request,
-            'force_leave_clan': self.leave_request,
+            'cancel_team': self.cancel_team,
+            'cancel_clan': self.cancel_clan,
+            'join_team': self.join_team,
+            'join_clan': self.join_clan,
+            'leave_team': self.leave_team,
+            'leave_clan': self.leave_clan,
+            'force_join_team': self.force_join_team,
+            'force_leave_clan': self.force_leave_clan,
         }
 
     def get_context_data(self, **kwargs):
@@ -422,18 +323,13 @@ class SocialView(generic.TemplateView):
         return context
 
     def post(self, request, *args, **kwargs):
-        context = super().get_context_data(**kwargs)
-        player_id = request.POST['player_id']
-        player = Player.objects.get(pk=player_id)
-
-        if request.is_ajax():
-            # Get callable object from action dictionary and call action method
-            action_key = request.POST['action']
-            action = self.actions[action_key]
-            jsonResponse = action(action_key)
-            return JsonResponse(jsonResponse)
-
-        return HttpResponseRedirect(reverse("leagues:social"))
+        self.action_key = request.POST['action']
+        self.player_id = request.POST['player_id']
+        self.object_id = request.POST['object_id']
+        self.player = Player.objects.get(pk=self.player_id)
+        action = self.actions[self.action_key]
+        action()
+        return JsonResponse(self.response)
 
 
 class PlayerDetailView(generic.DetailView):
@@ -488,130 +384,267 @@ class PlayerDetailView(generic.DetailView):
         # return render(request, self.template_name, context)
 
 
+def force_join_team(team, player):
+    join_clan(team.clan, player)
+    join_team(team, player, None)
+
+
+def leave_team(team, player):
+    team.team_members.remove(player)
+
+    if team.leader == player:
+        # Leader is leaving
+        team.leader = team.team_members.first()
+
+        # If there were no members left, check if there are pending players
+        if not team.leader:
+            # If team has clan, pick first pending player from this clan
+            if team.clan:
+                new_member = team.team_pendings.filter(clan=team.clan).first()
+            else:
+                new_member = team.team_pendings.first()
+
+            if new_member:
+                team.team_pendings.remove(new_member)
+                team.team_members.add(new_member)
+                team.leader = new_member
+        team.save()
+
+
+def join_team(team, player, response):
+    # Player must be member of parent clan
+    if team.clan and not player.clan:
+        if team.clan in player.clan_pendings.all():
+            # Player is already waiting to be accepted into the clan
+            player.team_pendings.add(team)
+        else:
+            response['need_clan'] = (team.clan.name, team.clan.id)
+    else:
+        if team.leader:
+            player.team_pendings.add(team)
+        else:
+            # Team has no members, join immediately and become new leader
+            team.team_members.add(player)
+            team.leader = player
+            team.save()
+
+
 class TeamDetailView(generic.DetailView):
     template_name = "leagues/team_detail.html"
     model = Team
 
+    def force_join_team(self):
+        player = Player.objects.get(pk=self.object_id)
+        force_join_team(self.team, player)
+
+    def join_team(self):
+        player = Player.objects.get(pk=self.object_id)
+        join_team(self.team, player, self.response)
+
+    def leave_team(self):
+        player = Player.objects.get(pk=self.object_id)
+        leave_team(self.team, player)
+
+    def leave_tournament(self):
+        RegisteredTeams.objects.filter(team=self.team, tournament_id=self.object_id).delete()
+
+    def join_tournament(self):
+        tournament = Tournament.objects.get(pk=self.object_id)
+        if tournament.team_set.filter(clan=self.team.clan).exists():
+            self.response['error'] = 'Another team from your clan is ' \
+                                     'already registered for this tournament'
+
+        elif self.team.team_members.all().count() < tournament.game_mode.team_player_count:
+            self.response['error'] = 'Not enough players in team to join tournament'
+        else:
+            self.team.tournaments.add(tournament)
+
+    def kick_player(self):
+        player = Player.objects.get(pk=self.object_id)
+        self.team.team_members.remove(player)
+
+    def process_request(self):
+        player = Player.objects.get(pk=self.object_id)
+        self.team.team_pendings.remove(player)
+        if self.action_key == 'accept_request':
+            self.team.team_members.add(player)
+
+    def __init__(self):
+        super().__init__()
+        self.team = None
+        self.object_id = None
+        self.action_key = None
+        self.response = {}
+        self.actions = {
+            'join_team': self.join_team,
+            'force_join_team': self.force_join_team,
+            'leave_team': self.leave_team,
+            'leave_tournament': self.leave_tournament,
+            'join_tournament': self.join_tournament,
+            'kick_player': self.kick_player,
+            'decline_request': self.process_request,
+            'accept_request': self.process_request,
+        }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        team = self.get_object()
-        members = team.team_members.all()
+        self.team = self.get_object()
+        members = self.team.team_members.all()
         member_matches = []
         for member in members:
-            team_matches = PlayedMatch.objects.filter(team=team, player=member)
-            won_matches = team_matches.filter(match__winner=team)
+            team_matches = PlayedMatch.objects.filter(team=self.team, player=member)
+            won_matches = team_matches.filter(match__winner=self.team)
             member_matches.append((member, team_matches, won_matches))
 
-        registered = Tournament.objects.filter(team=team)
-        non_registered = Tournament.objects.filter(Q(game=team.game) & ~Q(team=team))
+        registered = Tournament.objects.filter(team=self.team)
+        non_registered = Tournament.objects.filter(Q(game=self.team.game) & ~Q(team=self.team))
 
+        context['membership_requests'] = self.team.team_pendings.all()
         context['registered'] = registered
         context['non_registered'] = non_registered
         context['member_matches'] = member_matches
         return context
 
     def post(self, request, *args, **kwargs):
-        action_key = request.POST['action']
-        team = self.get_object()
-        response = {}
-        if action_key == 'leave_tournament':
-            tournament_id = int(request.POST['object_id'])
-            tournaments = RegisteredTeams.objects.filter(team=team, tournament_id=tournament_id)
-            tournaments.delete()
-        elif action_key == 'join_tournament':
-            tournament_id = int(request.POST['object_id'])
-            tournament = Tournament.objects.get(pk=tournament_id)
-            teams = RegisteredTeams.objects.filter(team__clan=team.clan)
-            if teams.filter(tournament_id=tournament_id):
-                response['error'] = "teams"
-            elif Player.objects.filter(teams=team).count() < tournament.game_mode.team_player_count:
-                response['error'] = "players"
-            else:
-                tournaments = RegisteredTeams(team=team, tournament_id=tournament_id)
-                tournaments.save()
+        self.action_key = request.POST['action']
+        self.team = self.get_object()
+        self.object_id = int(request.POST['object_id'])
+        action = self.actions[self.action_key]
+        action()
+        return JsonResponse(self.response)
 
-        return JsonResponse(response)
+
+def force_leave_clan(clan, player):
+    # Leave all clan teams when force leaving clan
+    for team in player.teams.filter(clan=clan):
+        leave_team(team, player)
+    leave_clan(clan, player, None)
+
+
+def leave_clan(clan, player, response):
+    clan_teams = player.teams.filter(clan=clan)
+    if clan_teams.exists():
+        # Player is in clan team
+        teams = [(team.name, team.id) for team in clan_teams]
+        response['has_clan_teams'] = teams
+    else:
+        clan.clan_members.remove(player)
+        if clan.leader == player:
+            # Leader is leaving
+            clan.leader = clan.clan_members.first()
+            if not clan.leader:
+                # Clan had no members left, pick first pending player
+                new_member = clan.clan_pendings.first()
+                if new_member:
+                    clan.clan_pendings.remove(new_member)
+                    clan.clan_members.add(new_member)
+                    clan.leader = new_member
+            clan.save()
+
+
+def join_clan(clan, player):
+    if clan.leader:
+        player.clan_pendings.add(clan)
+    else:
+        # Clan has no members, join immediately and become new leader
+        # First remove all other clan pendings
+        pendings = player.clan_pendings.all()
+        player.clan_pendings.remove(*pendings)
+
+        # Also remove pendings of teams from other clans, ignore teams without clan
+        pendings = player.team_pendings.filter(Q(clan__isnull=False) & ~Q(clan=clan))
+        player.team_pendings.remove(*pendings)
+
+        player.clan = clan
+        player.save()
+        clan.leader = player
+        clan.save()
 
 
 class ClanDetailView(generic.DetailView):
     template_name = "leagues/clan_detail.html"
     model = Clan
 
+    @staticmethod
+    def win_ratio(won, total):
+        if total > 0:
+            ratio = round((won / total) * 100, 2)
+            return str(ratio) + ' %'
+        return None
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        clan = self.get_object()
-        members = clan.clan_members.all()
-        member_matches = []
-        win_ratio = None
-        for member in members:
-            clan_matches = PlayedMatch.objects.filter(clan=clan, player=member)
-            won_matches = clan_matches.filter(team=F('match__winner'))
-            if clan_matches:
-                win_ratio = str(round((won_matches.count() / clan_matches.count()) * 100, 2)) + " %"
-            member_matches.append((member, clan_matches, won_matches, win_ratio))
-        context['member_matches'] = member_matches
-        clan_teams = Team.objects.filter(clan_id=clan.id)
+        self.clan = self.get_object()
+        members = self.clan.clan_members.all()
+        member_matches_list = []
+        clan_matches = PlayedMatch.objects.filter(clan=self.clan)
 
-        all_matches = PlayedMatch.objects.filter(clan=clan).values_list("match").distinct()
-        win_matches = all_matches.filter(team=F('match__winner'))
-        win_ratio = None
-        if all_matches.count() != 0:
-            win_ratio = str(round((win_matches.count() / all_matches.count()) * 100, 2)) + " %"
-        stats = (all_matches, win_matches, win_ratio)
+        for member in members:
+            member_matches = clan_matches.filter(player=member)
+            matches_won = member_matches.filter(team=F('match__winner')).count()
+            matches_total = member_matches.count()
+            win_ratio = self.win_ratio(matches_won, matches_total)
+            member_matches_list.append((member, matches_total, matches_won, win_ratio))
+
+        clan_matches = clan_matches.values('match').distinct()
+        matches_won = clan_matches.filter(team=F('match__winner')).count()
+        matches_total = clan_matches.count()
+        win_ratio = self.win_ratio(matches_won, matches_total)
+        stats = (matches_total, matches_won, win_ratio)
+
         context['stats'] = stats
-        context['clan_teams'] = clan_teams
+        context['clan_teams'] = self.clan.team_set.all()
+        context['member_matches'] = member_matches_list
+        context['membership_requests'] = self.clan.clan_pendings.all()
         return context
 
-    def leave_request(self):
-        player_id = self.request.POST['player_id']
-        clan_id = self.request.POST['clan_id']
-        player = Player.objects.get(pk=player_id)
-        teams = player.teams.all()
-        for team in teams:
-            if team.clan_id == int(clan_id):
-                player.teams.remove(team)
+    def force_leave_clan(self):
+        force_leave_clan(self.clan, self.player)
 
-        player.save()
+    def leave_clan(self):
+        leave_clan(self.clan, self.player, self.response)
 
-        group = Clan.objects.get(pk=clan_id)
-        group_members = group.clan_members
+    def join_clan(self):
+        join_clan(self.clan, self.player)
 
-        group_members.remove(player)
-        group.leader = group_members.first()
-        group.save()
+    def kick_player(self):
+        # Kick player out of every clan team
+        self.player.teams.remove(*self.player.teams.filter(clan=self.clan))
 
-    def kick_request(self):
-        player_id = self.request.POST['player_id']
-        clan_id = self.request.POST['clan_id']
-        player = Player.objects.get(pk=player_id)
-        group = Clan.objects.get(pk=clan_id)
+        # Also remove all pendings to clan teams
+        active_pendings = self.player.team_pendings.filter(clan=self.clan)
+        self.player.team_pendings.remove(*active_pendings)
+        self.clan.clan_members.remove(self.player)
 
-        teams = player.teams.all()
-        for team in teams:
-            if team.clan_id == int(clan_id):
-                player.teams.remove(team)
-                player.save()
-        pendings = player.team_pendings.all()
-        for pending in pendings:
-            if pending.clan == group:
-                player.team_pendings.remove(pending)
-                player.save()
-
-        group.clan_members.remove(player)
-        group.save()
+    def process_request(self):
+        self.clan.clan_pendings.remove(self.player)
+        if self.action_key == 'accept_request':
+            self.clan.clan_members.add(self.player)
 
     def __init__(self):
         super().__init__()
+        self.clan = None
+        self.player_id = None
+        self.player = None
+        self.action_key = None
+        self.response = {}
         self.actions = {
-            'leave_clan': self.leave_request,
-            'kick_player': self.kick_request,
+            'join_clan': self.join_clan,
+            'leave_clan': self.leave_clan,
+            'force_leave_clan': self.force_leave_clan,
+            'kick_player': self.kick_player,
+            'accept_request': self.process_request,
+            'decline_request': self.process_request
         }
 
     def post(self, request, *args, **kwargs):
-        action_key = request.POST['action']
-        action = self.actions[action_key]
+        self.clan = self.get_object()
+        self.action_key = request.POST['action']
+        self.player_id = request.POST['player_id']
+        self.player = Player.objects.get(pk=self.player_id)
+        action = self.actions[self.action_key]
         action()
-        return JsonResponse({})
+        return JsonResponse(self.response)
 
 
 class TournamentView(generic.TemplateView):

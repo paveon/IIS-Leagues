@@ -41,8 +41,7 @@
           if (event) {
               $(event.target).addClass('w3-border-red');
               sessionStorage.setItem(path + "selected_tab", event.target.id);
-          }
-          else {
+          } else {
               let tabID = sessionStorage.getItem(path + "selected_tab");
               {#console.log(tabID);#}
               if (tabID !== "") {
@@ -167,13 +166,11 @@
                                   .text(option.value));
                           });
 
-                      }
-                      else {
+                      } else {
                           let field = $('#id_' + modalID + '-' + key);
                           if (field.attr('type') === 'checkbox') {
                               field.prop('checked', value);
-                          }
-                          else {
+                          } else {
                               field.val(value);
                           }
                       }
@@ -193,15 +190,44 @@
           });
       }
 
+
+      function openDialog(text, confirmCallback) {
+          if (confirmCallback) {
+              $('#dialog_confirm').attr('onclick',
+                  confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
+          }
+          $('#confirm_bar').show();
+          $('#dialog_text').text(text);
+          $('#dialog').show();
+      }
+
+
+      function baseButtonClick(jsonData, targetURL, callback) {
+          jsonData['csrfmiddlewaretoken'] = '{{ csrf_token }}';
+          $.ajax({
+              type: 'POST',
+              url: targetURL,
+              data: jsonData,
+              dataType: "json",
+              async: true,
+              success: callback,
+              error: function (xhr, error) {
+                  console.log("AJAX failure");
+                  console.log(xhr);
+                  console.log(error);
+              }
+          });
+      }
+
+
       $(document).ready(function () {
           let path = window.location.pathname;
           let sectionID = sessionStorage.getItem(path + "selected_section");
           if (sectionID) {
               showSection(null, sectionID);
-          }
-          else {
+          } else {
               let tabs = $('.section-tab');
-              if (tabs) {
+              if (tabs.length > 0) {
                   let firstTab = tabs.first();
                   firstTab.addClass('w3-border-red');
                   if (firstTab.attr('id').endsWith('_tab')) {
