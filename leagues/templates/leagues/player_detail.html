@@ -5,32 +5,12 @@
 {% block scripts %}
   <script>
       function buttonClick(object_id, action) {
-          $.ajax({
-              type: 'POST',
-              url: "{% url 'leagues:player_detail' player.slug %}",
-              data: {
-                  'csrfmiddlewaretoken': '{{ csrf_token }}',
-                  'action': action,
-                  'object_id': object_id,
-              },
-              dataType: "json",
-              async: true,
-              success: function (json) {
-                  location.reload();
-              },
-              error: function (xhr, error) {
-                  console.log("AJAX failure");
-                  console.log(xhr);
-                  console.log(error);
-              }
-          });
-      }
+          let data = {
+              'action': action,
+              'object_id': object_id
+          };
 
-      function openDialog(text, confirmCallback) {
-          $('#dialog_text').text(text);
-          $('#dialog_confirm').attr('onclick',
-              confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
-          $('#dialog').show();
+          baseButtonClick(data, '{% url 'leagues:player_detail' player.slug %}', location.reload);
       }
   </script>
 {% endblock %}
@@ -184,29 +164,6 @@
 
 {% block endpage %}
   {% load widget_tweaks %}
-  <div id="dialog" class="w3-modal" style="display: none">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 id="dialog_text">Placeholder Text</h3>
-
-        <button onclick="$('#dialog').hide()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-
-      <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-        <button onclick="$('#dialog').hide()" type="button" id="dialog_decline"
-                class="w3-button w3-red">No
-        </button>
-
-        <button onclick="$('#dialog').hide()" type="button" id="dialog_confirm"
-                class="w3-button w3-green w3-right">Yes
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!--  PLAYER INFO FORM !-->
   <div id="{{ player_form.prefix }}" class="w3-modal" {% if player_form.errors %}

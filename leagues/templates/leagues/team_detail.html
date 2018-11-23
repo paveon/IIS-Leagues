@@ -391,31 +391,3 @@
     {{ block.super }}
   {% endwith %}
 {% endblock right_panel %}
-
-{% block endpage %}
-  {% load widget_tweaks %}
-  <div id="dialog" class="w3-modal" style="display: none">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom"
-              style="padding: 0 60px 0 60px">
-        <h3 id="dialog_text">Placeholder Text</h3>
-
-        <button onclick="$('#dialog').hide()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-
-      <div class="w3-container w3-border-top w3-padding-16 w3-light-grey" id="confirm_bar">
-        <button onclick="$('#dialog').hide()" type="button" id="dialog_decline"
-                class="w3-button w3-red">No
-        </button>
-
-        <button onclick="$('#dialog').hide()" type="button" id="dialog_confirm"
-                class="w3-button w3-green w3-right">Yes
-        </button>
-      </div>
-    </div>
-  </div>
-{% endblock %}
