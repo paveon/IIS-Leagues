@@ -190,33 +190,69 @@
           });
       }
 
+      function CallbackConfig(args) {
+          this.func = 'buttonClick';
+          this.args = args;
+      }
 
-      function openDialog(text, confirmCallback) {
-          if (confirmCallback) {
-              $('#dialog_confirm').attr('onclick',
-                  confirmCallback.name + '(\'' + arguments[2] + '\', \'' + arguments[3] + '\')');
+      function openDialog(text, callbackConfig) {
+          let confirmButton = $('#dialog_confirm');
+          if (callbackConfig) {
+              let onclickString = callbackConfig.func + '(event, ';
+              let length = callbackConfig.args.length;
+              for (let i = 0; i < length; i++) {
+                  onclickString += '\'' + callbackConfig.args[i] + '\', '
+              }
+              onclickString += ')';
+              confirmButton.attr('onclick', onclickString);
           }
+          confirmButton.prop('disabled', false);
           $('#confirm_bar').show();
           $('#dialog_text').text(text);
           $('#dialog').show();
       }
 
+      var clickTimeout;
+      function baseButtonClick(event, jsonData, targetURL, callback) {
+          /* Protect buttons from multiple clicks by disabling them and
+           * using timeout to avoid multiple ajax calls if somehow two calls
+           * made it through disabled button */
+          $(event.target).prop('disabled', true);
+          clearTimeout(clickTimeout);
+          document.body.style.cursor='wait';
+          clickTimeout = setTimeout(function () {
+              jsonData['csrfmiddlewaretoken'] = '{{ csrf_token }}';
+              $.ajax({
+                  type: 'POST',
+                  url: targetURL,
+                  data: jsonData,
+                  dataType: "json",
+                  async: true,
+                  success: function(json) {
+                      document.body.style.cursor='default';
+                      callback(json);
+                  },
+                  error: function (xhr, error) {
+                      console.log("AJAX failure");
+                      console.log(xhr);
+                      console.log(error);
+                  }
+              });
+          }, 20);
+      }
 
-      function baseButtonClick(jsonData, targetURL, callback) {
-          jsonData['csrfmiddlewaretoken'] = '{{ csrf_token }}';
-          $.ajax({
-              type: 'POST',
-              url: targetURL,
-              data: jsonData,
-              dataType: "json",
-              async: true,
-              success: callback,
-              error: function (xhr, error) {
-                  console.log("AJAX failure");
-                  console.log(xhr);
-                  console.log(error);
-              }
-          });
+
+      function xhrRedirect(targetURL) {
+          let xhr = new XMLHttpRequest();
+          xhr.open('POST', targetURL, true);
+          xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+          xhr.onload = function () {
+              {#location.reload();#}
+              {#document.open('text/html');#}
+              {#document.write(this.responseText);#}
+              {#document.close();#}
+          };
+          xhr.send('csrfmiddlewaretoken={{ csrf_token }}');
       }
 
 

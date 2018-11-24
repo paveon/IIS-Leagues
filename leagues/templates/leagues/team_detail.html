@@ -3,7 +3,8 @@
 
 {% block scripts %}
   <script>
-      function buttonClick(object_id, action) {
+      function buttonClick(event, object_id, action) {
+          let url = '{% url 'leagues:team_detail' team.slug %}';
           let data = {
               'action': action,
               'object_id': object_id,
@@ -11,11 +12,11 @@
 
           function callback(json) {
               if (json['has_clan_teams']) {
-                  openDialog('Do you really wish to leave all clan\'s teams?',
-                      buttonClick, object_id, 'force_leave_clan');
+                  let tmp = new CallbackConfig([object_id, 'force_leave_clan']);
+                  openDialog('Do you really wish to leave all clan\'s teams?', tmp);
               } else if (json['need_clan']) {
-                  openDialog('Do you wish to join team\'s clan?',
-                      buttonClick, object_id, 'force_join_team');
+                  let tmp = new CallbackConfig([object_id, 'force_join_team']);
+                  openDialog('Do you wish to join team\'s clan?', tmp);
               } else if ('error' in json) {
                   $('#confirm_bar').hide();
                   openDialog(json['error']);
@@ -24,7 +25,7 @@
               }
           }
 
-          baseButtonClick(data, '{% url 'leagues:team_detail' team.slug %}', callback);
+          baseButtonClick(event, data, url, callback);
       }
   </script>
 {% endblock %}
@@ -80,12 +81,12 @@
           {% if team in user.player.teams.all %}
             <button type="button" class="w3-button w3-round w3-red"
                     onclick="openDialog('Do you really wish to leave this team?',
-                        buttonClick, {{ user.player.id }}, 'leave_team')">
+                        new CallbackConfig([{{ user.player.id }}, 'leave_team']));">
               Leave
             </button>
           {% else %}
             <button type="button" class="w3-button w3-round w3-green"
-                    onclick="buttonClick({{ user.player.id }}, 'join_team')">
+                    onclick="buttonClick(event, {{ user.player.id }}, 'join_team')">
               Join
             </button>
           {% endif %}
@@ -163,14 +164,14 @@
                   </td>
 
                   <td class="w3-padding-3 w3-small table_button_center">
-                    <button onclick="buttonClick({{ player.id }}, 'accept_request')"
+                    <button onclick="buttonClick(event, {{ player.id }}, 'accept_request')"
                             class="w3-button w3-green table_button green_button"
                         {% if team.clan and player.clan != team.clan %}
                             disabled
                         {% endif %}>
                       Accept
                     </button>
-                    <button onclick="buttonClick({{ player.id }}, 'decline_request')"
+                    <button onclick="buttonClick(event, {{ player.id }}, 'decline_request')"
                             class="w3-button w3-red table_button red_button"
                         {% if team.clan and player.clan != team.clan %}
                             disabled
@@ -219,7 +220,7 @@
                       <button
                           onclick="openDialog('Do you really wish to kick player ' +
                               '\'{{ member.0.nickname }}\' from your team?',
-                              buttonClick, {{ member.0.id }}, 'kick_player')"
+                              new CallbackConfig([{{ member.0.id }}, 'kick_player']));"
                           class="w3-button w3-red table_button red_button">
                         Kick
                       </button>
@@ -274,7 +275,7 @@
                     <td class="w3-padding-3 w3-small table_button_center">
                       <button class="w3-button w3-red table_button red_button"
                               onclick="openDialog('Do you really wish to leave \'{{ tournament.name }}\'?',
-                                  buttonClick, {{ tournament.id }}, 'leave_tournament')">
+                                  new CallbackConfig([{{ tournament.id }}, 'leave_tournament']));">
                         Leave
                       </button>
                     </td>
@@ -307,7 +308,7 @@
                     <tr style="display: none;">
                       <td><a href="{% url 'leagues:team_detail' tournament.slug %}">{{ tournament.name }}</a></td>
                       <td class="w3-padding-3 w3-small table_button_center">
-                        <button onclick="buttonClick({{ tournament.id }}, 'join_tournament')"
+                        <button onclick="buttonClick(event, {{ tournament.id }}, 'join_tournament')"
                                 class="w3-button w3-green table_button green_button">
                           Join
                         </button>

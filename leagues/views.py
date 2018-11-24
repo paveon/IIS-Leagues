@@ -2,6 +2,8 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.views import generic, View
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from django.forms.models import model_to_dict
@@ -226,6 +228,7 @@ class MembershipStatus(Enum):
     NOT_MEMBER = 0
 
 
+@method_decorator(never_cache, name='dispatch')
 class SocialView(generic.TemplateView):
     template_name = "leagues/social.html"
 
@@ -332,6 +335,7 @@ class SocialView(generic.TemplateView):
         return JsonResponse(self.response)
 
 
+@method_decorator(never_cache, name='dispatch')
 class PlayerDetailView(generic.DetailView):
     template_name = "leagues/player_detail.html"
     model = Player
@@ -450,6 +454,7 @@ def join_team(team, player, response):
             team.save()
 
 
+@method_decorator(never_cache, name='dispatch')
 class TeamDetailView(generic.DetailView):
     template_name = "leagues/team_detail.html"
     model = Team
@@ -582,6 +587,7 @@ def join_clan(clan, player):
         clan.save()
 
 
+@method_decorator(never_cache, name='dispatch')
 class ClanDetailView(generic.DetailView):
     template_name = "leagues/clan_detail.html"
     model = Clan

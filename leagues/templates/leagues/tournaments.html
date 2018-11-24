@@ -3,7 +3,8 @@
 
 {% block scripts %}
   <script>
-      function buttonClick(action, form_id) {
+      function buttonClick(event, action, form_id) {
+          let url = '{% url 'leagues:tournaments' %}';
           let formData = $('#' + form_id).serializeArray();
 
           let data = {
@@ -39,7 +40,7 @@
               }
           }
 
-          baseButtonClick(data, '{% url 'leagues:tournaments' %}', callback);
+          baseButtonClick(event, data, url, callback);
       }
 
       function FillGames(parseData) {
@@ -140,7 +141,7 @@
 
       function SendTournament() {
           $('#team_pick_error').hide();
-          buttonClick('picked_tournament', 'tournament_id');
+          buttonClick(event, 'picked_tournament', 'tournament_id');
       }
 
       function SendTeams() {
@@ -150,7 +151,7 @@
               $('#team_pick_error').show();
               $('#team_pick_error p').text("You have to select teams before ...");
           } else {
-              buttonClick('match_done', 'teams_id');
+              buttonClick(event, 'match_done', 'teams_id');
           }
       }
 
@@ -314,7 +315,7 @@
                   class="w3-button w3-red">Cancel
           </button>
 
-          <button onclick="SendTournament()" type="button"
+          <button onclick="SendTournament(event)" type="button"
                   class="w3-button w3-green w3-right">Next
           </button>
 
@@ -354,7 +355,7 @@
                   class="w3-button w3-red">Cancel
           </button>
 
-          <button onclick="SendTeams()" type="button"
+          <button onclick="SendTeams(event)" type="button"
                   class="w3-button w3-green w3-right" id="teams_next">Create Match
           </button>
 
@@ -387,7 +388,7 @@
                   class="w3-button w3-red">Back
           </button>
 
-          <button type="button" onclick="buttonClick('picked_game', 'games_id')"
+          <button type="button" onclick="buttonClick(event, 'picked_game', 'games_id')"
                   class="w3-button w3-green w3-right">Next
           </button>
         </div>
@@ -419,7 +420,7 @@
                   class="w3-button w3-red">Back
           </button>
 
-          <button type="button" onclick="buttonClick('picked_game_mode', 'game_mode_id')"
+          <button type="button" onclick="buttonClick(event, 'picked_game_mode', 'game_mode_id')"
                   class="w3-button w3-green w3-right">Next
           </button>
           <input type="hidden" name="game_mode-game" id="game_mode-game">
@@ -451,7 +452,7 @@
                   class="w3-button w3-red">Back
           </button>
 
-          <button type="button" onclick="buttonClick('picked_team1', 'team1_id')"
+          <button type="button" onclick="buttonClick(event, 'picked_team1', 'team1_id')"
                   class="w3-button w3-green w3-right" id="team1_next">Next
           </button>
           <input type="hidden" name="team_1-game" id="team_1-game">
@@ -484,7 +485,7 @@
                   class="w3-button w3-red">Back
           </button>
 
-          <button type="button" onclick="buttonClick('non_turnament_done', 'team2_id')"
+          <button type="button" onclick="buttonClick(event, 'non_turnament_done', 'team2_id')"
                   class="w3-button w3-green w3-right" id="team2_next">Create Match
           </button>
           <input type="hidden" name="team_2-game" id="team_2-game">

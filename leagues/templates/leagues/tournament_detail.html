@@ -3,7 +3,8 @@
 
 {% block scripts %}
   <script>
-      function buttonClick(action, form_id) {
+      function buttonClick(event, action, form_id) {
+          let url = '{% url 'leagues:tournament_detail' tournament.slug %}';
           let formData = $('#' + form_id).serializeArray();
 
           let data = {
@@ -31,7 +32,7 @@
               }
           }
 
-          baseButtonClick(data, '{% url 'leagues:tournament_detail' tournament.slug %}', callback);
+          baseButtonClick(event, data, url, callback);
       }
 
       function RemoveTeams() {
@@ -39,9 +40,9 @@
           $('#team_pick').hide();
       }
 
-      function teamUnreg() {
+      function teamUnreg(event) {
           $('#team_unreg').val({{ registered.id }});
-          buttonClick('unregister', 'unreg_form')
+          buttonClick(event, 'unregister', 'unreg_form')
       }
   </script>
 {% endblock %}
@@ -113,12 +114,12 @@
           {% if user.player == user.player.clan.leader %}
             {% if registered != None %}
               <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                      onclick="teamUnreg()">
+                      onclick="teamUnreg(event)">
                 <i class="fa fa-plus"></i> Unregister {{ registered.name }}
               </button>
             {% else %}
               <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                      onclick="buttonClick('set_teams', 'set_teams')">
+                      onclick="buttonClick(event, 'set_teams', 'set_teams')">
                 <i class="fa fa-plus"></i> Register team
               </button>
             {% endif %}
@@ -267,7 +268,7 @@
                   class="w3-button w3-red">Cancel
           </button>
 
-          <button type="button" onclick="buttonClick('team_selected', 'team_form')"
+          <button type="button" onclick="buttonClick(event, 'team_selected', 'team_form')"
                   class="w3-button w3-green w3-right" id="team_reg">Register team
           </button>
         </div>

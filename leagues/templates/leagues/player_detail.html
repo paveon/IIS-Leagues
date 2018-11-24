@@ -4,23 +4,24 @@
 
 {% block scripts %}
   <script>
-      function buttonClick(object_id, action) {
-          let url = '{{ request.build_absolute_uri }}';
+      function buttonClick(event, object_id, action) {
+          let url = '{% url 'leagues:player_detail' player.slug %}';
           let data = {
               'action': action,
               'object_id': object_id
           };
 
           function callback(json) {
+              console.log("test");
               if (json['has_clan_teams']) {
                   openDialog('Do you really wish to leave all clan\'s teams?',
-                      buttonClick, object_id, 'force_leave_clan');
+                      new CallbackConfig([object_id, 'force_leave_clan']));
               } else {
-                  window.location = url;
+                  location.reload();
               }
           }
 
-          baseButtonClick(data, '{% url 'leagues:player_detail' player.slug %}', callback);
+          baseButtonClick(event, data, url, callback);
       }
   </script>
 {% endblock %}
@@ -71,7 +72,7 @@
           {% if player.clan %}
             <button class="w3-round-large w3-red w3-button"
                     onclick="openDialog('Do you really wish to leave clan \'{{ player.clan.name }}\'',
-                        buttonClick, {{ player.clan.id }}, 'leave_clan')">
+                    new CallbackConfig([{{ player.clan.id }}, 'leave_clan']));">
               Leave clan
             </button>
           {% endif %}
@@ -121,7 +122,7 @@
                 {% if user.player == player %}
                   <td class="w3-padding-3 w3-small table_button_center">
                     <button onclick="openDialog('Do you really wish to leave team \'{{ team.name }}\'',
-                        buttonClick, {{ team.id }}, 'leave_team')"
+                        new CallbackConfig([{{ team.id }}, 'leave_team']));"
                             class="w3-button w3-red table_button leave_button">
                       Leave
                     </button>

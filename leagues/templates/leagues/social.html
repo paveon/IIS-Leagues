@@ -5,8 +5,8 @@
 
 {% block scripts %}
   <script>
-      function buttonClick(id, action) {
-          let url = '{{ request.build_absolute_uri }}';
+      function buttonClick(event, id, action) {
+          let url = '{% url 'leagues:social' %}';
           let data = {
               'action': action,
               'object_id': id,
@@ -15,15 +15,17 @@
 
           function callback(json) {
               if (json['has_clan_teams']) {
-                  openDialog('Do you really wish to leave all clan\'s teams?', buttonClick, id, 'force_leave_clan');
+                  let tmp = new CallbackConfig([id, 'force_leave_clan']);
+                  openDialog('Do you really wish to leave all clan\'s teams?', tmp);
               } else if (json['need_clan']) {
-                  openDialog('Do you wish to join team\'s clan?', buttonClick, id, 'force_join_team');
+                  let tmp = new CallbackConfig([id, 'force_join_team']);
+                  openDialog('Do you wish to join team\'s clan?', tmp);
               } else {
-                  window.location.href = url;
+                  location.reload();
               }
           }
 
-          baseButtonClick(data, url, callback);
+          baseButtonClick(event, data, url, callback);
       }
   </script>
 {% endblock %}
@@ -135,19 +137,19 @@
                   <td class="w3-padding-3 w3-small table_button_center">
                     {% if team.1 == membership.MEMBER %}
                       <button onclick="openDialog('Do you really wish to leave \'{{ team.0.name }}\'?',
-                          buttonClick, {{ team.0.id }}, 'leave_team')"
+                          new CallbackConfig([{{ team.0.id }}, 'leave_team']));"
                               class="w3-button w3-red table_button red_button">
                         Leave
                       </button>
                     {% elif team.1 == membership.NOT_MEMBER %}
                       {% if user.player.clan == team.0.clan or not user.player.clan or not team.0.clan %}
-                        <button onclick="buttonClick({{ team.0.id }}, 'join_team')"
+                        <button onclick="buttonClick(event, {{ team.0.id }}, 'join_team')"
                                 class="w3-button w3-green table_button green_button">
                           Join
                         </button>
                       {% endif %}
                     {% else %}
-                      <button onclick="buttonClick({{ team.0.id }}, 'cancel_team');"
+                      <button onclick="buttonClick(event, {{ team.0.id }}, 'cancel_team');"
                               class="w3-button w3-orange table_button pending_button">
                         <span class="normal">Pending</span>
                         <span class="hover">Cancel</span>
@@ -199,20 +201,20 @@
                     {% if player.clan %}
                       {% if player.clan == clan %}
                         <button onclick="openDialog('Do you really wish to leave \'{{ clan.name }}\'?',
-                            buttonClick, {{ clan.id }}, 'leave_clan')"
+                            new CallbackConfig([{{ clan.id }}, 'leave_clan']));"
                                 class="w3-button w3-red table_button red_button">
                           Leave
                         </button>
                       {% endif %}
                     {% else %}
                       {% if clan in clan_pendings %}
-                        <button onclick="buttonClick({{ clan.id }}, 'cancel_clan');"
+                        <button onclick="buttonClick(event, {{ clan.id }}, 'cancel_clan');"
                                 class="w3-button w3-orange table_button pending_button">
                           <span class="normal">Pending</span>
                           <span class="hover">Cancel</span>
                         </button>
                       {% else %}
-                        <button onclick="buttonClick({{ clan.id }}, 'join_clan')"
+                        <button onclick="buttonClick(event, {{ clan.id }}, 'join_clan')"
                                 class="w3-button w3-green table_button green_button">
                           Join
                         </button>
