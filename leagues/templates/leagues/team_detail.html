@@ -45,11 +45,14 @@
           {{ team.name }}
         </h1>
         {% if team.clan %}
-          <a href="{% url 'leagues:clan_detail' team.clan.slug %}">
-            <h4 style="text-align: center; font-family: 'Audiowide', cursive;">
+
+          <h4 style="text-align: center; font-family: 'Audiowide', cursive;">
+            Clan:
+            <a style="text-align: center; font-family: 'Audiowide', cursive;"
+               href="{% url 'leagues:clan_detail' team.clan.slug %}">
               {{ team.clan }}
-            </h4>
-          </a>
+            </a>
+          </h4>
         {% endif %}
 
         <ul class="section-bar" style="flex: 1 1 auto">
@@ -76,8 +79,16 @@
         </ul>
       </header>
 
-      <div id="info" class="w3-container w3-section section" style="position: relative;">
-        <div class="w3-display-topright" style="right: 20px; top:10px">
+      <div id="info" class="w3-container w3-section section">
+        <div class="button_bar">
+          <button type="button" class="w3-button w3-round w3-green"
+                  onclick="buttonClick(event, {{ user.player.id }}, 'join_clan')">
+            Edit <i class="fas fa-edit"></i>
+          </button>
+          <button type="button" class="w3-button w3-round w3-green"
+                  onclick="$('#{{ clan_form.prefix }}').show()">
+            Join clan
+          </button>
           {% if team in user.player.teams.all %}
             <button type="button" class="w3-button w3-round w3-red"
                     onclick="openDialog('Do you really wish to leave this team?',
@@ -262,9 +273,9 @@
                   </a>
                 </td>
                 <td>
-                  {% if tournament.in_progress %}
+                  {% if tournament.status == status.IN_PROGRESS %}
                     In progress
-                  {% elif tournament.upcoming %}
+                  {% elif tournament.status == status.UPCOMING %}
                     Upcoming
                   {% else %}
                     Finished
@@ -346,10 +357,10 @@
               <tr style="display: none;">
                 <td><a href="{% url 'leagues:team_detail' match.team_1.slug %}">{{ match.team_1.name }}</a>
                   VS <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
-                <td>{{ match.beginning }}</td>
+                <td>{{ match.beginning|date:"j.n.Y" }}</td>
                 <td>
                   {% if match.duration %}
-                    {{ match.duration }}
+                    {{ match.duration_fmt }}
                   {% else %}
                     Not ended yet
                   {% endif %}
@@ -382,6 +393,43 @@
         <h4>Matches won: {{ team.matches_won.count }}</h4>
       </div>
 
+    </div>
+  </div>
+{% endblock %}
+
+{% load widget_tweaks %}
+{% block endpage %}
+  <div id="{{ clan_form.prefix }}" class="w3-modal">
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Join clan</h3>
+
+        <button onclick="$('#{{ clan_form.prefix }}').hide()" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+
+      <form method="POST" action="{% url 'leagues:team_detail' team.slug %}">
+        <div class="w3-section w3-container">
+          {% csrf_token %}
+
+          <label><b>{{ clan_form.clan.label_tag }}</b></label>
+          {% render_field clan_form.clan class+="w3-input w3-border" %}
+
+        </div>
+
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button onclick="$('#{{ clan_form.prefix }}').hide()" type="button"
+                  class="w3-button w3-red">Cancel
+          </button>
+
+          <button onclick="" type="button" class="w3-button w3-green w3-right">
+            Join
+          </button>
+
+        </div>
+      </form>
     </div>
   </div>
 {% endblock %}

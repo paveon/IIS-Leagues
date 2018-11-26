@@ -16,10 +16,10 @@
           function callback(json) {
               if (json['has_clan_teams']) {
                   let tmp = new CallbackConfig([id, 'force_leave_clan']);
-                  openDialog('Do you really wish to leave all clan\'s teams?', tmp);
+                  openDialog('Do you really wish to leave all clan\'s teams?', tmp, event);
               } else if (json['need_clan']) {
                   let tmp = new CallbackConfig([id, 'force_join_team']);
-                  openDialog('Do you wish to join team\'s clan?', tmp);
+                  openDialog('Do you wish to join team\'s clan?', tmp, event);
               } else {
                   location.reload();
               }
@@ -144,7 +144,7 @@
                     {% elif team.1 == membership.NOT_MEMBER %}
                       {% if user.player.clan == team.0.clan or not user.player.clan or not team.0.clan %}
                         <button onclick="buttonClick(event, {{ team.0.id }}, 'join_team')"
-                                class="w3-button w3-green table_button green_button">
+                                class="w3-button w3-green table_button green_button" id="join_team">
                           Join
                         </button>
                       {% endif %}
@@ -202,7 +202,7 @@
                       {% if player.clan == clan %}
                         <button onclick="openDialog('Do you really wish to leave \'{{ clan.name }}\'?',
                             new CallbackConfig([{{ clan.id }}, 'leave_clan']));"
-                                class="w3-button w3-red table_button red_button">
+                                class="w3-button w3-red table_button red_button" id="leave_clan">
                           Leave
                         </button>
                       {% endif %}

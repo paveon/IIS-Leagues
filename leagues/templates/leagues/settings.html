@@ -2,17 +2,57 @@
 {% block title %}Leagues | Management{% endblock %}
 
 {% block scripts %}
-  {% if error_modal %}
-    <script>
-        $(document).ready(function () {
-            {% if object_id %}
-                OpenEditModal('{{ error_modal }}', {{ object_id }});
-            {% else %}
-                OpenCreateModal('{{ error_modal }}');
-            {% endif %}
-        });
-    </script>
-  {% endif %}
+  <script>
+      function clanSelected(event) {
+          let menu = $(event.target);
+          let selected = $('option:selected', menu);
+          $.ajax({
+              type: 'GET',
+              url: {% url 'leagues:settings' %},
+              data: {
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'modal_type': 'team',
+                  'action': 'clan_changed',
+                  'object_id': selected.prop('value'),
+              },
+              dataType: "json",
+              async: true,
+              success: function (json) {
+                  let field = $('#id_{{ team_form.prefix }}-leader');
+                  let nullOption = field.children().first();
+                  field.empty();
+                  if (nullOption.text().includes('---')) {
+                      nullOption.prop('selected', false);
+                      field.append(nullOption);
+                  }
+                  $.each(json.leaders, function (idx, option) {
+                      field.append($("<option></option>")
+                          .prop('value', option.id)
+                          .text(option.value));
+                  });
+                  field.children().first().prop('selected', true);
+              },
+              error: function (xhr, error) {
+                  console.log("AJAX failure");
+                  console.log(xhr);
+                  console.log(error);
+              }
+          });
+      }
+
+
+      $(document).ready(function () {
+          {% if error_modal %}
+              {% if object_id %}
+                  OpenEditModal('{{ error_modal }}', {{ object_id }}, true);
+              {% else %}
+                  OpenCreateModal('{{ error_modal }}', true);
+              {% endif %}
+          {% endif %}
+
+          $('#id_{{ team_form.prefix }}-clan').change(clanSelected)
+      });
+  </script>
 {% endblock %}
 
 
@@ -47,7 +87,7 @@
 
 
     <div id="Games" class="section" style="display:block">
-      <div id="titles" class="w3-container w3-section" style="display:block">
+      <div id="titles" class="w3-container" style="display:block">
         <h3>Titles</h3>
         <div class="pagedTable w3-card w3-round">
           {% include 'leagues/table_header.html' with form_id=game_form.prefix %}
@@ -157,6 +197,7 @@
           <thead>
           <tr class="">
             <th>Nickname</th>
+            <th>Clan</th>
             <th>First name</th>
             <th>Last name</th>
             <th>Country of birth</th>
@@ -168,7 +209,16 @@
           <tbody>
           {% for player in player_list %}
             <tr style="display: none">
-              <td><a href="{% url 'leagues:player_detail' player.slug %}">{{ player.nickname }}</a></td>
+              <td>
+                <a href="{% url 'leagues:player_detail' player.slug %}">{{ player.nickname }}</a>
+              </td>
+              <td>
+                {% if player.clan %}
+                  <a href="{% url 'leagues:clan_detail' player.clan.slug %}">{{ player.clan }}</a>
+                {% else %}
+                  None
+                {% endif %}
+              </td>
               <td>{{ player.first_name }}</td>
               <td>{{ player.last_name }}</td>
               <td>{{ player.country }}</td>
@@ -506,10 +556,10 @@
           </div>
 
           <label><b>{{ tournament_form.game.label_tag }}</b></label>
-          {% render_field tournament_form.game class+="w3-input w3-border" %}
+          {% render_field tournament_form.game class+="w3-input w3-border w3-margin-bottom" %}
 
           <label><b>{{ tournament_form.game_mode.label_tag }}</b></label>
-          {% render_field tournament_form.game_mode class+="w3-input w3-border" %}
+          {% render_field tournament_form.game_mode class+="w3-input w3-border w3-margin-bottom" %}
 
           <label><b>{{ tournament_form.description.label_tag }}</b></label>
           {% render_field tournament_form.description class+="w3-input w3-border" %}
@@ -548,7 +598,7 @@
           {% render_field clan_form.name class+="formUnique w3-input w3-border w3-margin-bottom" %}
 
           <label><b>{{ clan_form.founded.label_tag }}</b></label>
-          <div class='w3-cell-row'>
+          <div class='w3-cell-row w3-margin-bottom'>
             {% render_field clan_form.founded class+="w3-input w3-border w3-cell" %}
             <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
               <span class="fa fa-calendar"></span>
@@ -560,9 +610,6 @@
 
           <label><b>{{ clan_form.leader.label_tag }}</b></label>
           {% render_field clan_form.leader class+="w3-input w3-border w3-margin-bottom" %}
-
-          <label><b>{{ clan_form.games.label_tag }}</b></label>
-          {% render_field clan_form.games class+="w3-input w3-border w3-margin-bottom" %}
 
           <label><b>{{ clan_form.description.label_tag }}</b></label>
           {% render_field clan_form.description class+="w3-input w3-border" %}

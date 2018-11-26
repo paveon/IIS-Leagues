@@ -74,20 +74,14 @@
       }
 
 
-      function OpenCreateModal(modalID) {
-          let objectType = modalID.split('_')[0];
+      function OpenCreateModal(modalID, afterError = false) {
+          let modalType = modalID.split('_')[0];
           let modal = $('#' + modalID);
-          let modalTitle = $('.modalTitle', modal);
           let form = $('form', modal);
-          let formAction = $('.formAction', form);
-          let formSubmit = $('.formSubmit', form);
-          let formUnique = $('.formUnique', form);
-          let formID = $('.formID', form);
-          modalTitle.text('Create ' + objectType);
-          formAction.val(objectType + '_create');
-          formSubmit.val('Create ' + objectType);
+          $('.modalTitle', modal).text('Create ' + modalType);
+          $('.formAction', form).val(modalType + '_create');
+          $('.formSubmit', form).val('Create ' + modalType);
           form[0].reset();
-
           $.ajax({
               type: "GET",
               dataType: "json",
@@ -95,24 +89,22 @@
               url: "{% url 'leagues:settings' %}",
               data: {
                   csrfmiddlewaretoken: '{{ csrf_token }}',
-                  'action': 'create',
-                  'type': modalID,
+                  'action': 'open_create_modal',
+                  'modal_type': modalType,
               },
               success: function (json) {
-                  $.each(json, function (key, value) {
-                      let field = $('#id_' + modalID + '-' + key);
-                      let nullOption = field.find("option:contains('---')");
-                      field.empty();
-                      if (nullOption) {
-                          field.append(nullOption[0]);
-                      }
-
-                      $.each(value, function (idx, option) {
-                          field.append($("<option></option>")
-                              .attr('value', option.id)
-                              .text(option.value));
+                  if (!afterError) {
+                      $.each(json, function (key, value) {
+                          let field = $('#id_' + modalID + '-' + key);
+                          field.empty();
+                          $.each(value, function (idx, option) {
+                              field.append($("<option></option>")
+                                  .prop('value', option[0])
+                                  .text(option[1]));
+                          });
+                          field.children().first().prop('selected', true);
                       });
-                  });
+                  }
 
                   modal.show();
               },
@@ -124,62 +116,66 @@
           });
       }
 
-      function OpenEditModal(modalID, objectID) {
-          {#console.log(objectID);#}
-          let objectType = modalID.split('_')[0];
+      function OpenEditModal(modalID, objectID, afterError = false) {
+          let modalType = modalID.split('_')[0];
           let modal = $('#' + modalID);
-          let modalTitle = $('.modalTitle', modal);
           let form = $('form', modal);
-          let formAction = $('.formAction', form);
-          let formSubmit = $('.formSubmit', form);
-          let formUnique = $('.formUnique', form);
-          let formID = $('.formID', form);
-
           $.ajax({
               type: "GET",
               dataType: "json",
               async: true,
               url: "{% url 'leagues:settings' %}",
               data: {
-                  csrfmiddlewaretoken: '{{ csrf_token }}',
-                  'action': 'edit',
-                  'type': modalID,
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'action': 'open_edit_modal',
+                  'modal_type': modalType,
                   'object_id': objectID,
               },
               success: function (json) {
-                  {#console.log("AJAX success");#}
-                  $.each(json, function (key, value) {
-                      if (key.endsWith('_queryset')) {
-                          /* Remove all options from select dropdown and add new
-                           * options based on returned queryset */
-                          key = key.slice(0, -9);
-                          let field = $('#id_' + modalID + '-' + key);
-                          let nullOption = field.find("option:contains('---')");
-                          field.empty();
-
-                          if (nullOption) {
-                              field.append(nullOption[0]);
+                  if (!afterError) {
+                      $.each(json, function (key, value) {
+                          if (!key.endsWith('_queryset')) {
+                              let field = $('#id_' + modalID + '-' + key);
+                              if (field.prop('type') === 'checkbox') {
+                                  field.prop('checked', value);
+                              } else if (field.is('select')) {
+                                  /* Get queryset and delete old select options */
+                                  let queryset = json[key + '_queryset'];
+                                  if (queryset) {
+                                      let nullOption = field.children().first();
+                                      field.empty();
+                                      if (nullOption.text().includes('---')) {
+                                          nullOption.prop('selected', false);
+                                          field.append(nullOption);
+                                      }
+                                      /* Populate select with options from provided queryset */
+                                      $.each(queryset, function (idx, option) {
+                                          field.append($("<option></option>")
+                                              .prop('value', option.id)
+                                              .text(option.value));
+                                      });
+                                  }
+                                  {#console.log(field);#}
+                                  {#console.log(value);#}
+                                  if (value) {
+                                      let option = $('option[value="' + value + '"]', field);
+                                      option.prop('selected', true);
+                                  } else {
+                                      let nullOption = field.children().first();
+                                      nullOption.prop('selected', true);
+                                  }
+                              } else {
+                                  field.val(value);
+                              }
                           }
-                          $.each(value, function (idx, option) {
-                              field.append($("<option></option>")
-                                  .attr('value', option.id)
-                                  .text(option.value));
-                          });
+                      });
+                  }
 
-                      } else {
-                          let field = $('#id_' + modalID + '-' + key);
-                          if (field.attr('type') === 'checkbox') {
-                              field.prop('checked', value);
-                          } else {
-                              field.val(value);
-                          }
-                      }
-                  });
-                  modalTitle.text('Edit \'' + formUnique.val() + '\'');
-                  formAction.val(objectType + '_edit');
-                  formSubmit.val('Save changes');
-                  formID.val(objectID);
-
+                  let formUnique = $('.formUnique', form);
+                  $('.modalTitle', modal).text('Edit \'' + formUnique.val() + '\'');
+                  $('.formAction', form).val(modalType + '_edit');
+                  $('.formSubmit', form).val('Save changes');
+                  $('.formID', form).val(objectID);
                   modal.show();
               },
               error: function (xhr, error) {
@@ -195,7 +191,26 @@
           this.args = args;
       }
 
-      function openDialog(text, callbackConfig) {
+
+      function enableButton(event) {
+          $('#' + event.data.buttonID).prop('disabled', false);
+      }
+
+
+      function openDialog(text, callbackConfig, event = null) {
+          if (event) {
+              let target = $(event.target);
+              if (!target.is('button')) {
+                  /* Find first parent button, event might have
+                   * caught span element in button */
+                  target = target.parent('button');
+              }
+              let buttons = $('#dialog_decline, #dialog_close');
+              let buttonID = target.prop('id');
+              buttons.off();
+              buttons.on('click', {buttonID: buttonID}, enableButton);
+          }
+
           let confirmButton = $('#dialog_confirm');
           if (callbackConfig) {
               let onclickString = callbackConfig.func + '(event, ';
@@ -213,13 +228,20 @@
       }
 
       var clickTimeout;
+
       function baseButtonClick(event, jsonData, targetURL, callback) {
           /* Protect buttons from multiple clicks by disabling them and
            * using timeout to avoid multiple ajax calls if somehow two calls
            * made it through disabled button */
-          $(event.target).prop('disabled', true);
+          let target = $(event.target);
+          if (!target.is('button')) {
+              /* Find first parent button, event might have
+               * caught span element in button */
+              target = target.parent('button');
+          }
+          target.prop('disabled', true);
           clearTimeout(clickTimeout);
-          document.body.style.cursor='wait';
+          document.body.style.cursor = 'wait';
           clickTimeout = setTimeout(function () {
               jsonData['csrfmiddlewaretoken'] = '{{ csrf_token }}';
               $.ajax({
@@ -228,8 +250,8 @@
                   data: jsonData,
                   dataType: "json",
                   async: true,
-                  success: function(json) {
-                      document.body.style.cursor='default';
+                  success: function (json) {
+                      document.body.style.cursor = 'default';
                       callback(json);
                   },
                   error: function (xhr, error) {
@@ -519,7 +541,7 @@
             style="padding: 0 60px 0 60px">
       <h3 id="dialog_text">Placeholder Text</h3>
 
-      <button onclick="$('#dialog').hide()" type="button"
+      <button onclick="$('#dialog').hide()" type="button" id="dialog_close"
               class="w3-button w3-display-topright w3-red">
         <i class="fa fa-times"></i>
       </button>

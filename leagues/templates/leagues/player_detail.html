@@ -39,13 +39,13 @@
       <header>
         <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ player.nickname }}</h1>
         {% if player.clan %}
-          <h3 style="text-align: center; font-family: 'Audiowide', cursive;">
+          <h4 style="text-align: center; font-family: 'Audiowide', cursive;">
             CLAN:
             <a href="{% url 'leagues:clan_detail' player.clan.slug %}"
                style="text-align: center; font-family: 'Audiowide', cursive;">
               {{ player.clan.name }}
             </a>
-          </h3>
+          </h4>
         {% endif %}
         <ul class="section-bar" style="flex: 1 1 auto">
           <li onclick="showSection(event, 'info');" id="info_tab"
@@ -65,7 +65,7 @@
 
       <div id="info" class="w3-container w3-section section" style="position: relative;">
         {% if user.player == player %}
-          <button type="button" class="w3-round-large w3-green w3-button w3-margin-right"
+          <button type="button" class="w3-round w3-green w3-button w3-margin-right"
                   onclick="$('#{{ player_form.prefix }}').show()">
             Edit <i class="fas fa-edit"></i>
           </button>

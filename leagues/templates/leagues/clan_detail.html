@@ -112,8 +112,8 @@
             <tr class="">
               <th>Name</th>
               <th>Leader</th>
-              <th>Games won</th>
-              <th>Games total</th>
+              <th>Matches won</th>
+              <th>Matches total</th>
               <th>Win ratio</th>
             </tr>
             </thead>
@@ -192,8 +192,8 @@
             <thead>
             <tr class="">
               <th>Nickname</th>
-              <th>Games won</th>
-              <th>Games total</th>
+              <th>Matches won</th>
+              <th>Matches total</th>
               <th>Win ratio</th>
               {% if user.player == clan.leader %}
                 <th></th>
@@ -202,7 +202,7 @@
             </thead>
 
             <tbody id="member_rows">
-            {% for member in member_matches %}
+            {% for member in member_stats %}
               <tr style="display: none">
                 <td>
                   <a href="{% url 'leagues:player_detail' member.0.slug %}">
@@ -211,7 +211,7 @@
                 </td>
                 <td>{{ member.2 }}</td>
                 <td>{{ member.1 }}</td>
-                <td>{{ member.3|default:"No games" }}</td>
+                <td>{{ member.3|default:"No matches" }}</td>
                 {% if user.player == clan.leader %}
                   <td class="w3-padding-3 w3-small table_button_center">
                     {% if member.0 != clan.leader %}
@@ -234,10 +234,46 @@
       </div>
 
       <div id="stats" class="w3-container w3-section section">
-        <h4>Win ratio: {{ stats.2|default:"No matches" }}</h4>
-        <h4>Member count: {{ clan.clan_members.count }}</h4>
-        <h4>Matches played: {{ stats.0 }}</h4>
-        <h4>Matches won: {{ stats.1 }}</h4>
+        <div id="overall_stats" class="w3-margin-bottom">
+          <h3 style="text-align: center;"><b>Overall</b></h3>
+          <h4><b>Win ratio:</b> {{ stats.2|default:"No matches" }}</h4>
+          <h4><b>Member count:</b> {{ clan.clan_members.count }}</h4>
+          <h4><b>Matches played:</b> {{ stats.0 }}</h4>
+          <h4><b>Matches won:</b> {{ stats.1 }}</h4>
+        </div>
+
+        <div id="game_stats">
+          <h3 style="text-align: center;"><b>Game based</b></h3>
+          <div class="pagedTable w3-card w3-round">
+            <table class="w3-table w3-striped w3-bordered w3-hoverable">
+              <thead>
+              <tr class="">
+                <th>Game</th>
+                <th>Matches won</th>
+                <th>Matches total</th>
+                <th>Win ratio</th>
+              </tr>
+              </thead>
+
+              <tbody id="games_rows">
+              {% for game in game_stats %}
+                <tr style="display: none">
+                  <td>
+                    <a href="{% url 'leagues:game_detail' game.0.slug %}">
+                      {{ game.0.name }}
+                    </a>
+                  </td>
+                  <td>{{ game.1 }}</td>
+                  <td>{{ game.2 }}</td>
+                  <td>{{ game.3 }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            {% include 'leagues/table_footer.html' %}
+          </div>
+        </div>
+
       </div>
 
     </div>

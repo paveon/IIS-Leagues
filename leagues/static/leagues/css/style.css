@@ -193,3 +193,12 @@ a {
 article p {
     text-align: justify;
 }
+
+.button_bar {
+    margin-bottom: 16px;
+}
+
+.button_bar button {
+    margin-right: 20px;
+    width: 100px;
+}

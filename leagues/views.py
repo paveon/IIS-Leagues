@@ -7,13 +7,15 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from django.forms.models import model_to_dict
+from django import forms
 from django_countries.fields import Country
 from django.db.models import F, Q
 from random import randint, choice, sample
 from datetime import timedelta
 import json
 from enum import Enum
-from .forms import *
+from leagues.forms import *
+from leagues.model_actions import *
 
 
 def logout_view(request):
@@ -48,9 +50,80 @@ class SignupView(View):
 class SettingsView(generic.TemplateView):
     template_name = "leagues/settings.html"
 
+    def get_leader_queryset(self):
+        self.object_id = self.request.GET['object_id']
+        if self.object_id:
+            clan = Clan.objects.get(pk=self.object_id)
+            query = Q(clan=clan) | Q(clan__isnull=True)
+            queryset = Player.objects.filter(query)
+        else:
+            queryset = Player.objects.all()
+
+        queryset = queryset.annotate(value=F('nickname')).values('id', 'value')
+        self.response['leaders'] = list(queryset)
+
+    # Fills json response with object data. Data is then
+    # used on the client side to populate editing form with
+    # current object data. This allows us to dynamically change
+    # options in HTML select menus based on queryset. We also use single
+    # modal form creating and editing which we modify with jquery
+    def get_edit_modal_data(self):
+        self.object_id = self.request.GET['object_id']
+        model_object = self.model_class.objects.get(pk=self.object_id)
+        self.response = model_to_dict(model_object)
+
+        # Convert lists of references (many to many fields) to list of their IDs
+        for key, value in self.response.items():
+            if type(value) is list:
+                id_list = [item.id for item in value]
+                self.response[key] = id_list
+            elif type(value) is Country:
+                self.response[key] = value.code
+
+        # Provide specific querysets for select dropdowns based on
+        # integrity constraints
+        form_name = self.form_class.__name__
+        if form_name == 'TeamForm':
+            if model_object.clan:
+                query = Q(clan=model_object.clan) | Q(clan__isnull=True)
+                queryset = Player.objects.filter(query)
+            else:
+                queryset = Player.objects.all()
+            queryset = queryset.annotate(value=F('nickname')).values('id', 'value')
+            self.response['leader_queryset'] = list(queryset)
+
+        elif form_name == 'ClanForm':
+            query = Q(clan=model_object) | Q(clan__isnull=True)
+            queryset = Player.objects.filter(query)
+            queryset = queryset.annotate(value=F('nickname')).values('id', 'value')
+            self.response['leader_queryset'] = list(queryset)
+
+    # Fills json response with default querysets for each HTML
+    # select element so that we can restore its original state after
+    # opening editing form which might have used different select options
+    def get_create_modal_data(self):
+        form_instance = self.form_class()
+        form_fields_dict = dict(form_instance.fields)
+        # Convert choice fields to list of ids and names
+        for key, value in form_fields_dict.items():
+            if type(value) is forms.ModelChoiceField:
+                choice_list = list(value.choices)
+                self.response[key] = choice_list
+
     def __init__(self):
         super().__init__()
+        self.action_key = None
+        self.class_name = None
+        self.model_class = None
+        self.form_class = None
+        self.object_id = None
+        self.response = {}
         self.context = []
+        self.get_actions = {
+            'open_edit_modal': self.get_edit_modal_data,
+            'open_create_modal': self.get_create_modal_data,
+            'clan_changed': self.get_leader_queryset
+        }
         self.used_models = {
             Game.__name__.lower(): (Game, GameForm),
             Genre.__name__.lower(): (Genre, GenreForm),
@@ -65,53 +138,70 @@ class SettingsView(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         self.context = super().get_context_data(**kwargs)
-        for key, form in self.used_models.items():
-            model_class = form[0]
-            model_name = model_class.__name__.lower()
-            form_class = form[1]
-            form_instance = form_class(prefix=model_name + '_form')
-            self.context[model_name + '_form'] = form_instance
-            self.context[model_name + '_list'] = model_class.objects.all()
+
+        # For each model used on management page provide
+        # form instance and list of all objects
+        for key, config in self.used_models.items():
+            model_class = config[0]
+            form_class = config[1]
+            class_name = model_class.__name__.lower()
+            form_instance = form_class(prefix=class_name + '_form')
+            self.context[class_name + '_form'] = form_instance
+            self.context[class_name + '_list'] = model_class.objects.all()
+
+        self.context['status'] = TournamentStatus.__members__
         return self.context
 
-    def process_edit_form(self, model_class, form_class):
-        model_name = model_class.__name__.lower()
-        prefix = model_name + '_form'
-        model_object = model_class.objects.get(pk=self.request.POST['object_id'])
-        edit_form = form_class(self.request.POST, instance=model_object, prefix=prefix)
+    def get(self, request, *args, **kwargs):
+        if request.is_ajax():
+            # Ajax calls are used to populate opened form with existing data
+            # if editing object or with default data when creating new one
+            self.class_name = request.GET['modal_type']
+            self.action_key = request.GET['action']
+            action = self.get_actions[self.action_key]
+            config = self.used_models[self.class_name]
+            self.model_class = config[0]
+            self.form_class = config[1]
+            action()
+            return JsonResponse(self.response)
+        else:
+            self.context = self.get_context_data(**kwargs)
+            content = render(request, self.template_name, self.context)
+            return content
+
+    # Handles editing of existing object when user submits
+    # modified data through form
+    def process_edit_form(self):
+        prefix = self.class_name.lower() + '_form'
+
+        # Get existing object from db
+        model_object = self.model_class.objects.get(pk=self.object_id)
+
+        # Fill form with object instance and post data
+        edit_form = self.form_class(self.request.POST, instance=model_object, prefix=prefix)
         if edit_form.is_bound and edit_form.is_valid():
             edit_form.save()
 
-            # Additional processing
-            form_name = form_class.__name__
-            if form_name == 'TeamForm':
-                # Leader must be a member of team
-                leader = edit_form.cleaned_data['leader']
-                if leader:
-                    team = model_object
-                    try:
-                        team.team_members.get(pk=leader.id)
-                    except Player.DoesNotExist:
-                        team.team_members.add(leader)
-
-            elif form_name == 'ClanForm':
-                # Leader must be a member of clan
-                leader = edit_form.cleaned_data['leader']
-                if leader:
-                    clan = model_object
-                    try:
-                        clan.clan_members.get(pk=leader.id)
-                    except Player.DoesNotExist:
-                        clan.clan_members.add(leader)
+            # elif form_name == 'ClanForm':
+            #     # Leader must be a member of clan
+            #     leader = edit_form.cleaned_data['leader']
+            #     if leader:
+            #         clan = model_object
+            #         try:
+            #             clan.clan_members.get(pk=leader.id)
+            #         except Player.DoesNotExist:
+            #             clan.clan_members.add(leader)
 
             return HttpResponseRedirect(reverse('leagues:settings'))
 
-        self.context[prefix] = edit_form
-        raise ValidationError(form_class.__name__ + ' validation failed')
+        failed = self.form_class(instance=model_object, prefix=prefix)
+        failed._errors = edit_form._errors
+        self.context[prefix] = failed
+        raise ValidationError(self.form_class.__name__ + ' validation failed')
 
-    def process_create_form(self, model_class, form_class):
-        model_name = model_class.__name__
-        create_form = form_class(self.request.POST, prefix=model_name.lower() + '_form')
+    def process_create_form(self):
+        form_prefix = self.class_name.lower() + '_form'
+        create_form = self.form_class(self.request.POST, prefix=form_prefix)
         # TODO nejde pridat klan k tymu pokud uz odehral hru
         # TODO omezit vybery leader tymu muze byt jen nekdo kdo je v tom tymu (stejne klan), hry pro tymy omezeny podle her klanu (nebo se ke specializacim klanu potom prida ta hra tymu?)
         # TODO add new nevytvori novy formular pokud v predchozim byla chyba takze bud clear tlacitko a nebo to nejak vyresit at se udela prazdny formular po kliknuti na new pri predchozim erroru
@@ -119,78 +209,33 @@ class SettingsView(generic.TemplateView):
         # TODO pri vytvareni hry je hra neaktivni a aktivuje se az ma prirazeny gamemode => momentalni kvuli testovani je default true ale ma byt false (doplnit pri vytvareni hry)
         # TODO pri vytvareni hrace se stejnym nickname se chyba zobrazi ale formular zavre takze to vypada jako kdyby se vytvoril
         if create_form.is_bound and create_form.is_valid():
-            # commit=False doesn't save new model object directly into the DB
-            # so we can do additional processing before storing it in the DB with save method of model object
-            model_object = create_form.save(commit=False)
-            model_object.save()  # save object do DB
+            instance = create_form.save(commit=False)
+            instance.save()
             return HttpResponseRedirect(reverse('leagues:settings'))
 
-        self.context[model_name.lower() + '_form'] = create_form
-        raise ValidationError(create_form.__class__.__name__ + ' validation failed')
+        self.context[form_prefix] = create_form
+        raise ValidationError(self.form_class.__name__ + ' validation failed')
 
-    def get(self, request, *args, **kwargs):
-        if request.is_ajax():
-            action = self.request.GET['action']
-            if action == 'edit':
-                object_id = self.request.GET['object_id']
-                class_name = self.request.GET['type'].split('_')[0]
-                pair = self.used_models[class_name]
-                model_class = pair[0]
-                form_class = pair[1]
-                model_object = model_class.objects.get(pk=object_id)
-                model_object_dict = model_to_dict(model_object)
-
-                # Convert lists of references (many to many fields) to list of their IDs
-                for key, value in model_object_dict.items():
-                    if type(value) is list:
-                        id_list = [item.id for item in value]
-                        model_object_dict[key] = id_list
-                    elif type(value) is Country:
-                        model_object_dict[key] = value.code
-
-                # Provide specific querysets for select dropdowns based on
-                # integrity constraints
-                # if form_class.__name__ == 'TeamForm':
-                #     queryset = Team.objects.get(pk=object_id).team_members.all()
-                #     queryset = queryset.annotate(value=F('nickname')).values('id', 'value')
-                #     model_object_dict['leader_queryset'] = list(queryset)
-                # elif form_class.__name__ == 'ClanForm':
-                #     queryset = Clan.objects.get(pk=object_id).clan_members.all()
-                #     queryset = queryset.annotate(value=F('nickname')).values('id', 'value')
-                #     model_object_dict['leader_queryset'] = list(queryset)
-
-                response = JsonResponse(model_object_dict)
-                return response
-            elif action == 'create':
-                # If edit form messed up some select dropdowns, send original data back when
-                # opening create form
-                class_name = self.request.GET['type'].split('_')[0]
-                pair = self.used_models[class_name]
-                return JsonResponse({})
-
-        else:
-            self.context = self.get_context_data(**kwargs)
-            content = render(request, self.template_name, self.context)
-            return content
-
+    # All posts on management page are synchronous
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
-
+        self.object_id = request.POST['object_id']
+        self.action_key = request.POST['post_action']
+        self.class_name = self.action_key.split('_')[0]
+        config = self.used_models[self.class_name]
+        self.model_class = config[0]
+        self.form_class = config[1]
         try:
-            action_name = request.POST['post_action']
-            if action_name.endswith('_create'):
+            if self.action_key.endswith('_create'):
                 action = self.process_create_form
             else:
                 action = self.process_edit_form
+            return action()
 
-            action_name = action_name.split('_')[0]
-            parameters = self.used_models[action_name]
-            return action(*parameters)
-        except ValidationError as err:
-            self.context['error_modal'] = self.request.POST['post_action'].split('_')[0] + '_form'
-            object_id = self.request.POST['object_id']
-            if object_id:
-                self.context['object_id'] = object_id
+        except ValidationError:
+            self.context['error_modal'] = self.class_name + '_form'
+            if self.object_id:
+                self.context['object_id'] = self.object_id
             return render(request, self.template_name, self.context)
 
 
@@ -409,51 +454,6 @@ class PlayerDetailView(generic.DetailView):
             return HttpResponseRedirect(reverse("leagues:player_detail", args=[self.player.slug]))
 
 
-def force_join_team(team, player):
-    join_clan(team.clan, player)
-    join_team(team, player, None)
-
-
-def leave_team(team, player):
-    team.team_members.remove(player)
-
-    if team.leader == player:
-        # Leader is leaving
-        team.leader = team.team_members.first()
-
-        # If there were no members left, check if there are pending players
-        if not team.leader:
-            # If team has clan, pick first pending player from this clan
-            if team.clan:
-                new_member = team.team_pendings.filter(clan=team.clan).first()
-            else:
-                new_member = team.team_pendings.first()
-
-            if new_member:
-                team.team_pendings.remove(new_member)
-                team.team_members.add(new_member)
-                team.leader = new_member
-        team.save()
-
-
-def join_team(team, player, response):
-    # Player must be member of parent clan
-    if team.clan and not player.clan:
-        if team.clan in player.clan_pendings.all():
-            # Player is already waiting to be accepted into the clan
-            player.team_pendings.add(team)
-        else:
-            response['need_clan'] = (team.clan.name, team.clan.id)
-    else:
-        if team.leader:
-            player.team_pendings.add(team)
-        else:
-            # Team has no members, join immediately and become new leader
-            team.team_members.add(player)
-            team.leader = player
-            team.save()
-
-
 @method_decorator(never_cache, name='dispatch')
 class TeamDetailView(generic.DetailView):
     template_name = "leagues/team_detail.html"
@@ -525,10 +525,15 @@ class TeamDetailView(generic.DetailView):
         registered = Tournament.objects.filter(team=self.team)
         non_registered = Tournament.objects.filter(Q(game=self.team.game) & ~Q(team=self.team))
 
+
+        clan_join_form = TeamFormUser(instance=self.team, prefix='clan_join')
+        clan_join_form.fields['clan'].queryset =
+
         context['membership_requests'] = self.team.team_pendings.all()
         context['registered'] = registered
         context['non_registered'] = non_registered
         context['member_matches'] = member_matches
+        context['clan_form'] = clan_join_form
         return context
 
     def post(self, request, *args, **kwargs):
@@ -538,53 +543,6 @@ class TeamDetailView(generic.DetailView):
         action = self.actions[self.action_key]
         action()
         return JsonResponse(self.response)
-
-
-def force_leave_clan(clan, player):
-    # Leave all clan teams when force leaving clan
-    for team in player.teams.filter(clan=clan):
-        leave_team(team, player)
-    leave_clan(clan, player, None)
-
-
-def leave_clan(clan, player, response):
-    clan_teams = player.teams.filter(clan=clan)
-    if clan_teams.exists():
-        # Player is in clan team
-        teams = [(team.name, team.id) for team in clan_teams]
-        response['has_clan_teams'] = teams
-    else:
-        clan.clan_members.remove(player)
-        if clan.leader == player:
-            # Leader is leaving
-            clan.leader = clan.clan_members.first()
-            if not clan.leader:
-                # Clan had no members left, pick first pending player
-                new_member = clan.clan_pendings.first()
-                if new_member:
-                    clan.clan_pendings.remove(new_member)
-                    clan.clan_members.add(new_member)
-                    clan.leader = new_member
-            clan.save()
-
-
-def join_clan(clan, player):
-    if clan.leader:
-        player.clan_pendings.add(clan)
-    else:
-        # Clan has no members, join immediately and become new leader
-        # First remove all other clan pendings
-        pendings = player.clan_pendings.all()
-        player.clan_pendings.remove(*pendings)
-
-        # Also remove pendings of teams from other clans, ignore teams without clan
-        pendings = player.team_pendings.filter(Q(clan__isnull=False) & ~Q(clan=clan))
-        player.team_pendings.remove(*pendings)
-
-        player.clan = clan
-        player.save()
-        clan.leader = player
-        clan.save()
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -602,26 +560,37 @@ class ClanDetailView(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         self.clan = self.get_object()
-        members = self.clan.clan_members.all()
-        member_matches_list = []
-        clan_matches = PlayedMatch.objects.filter(clan=self.clan)
 
-        for member in members:
-            member_matches = clan_matches.filter(player=member)
-            matches_won = member_matches.filter(team=F('match__winner')).count()
-            matches_total = member_matches.count()
+        # Get played and won matches under this clan by each member
+        member_stats = []
+        for member in self.clan.clan_members.all():
+            matches = PlayedMatch.objects.filter(player=member, clan=self.clan)
+            matches_won = matches.filter(team=F('match__winner'))
+            matches_total = matches.count()
+            matches_won = matches_won.count()
             win_ratio = self.win_ratio(matches_won, matches_total)
-            member_matches_list.append((member, matches_total, matches_won, win_ratio))
+            member_stats.append((member, matches_total, matches_won, win_ratio))
 
-        clan_matches = clan_matches.values('match').distinct()
-        matches_won = clan_matches.filter(team=F('match__winner')).count()
-        matches_total = clan_matches.count()
-        win_ratio = self.win_ratio(matches_won, matches_total)
-        stats = (matches_total, matches_won, win_ratio)
+        # Get played and won matches in each game
+
+        clan_matches = self.clan.all_matches
+        win_ratio = self.clan.win_ratio
+        matches_won = self.clan.matches_won
+        stats = (clan_matches.count(), matches_won.count(), win_ratio)
+
+        game_stats = []
+        for game in Game.objects.all():
+            matches = game.match_set.filter(Q(clan_1=self.clan) | Q(clan_2=self.clan))
+            matches_total = matches.count()
+            if matches_total > 0:
+                won_count = matches.filter(clan_winner=self.clan).count()
+                win_ratio = self.win_ratio(won_count, matches_total)
+                game_stats.append((game, won_count, matches_total, win_ratio))
 
         context['stats'] = stats
         context['clan_teams'] = self.clan.team_set.all()
-        context['member_matches'] = member_matches_list
+        context['member_stats'] = member_stats
+        context['game_stats'] = game_stats
         context['membership_requests'] = self.clan.clan_pendings.all()
         return context
 
