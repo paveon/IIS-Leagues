@@ -18,6 +18,7 @@
 
   <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="{% static 'leagues/js/date_picker.js' %}"></script>
   {{ game_form.media }}
 
   <script src="{% static 'leagues/js/table_handler.js' %}"></script>
@@ -385,7 +386,13 @@
           <!-- Profile -->
           <div class="w3-card w3-round w3-white">
             <div class="w3-container">
-              <h4 class="w3-center">{{ user.player.nickname }}</h4>
+              <a href="{% url 'leagues:player_detail' user.player.slug %}">
+                <h4 class="w3-center" style="font-family: 'Audiowide', cursive;">
+
+                  {{ user.player.nickname }}
+
+                </h4>
+              </a>
               <p class="w3-center">
                 {% if user.player.image_url %}
                   <img src="{{ user.player.image_url }}" class="w3-circle"
@@ -396,12 +403,14 @@
                 {% endif %}
               </p>
               <hr>
-              <p><i class="fa fa-pencil fa-fw w3-margin-right w3-text-theme"></i> Designer, UI</p>
+              <p><i class="fas fa-id-card fa-fw w3-margin-right w3-text-theme"></i>
+                <b>{{ user.player.full_name|default:"Unknown" }}</b>
+              </p>
               <p><i class="fa fa-home fa-fw w3-margin-right w3-text-theme"></i>
-                {{ user.player.country|default:"Unknown" }}
+                <b>{{ user.player.country|default:"Unknown" }}</b>
               </p>
               <p><i class="fa fa-birthday-cake fa-fw w3-margin-right w3-text-theme"></i>
-                {{ user.player.birth_date|default:"Unknown" }}
+                <b>{{ user.player.birth_date|default:"Unknown"|date:"j.n.Y" }}</b>
               </p>
             </div>
           </div>

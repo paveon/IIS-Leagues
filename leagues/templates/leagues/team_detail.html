@@ -27,6 +27,19 @@
 
           baseButtonClick(event, data, url, callback);
       }
+
+
+      function clanSelected(event) {
+          let submitButton = $('#request_submit');
+          let menu = $(event.target);
+          let selected = $('option:selected', menu);
+          submitButton.prop('disabled', selected.text().includes('---'));
+      }
+
+
+      $(document).ready(function () {
+          $('#id_{{ clan_form.prefix }}-clan').change(clanSelected)
+      });
   </script>
 {% endblock %}
 
@@ -80,25 +93,37 @@
       </header>
 
       <div id="info" class="w3-container w3-section section">
-        <div class="button_bar">
-          <button type="button" class="w3-button w3-round w3-green"
-                  onclick="buttonClick(event, {{ user.player.id }}, 'join_clan')">
-            Edit <i class="fas fa-edit"></i>
-          </button>
-          <button type="button" class="w3-button w3-round w3-green"
-                  onclick="$('#{{ clan_form.prefix }}').show()">
-            Join clan
-          </button>
+        <div class="button_bar" style="position: relative;">
+          {% if user.player == team.leader %}
+            <button type="button" class="w3-button w3-round w3-green"
+                    style="margin-right: 20px"
+                    onclick="$('#{{ edit_form.prefix }}').show()">
+              Edit <i class="fas fa-edit"></i>
+            </button>
+            {% if team.clan %}
+              <button type="button" class="w3-button w3-round w3-red"
+                      onclick="openDialog('Do you really wish to remove this team from clan?',
+                          new CallbackConfig([{{ team.id }}, 'remove_clan']));">
+                Remove clan
+              </button>
+            {% else %}
+              <button type="button" class="w3-button w3-round w3-green"
+                      onclick="$('#{{ clan_form.prefix }}').show()">
+                Add clan
+              </button>
+            {% endif %}
+          {% endif %}
+
           {% if team in user.player.teams.all %}
-            <button type="button" class="w3-button w3-round w3-red"
+            <button type="button" class="w3-button w3-round w3-red w3-display-right"
                     onclick="openDialog('Do you really wish to leave this team?',
                         new CallbackConfig([{{ user.player.id }}, 'leave_team']));">
-              Leave
+              Leave team
             </button>
           {% else %}
-            <button type="button" class="w3-button w3-round w3-green"
+            <button type="button" class="w3-button w3-round w3-green w3-display-right"
                     onclick="buttonClick(event, {{ user.player.id }}, 'join_team')">
-              Join
+              Join team
             </button>
           {% endif %}
         </div>
@@ -129,17 +154,44 @@
             None
           {% endif %}
         </h4>
-        <h4><b>Clan:</b>
-          {% if team.clan %}
-            <a href="{% url 'leagues:clan_detail' team.clan.slug %}">{{ team.clan }}</a>
-          {% else %}
-            None
-          {% endif %}
-        </h4>
         <h4><b>Description:</b></h4>
         <article class="w3-container">
           <p style="margin:0;">{{ team.description }}</p>
         </article>
+
+        {% if user.player == team.leader %}
+          <h3>Clan requests</h3>
+          <div class="pagedTable w3-card w3-round w3-margin-bottom">
+            <table class="w3-table w3-striped w3-bordered w3-hoverable">
+              <thead>
+              <tr class="">
+                <th>Clan</th>
+                <th></th>
+              </tr>
+              </thead>
+
+              <tbody id="requests_rows">
+              {% for clan in team.clan_pendings.all %}
+                <tr style="display: none">
+                  <td>
+                    <a href="{% url 'leagues:clan_detail' clan.slug %}">
+                      {{ clan }}
+                    </a>
+                  </td>
+
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    <button onclick="buttonClick(event, {{ clan.id }}, 'cancel_clan_request')"
+                            class="w3-button w3-red table_button red_button">
+                      Cancel
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            {% include 'leagues/table_footer.html' %}
+          </div>
+        {% endif %}
       </div>
 
       <div id="members" class="w3-container w3-section section">
@@ -156,7 +208,7 @@
               </thead>
 
               <tbody id="requests_rows">
-              {% for player in membership_requests %}
+              {% for player in team.team_pendings.all %}
                 <tr style="display: none">
                   <td>
                     <a href="{% url 'leagues:player_detail' player.slug %}">
@@ -399,6 +451,49 @@
 
 {% load widget_tweaks %}
 {% block endpage %}
+  <div id="{{ edit_form.prefix }}" class="w3-modal" {% if edit_form.errors %}style="display: block"{% endif %}>
+    <div class="w3-modal-content w3-card-4" style="max-width:600px">
+      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+        <h3 class="modalTitle">Edit '{{ team.name }}'</h3>
+
+        <button onclick="CloseModal('{{ edit_form.prefix }}')" type="button"
+                class="w3-button w3-display-topright w3-red">
+          <i class="fa fa-times"></i>
+        </button>
+      </header>
+      <form method="POST" action="{% url 'leagues:team_detail' team.slug %}" name="team_edit">
+        <div class="w3-section w3-container">
+          {% include 'leagues/form_errors.html' with errors=edit_form.errors %}
+          {% csrf_token %}
+          {{ edit_form.clan.as_hidden }}
+          {{ edit_form.founded.as_hidden }}
+
+          <label><b>{{ edit_form.name.label_tag }}</b></label>
+          {% render_field edit_form.name class+="formUnique w3-input w3-border w3-margin-bottom" %}
+
+          <label><b>{{ edit_form.leader.label_tag }}</b></label>
+          {% render_field edit_form.leader class+="w3-input w3-border w3-margin-bottom" %}
+
+          <label><b>{{ edit_form.game.label_tag }}</b></label>
+          {% render_field edit_form.game class+="w3-input w3-border w3-margin-bottom" %}
+
+          <label><b>{{ edit_form.description.label_tag }}</b></label>
+          {% render_field edit_form.description class+="w3-input w3-border" %}
+        </div>
+
+        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+          <button onclick="CloseModal('{{ edit_form.prefix }}')" type="button"
+                  class="w3-button w3-red">Cancel
+          </button>
+
+          <input class="formID" type="hidden" name="object_id" value="">
+          <input class="formAction" type="hidden" name="action" value="edit_team">
+          <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Edit team">
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="{{ clan_form.prefix }}" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
@@ -412,6 +507,18 @@
 
       <form method="POST" action="{% url 'leagues:team_detail' team.slug %}">
         <div class="w3-section w3-container">
+          <div class="w3-panel w3-yellow w3-round"
+               style="text-align: center; padding-right: 100px; position:relative;">
+            <p>
+              <b>
+                Team can join clan only if all its members
+                are also members of specified clan
+              </b>
+            </p>
+            <i class="fas fa-exclamation-triangle w3-display-right"
+               style="right: 40px; top: 30px; transform: scale(3,3);"></i>
+          </div>
+
           {% csrf_token %}
 
           <label><b>{{ clan_form.clan.label_tag }}</b></label>
@@ -424,10 +531,9 @@
                   class="w3-button w3-red">Cancel
           </button>
 
-          <button onclick="" type="button" class="w3-button w3-green w3-right">
-            Join
-          </button>
-
+          <input class="formAction" type="hidden" name="action" value="add_clan">
+          <input disabled class="formSubmit w3-button w3-green w3-right" id="request_submit"
+                 type="submit" value="Send request">
         </div>
       </form>
     </div>

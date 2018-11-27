@@ -495,13 +495,42 @@ class TeamDetailView(generic.DetailView):
         if self.action_key == 'accept_request':
             self.team.team_members.add(player)
 
+    def remove_clan(self):
+        self.team.clan = None
+        self.team.save()
+
+    def add_clan(self, request):
+        clan_form = TeamFormUser(request.POST, instance=self.team, prefix='clan_join')
+        if clan_form.is_bound and clan_form.is_valid():
+            clan = clan_form.cleaned_data['clan']
+            if clan:
+                self.team.clan_pendings.add(clan)
+                return HttpResponseRedirect(reverse("leagues:team_detail", args=[self.team.slug]))
+        return render(request, self.template_name, self.context)
+
+    def cancel_clan_request(self):
+        clan = Clan.objects.get(pk=self.object_id)
+        pending_clan = self.team.clan_pendings.remove(clan)
+
+    def edit_team(self, request):
+        edit_form = TeamForm(request.POST, instance=self.team, prefix='edit_form')
+        if edit_form.is_bound and edit_form.is_valid():
+            edit_form.save()
+            return HttpResponseRedirect(reverse("leagues:team_detail", args=[self.team.slug]))
+        self.context['edit_form'] = edit_form
+        self.context['team'] = self.get_object()
+        return render(request, self.template_name, self.context)
+
     def __init__(self):
         super().__init__()
+        self.object = None
+        self.context = None
         self.team = None
         self.object_id = None
         self.action_key = None
         self.response = {}
         self.actions = {
+            'edit_team': self.edit_team,
             'join_team': self.join_team,
             'force_join_team': self.force_join_team,
             'leave_team': self.leave_team,
@@ -510,6 +539,9 @@ class TeamDetailView(generic.DetailView):
             'kick_player': self.kick_player,
             'decline_request': self.process_request,
             'accept_request': self.process_request,
+            'remove_clan': self.remove_clan,
+            'add_clan': self.add_clan,
+            'cancel_clan_request': self.cancel_clan_request,
         }
 
     def get_context_data(self, **kwargs):
@@ -525,24 +557,40 @@ class TeamDetailView(generic.DetailView):
         registered = Tournament.objects.filter(team=self.team)
         non_registered = Tournament.objects.filter(Q(game=self.team.game) & ~Q(team=self.team))
 
-
+        clan_id_list = []
+        for clan in Clan.objects.all():
+            # Check if all team members are members of this clan
+            pending = self.team.clan_pendings.filter(pk=clan.id).exists()
+            if not members.exclude(clan=clan).exists() and not pending:
+                clan_id_list.append(clan.id)
+        queryset = Clan.objects.filter(pk__in=clan_id_list)
         clan_join_form = TeamFormUser(instance=self.team, prefix='clan_join')
-        clan_join_form.fields['clan'].queryset =
+        clan_join_form.fields['clan'].queryset = queryset
 
-        context['membership_requests'] = self.team.team_pendings.all()
+        edit_form = TeamForm(instance=self.team, prefix='edit_form')
+        leader_field = edit_form.fields['leader']
+        leader_field.queryset = members
+        leader_field.empty_label = None
+
         context['registered'] = registered
         context['non_registered'] = non_registered
         context['member_matches'] = member_matches
         context['clan_form'] = clan_join_form
+        context['edit_form'] = edit_form
         return context
 
     def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.context = self.get_context_data(**kwargs)
+        self.team = self.object
         self.action_key = request.POST['action']
-        self.team = self.get_object()
-        self.object_id = int(request.POST['object_id'])
         action = self.actions[self.action_key]
-        action()
-        return JsonResponse(self.response)
+        if request.is_ajax():
+            self.object_id = int(request.POST['object_id'])
+            action()
+            return JsonResponse(self.response)
+        else:
+            return action(request)
 
 
 @method_decorator(never_cache, name='dispatch')

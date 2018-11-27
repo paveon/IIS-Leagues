@@ -211,6 +211,8 @@ class Team(models.Model):
                              verbose_name='Game focused by the team')
     clan = models.ForeignKey(Clan, on_delete=models.SET_NULL, null=True, blank=True,
                              verbose_name='Related clan')
+    clan_pending = models.ForeignKey(Clan, on_delete=models.SET_NULL, related_name='team_request',
+                                     null=True, blank=True)
 
     def as_array(self):
         return [self.id, self.name]
