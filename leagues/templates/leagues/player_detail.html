@@ -65,24 +65,28 @@
 
       <div id="info" class="w3-container w3-section section" style="position: relative;">
         {% if user.player == player %}
-          <button type="button" class="w3-round w3-green w3-button w3-margin-right"
-                  onclick="$('#{{ player_form.prefix }}').show()">
-            Edit <i class="fas fa-edit"></i>
-          </button>
-          {% if player.clan %}
-            <button class="w3-round-large w3-red w3-button"
-                    onclick="openDialog('Do you really wish to leave clan \'{{ player.clan.name }}\'',
-                    new CallbackConfig([{{ player.clan.id }}, 'leave_clan']));">
-              Leave clan
+          <div>
+            <button type="button" class="w3-round w3-green w3-button w3-margin-right green_button"
+                    onclick="$('#{{ player_form.prefix }}').show()">
+              Edit <i class="fas fa-edit"></i>
             </button>
-          {% endif %}
+            {% if player.clan %}
+              <button class="w3-round w3-red w3-button red_button"
+                      onclick="openDialog('Do you really wish to leave clan \'{{ player.clan.name }}\'',
+                          new CallbackConfig([{{ player.clan.id }}, 'leave_clan']));">
+                Leave clan
+              </button>
+            {% endif %}
+          </div>
         {% endif %}
+
         {% if player.image_url %}
-          <div class="w3-display-topright w3-border w3-padding" style="top:30px;right: 30px;">
+          <div class="w3-border w3-padding" style="float: right;">
             <img src="{{ player.image_url }}" class="w3-circle"
                  style="height:100px;width:100px" alt="Avatar">
           </div>
         {% endif %}
+
         <!-- PLAYER INFO !-->
         <h4><b>First name:</b> {{ player.first_name }}</h4>
         <h4><b>Last name:</b> {{ player.last_name }}</h4>
@@ -123,7 +127,7 @@
                   <td class="w3-padding-3 w3-small table_button_center">
                     <button onclick="openDialog('Do you really wish to leave team \'{{ team.name }}\'',
                         new CallbackConfig([{{ team.id }}, 'leave_team']));"
-                            class="w3-button w3-red table_button leave_button">
+                            class="w3-button w3-red table_button red_button">
                       Leave
                     </button>
                   </td>

@@ -93,21 +93,27 @@
       </header>
 
       <div id="info" class="w3-container w3-section section">
-        <div class="button_bar" style="position: relative;">
+        <div class="button_bar" style="position: relative;overflow: auto;">
           {% if user.player == team.leader %}
-            <button type="button" class="w3-button w3-round w3-green"
+            <button type="button" class="w3-button w3-round w3-green green_button"
                     style="margin-right: 20px"
                     onclick="$('#{{ edit_form.prefix }}').show()">
-              Edit <i class="fas fa-edit"></i>
+              Edit<i class="fas fa-edit" style="margin-left: 10px;"></i>
             </button>
             {% if team.clan %}
-              <button type="button" class="w3-button w3-round w3-red"
+              <button type="button" class="w3-button w3-round w3-red red_button"
                       onclick="openDialog('Do you really wish to remove this team from clan?',
                           new CallbackConfig([{{ team.id }}, 'remove_clan']));">
                 Remove clan
               </button>
+            {% elif team.clan_pending %}
+              <button type="button" onclick="buttonClick(event, {{ team.id }}, 'cancel_clan_request')"
+                      class="w3-button w3-round w3-orange orange_button">
+                <span class="normal">Pending clan</span>
+                <span class="hover">Cancel</span>
+              </button>
             {% else %}
-              <button type="button" class="w3-button w3-round w3-green"
+              <button type="button" class="w3-button w3-round w3-green green_button"
                       onclick="$('#{{ clan_form.prefix }}').show()">
                 Add clan
               </button>
@@ -115,13 +121,15 @@
           {% endif %}
 
           {% if team in user.player.teams.all %}
-            <button type="button" class="w3-button w3-round w3-red w3-display-right"
+            <button type="button" class="w3-button w3-round w3-red red_button"
+                    style="float:right;"
                     onclick="openDialog('Do you really wish to leave this team?',
                         new CallbackConfig([{{ user.player.id }}, 'leave_team']));">
               Leave team
             </button>
           {% else %}
-            <button type="button" class="w3-button w3-round w3-green w3-display-right"
+            <button type="button" class="w3-button w3-round w3-green green_button"
+                    style="float:right;"
                     onclick="buttonClick(event, {{ user.player.id }}, 'join_team')">
               Join team
             </button>
@@ -154,44 +162,17 @@
             None
           {% endif %}
         </h4>
+
+        {% if team.clan_pending %}
+          <h4><b>Pending clan:</b>
+            <a href="{% url 'leagues:clan_detail' team.clan_pending.slug %}">{{ team.clan_pending }}</a>
+          </h4>
+        {% endif %}
+
         <h4><b>Description:</b></h4>
         <article class="w3-container">
           <p style="margin:0;">{{ team.description }}</p>
         </article>
-
-        {% if user.player == team.leader %}
-          <h3>Clan requests</h3>
-          <div class="pagedTable w3-card w3-round w3-margin-bottom">
-            <table class="w3-table w3-striped w3-bordered w3-hoverable">
-              <thead>
-              <tr class="">
-                <th>Clan</th>
-                <th></th>
-              </tr>
-              </thead>
-
-              <tbody id="requests_rows">
-              {% for clan in team.clan_pendings.all %}
-                <tr style="display: none">
-                  <td>
-                    <a href="{% url 'leagues:clan_detail' clan.slug %}">
-                      {{ clan }}
-                    </a>
-                  </td>
-
-                  <td class="w3-padding-3 w3-small table_button_center">
-                    <button onclick="buttonClick(event, {{ clan.id }}, 'cancel_clan_request')"
-                            class="w3-button w3-red table_button red_button">
-                      Cancel
-                    </button>
-                  </td>
-                </tr>
-              {% endfor %}
-              </tbody>
-            </table>
-            {% include 'leagues/table_footer.html' %}
-          </div>
-        {% endif %}
       </div>
 
       <div id="members" class="w3-container w3-section section">
@@ -227,19 +208,19 @@
                   </td>
 
                   <td class="w3-padding-3 w3-small table_button_center">
-                    <button onclick="buttonClick(event, {{ player.id }}, 'accept_request')"
-                            class="w3-button w3-green table_button green_button"
-                        {% if team.clan and player.clan != team.clan %}
-                            disabled
-                        {% endif %}>
-                      Accept
-                    </button>
                     <button onclick="buttonClick(event, {{ player.id }}, 'decline_request')"
                             class="w3-button w3-red table_button red_button"
                         {% if team.clan and player.clan != team.clan %}
                             disabled
                         {% endif %}>
                       Decline
+                    </button>
+                    <button onclick="buttonClick(event, {{ player.id }}, 'accept_request')"
+                            class="w3-button w3-green table_button green_button"
+                        {% if team.clan and player.clan != team.clan %}
+                            disabled
+                        {% endif %}>
+                      Accept
                     </button>
                   </td>
                 </tr>
@@ -299,11 +280,11 @@
       </div>
 
       <div id="tournaments" class="w3-container w3-section section">
-        {% if user.player == user.player.clan.leader %}
-          <div class="w3-section flex-container">
+        {% if team.clan and user.player == team.clan.leader %}
+          <div class="w3-margin-bottom flex-container">
           <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
         {% endif %}
-        <h3>Registered tournaments</h3>
+        <h3>Registered</h3>
         <div class="pagedTable w3-card w3-round">
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
@@ -352,10 +333,10 @@
           </table>
           {% include 'leagues/table_footer.html' %}
         </div>
-        {% if user.player == user.player.clan.leader %}
+        {% if team.clan and user.player == team.clan.leader %}
           </div>
           <div style="flex: 1 1 0; margin: 0 0.5em 0 0.5em">
-            <h3>Tournaments to register</h3>
+            <h3>Upcoming</h3>
             <div class="pagedTable w3-card w3-round">
               <table class="w3-table w3-striped w3-bordered w3-hoverable">
                 <thead>

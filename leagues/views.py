@@ -494,23 +494,26 @@ class TeamDetailView(generic.DetailView):
         self.team.team_pendings.remove(player)
         if self.action_key == 'accept_request':
             self.team.team_members.add(player)
+            if self.team.clan_pending and player.clan != self.team.clan_pending:
+                self.team.clan_pending = None
+                self.team.save()
 
     def remove_clan(self):
         self.team.clan = None
         self.team.save()
 
     def add_clan(self, request):
-        clan_form = TeamFormUser(request.POST, instance=self.team, prefix='clan_join')
+        clan_form = TeamFormUser(request.POST, prefix='clan_join')
         if clan_form.is_bound and clan_form.is_valid():
             clan = clan_form.cleaned_data['clan']
-            if clan:
-                self.team.clan_pendings.add(clan)
-                return HttpResponseRedirect(reverse("leagues:team_detail", args=[self.team.slug]))
+            self.team.clan_pending = clan
+            self.team.save()
+            return HttpResponseRedirect(reverse("leagues:team_detail", args=[self.team.slug]))
         return render(request, self.template_name, self.context)
 
     def cancel_clan_request(self):
-        clan = Clan.objects.get(pk=self.object_id)
-        pending_clan = self.team.clan_pendings.remove(clan)
+        self.team.clan_pending = None
+        self.team.save()
 
     def edit_team(self, request):
         edit_form = TeamForm(request.POST, instance=self.team, prefix='edit_form')
@@ -557,15 +560,16 @@ class TeamDetailView(generic.DetailView):
         registered = Tournament.objects.filter(team=self.team)
         non_registered = Tournament.objects.filter(Q(game=self.team.game) & ~Q(team=self.team))
 
-        clan_id_list = []
-        for clan in Clan.objects.all():
-            # Check if all team members are members of this clan
-            pending = self.team.clan_pendings.filter(pk=clan.id).exists()
-            if not members.exclude(clan=clan).exists() and not pending:
-                clan_id_list.append(clan.id)
-        queryset = Clan.objects.filter(pk__in=clan_id_list)
-        clan_join_form = TeamFormUser(instance=self.team, prefix='clan_join')
-        clan_join_form.fields['clan'].queryset = queryset
+        if not self.team.clan_pending:
+            clan_id_list = []
+            for clan in Clan.objects.all():
+                # Check if all team members are members of this clan
+                if not members.exclude(clan=clan).exists():
+                    clan_id_list.append(clan.id)
+            queryset = Clan.objects.filter(pk__in=clan_id_list)
+            clan_join_form = TeamFormUser(instance=self.team, prefix='clan_join')
+            clan_join_form.fields['clan'].queryset = queryset
+            context['clan_form'] = clan_join_form
 
         edit_form = TeamForm(instance=self.team, prefix='edit_form')
         leader_field = edit_form.fields['leader']
@@ -575,7 +579,6 @@ class TeamDetailView(generic.DetailView):
         context['registered'] = registered
         context['non_registered'] = non_registered
         context['member_matches'] = member_matches
-        context['clan_form'] = clan_join_form
         context['edit_form'] = edit_form
         return context
 
@@ -636,40 +639,55 @@ class ClanDetailView(generic.DetailView):
                 game_stats.append((game, won_count, matches_total, win_ratio))
 
         context['stats'] = stats
-        context['clan_teams'] = self.clan.team_set.all()
         context['member_stats'] = member_stats
         context['game_stats'] = game_stats
         context['membership_requests'] = self.clan.clan_pendings.all()
         return context
 
     def force_leave_clan(self):
-        force_leave_clan(self.clan, self.player)
+        player = Player.objects.get(pk=self.object_id)
+        force_leave_clan(self.clan, player)
 
     def leave_clan(self):
-        leave_clan(self.clan, self.player, self.response)
+        player = Player.objects.get(pk=self.object_id)
+        leave_clan(self.clan, player, self.response)
 
     def join_clan(self):
-        join_clan(self.clan, self.player)
+        player = Player.objects.get(pk=self.object_id)
+        join_clan(self.clan, player)
 
     def kick_player(self):
+        player = Player.objects.get(pk=self.object_id)
         # Kick player out of every clan team
-        self.player.teams.remove(*self.player.teams.filter(clan=self.clan))
+        player.teams.remove(*player.teams.filter(clan=self.clan))
 
         # Also remove all pendings to clan teams
-        active_pendings = self.player.team_pendings.filter(clan=self.clan)
-        self.player.team_pendings.remove(*active_pendings)
-        self.clan.clan_members.remove(self.player)
+        active_pendings = player.team_pendings.filter(clan=self.clan)
+        player.team_pendings.remove(*active_pendings)
+        self.clan.clan_members.remove(player)
 
-    def process_request(self):
-        self.clan.clan_pendings.remove(self.player)
-        if self.action_key == 'accept_request':
-            self.clan.clan_members.add(self.player)
+    def process_player_request(self):
+        player = Player.objects.get(pk=self.object_id)
+        self.clan.clan_pendings.remove(player)
+        if self.action_key == 'accept_player_request':
+            self.clan.clan_members.add(player)
+
+    def process_team_request(self):
+        team = Team.objects.get(pk=self.object_id)
+        team.clan_pending = None
+        if self.action_key == 'accept_team_request':
+            team.clan = self.clan
+        team.save()
+
+    def remove_team(self):
+        team = Team.objects.get(pk=self.object_id)
+        team.clan = None
+        team.save()
 
     def __init__(self):
         super().__init__()
         self.clan = None
-        self.player_id = None
-        self.player = None
+        self.object_id = None
         self.action_key = None
         self.response = {}
         self.actions = {
@@ -677,15 +695,17 @@ class ClanDetailView(generic.DetailView):
             'leave_clan': self.leave_clan,
             'force_leave_clan': self.force_leave_clan,
             'kick_player': self.kick_player,
-            'accept_request': self.process_request,
-            'decline_request': self.process_request
+            'accept_player_request': self.process_player_request,
+            'decline_player_request': self.process_player_request,
+            'accept_team_request': self.process_team_request,
+            'decline_team_request': self.process_team_request,
+            'remove_team': self.remove_team
         }
 
     def post(self, request, *args, **kwargs):
         self.clan = self.get_object()
         self.action_key = request.POST['action']
-        self.player_id = request.POST['player_id']
-        self.player = Player.objects.get(pk=self.player_id)
+        self.object_id = request.POST['object_id']
         action = self.actions[self.action_key]
         action()
         return JsonResponse(self.response)

@@ -43,6 +43,9 @@ def join_team(team, player, response):
             # Team has no members, join immediately and become new leader
             team.team_members.add(player)
             team.leader = player
+            if team.clan_pending and player.clan != team.clan_pending:
+                team.clan_pending = None
+
             team.save()
 
 

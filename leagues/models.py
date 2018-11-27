@@ -5,7 +5,7 @@ from django.utils.text import slugify
 from django.conf import settings
 from django.template.defaultfilters import slugify
 from django_countries.fields import CountryField
-from django.db.models import F, Q
+from django.db.models import F, Q, Sum
 from datetime import date
 from enum import Enum
 import re
@@ -103,14 +103,17 @@ class TournamentStatus(Enum):
 class Tournament(models.Model):
     name = models.CharField('tournament name', max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True)
-    prize = models.PositiveIntegerField('tournament prize', null=True, blank=True,
-                                        help_text='prize pool in dollars')
     opening_date = models.DateField('date of the tournament start', default=begin_date_default)
     end_date = models.DateField('date of the tournament end', default=end_date_default)
     sponsors = models.ManyToManyField(Sponsor, through='Sponsorship', blank=True)
     description = models.TextField('description', blank=True, help_text="Description of tournament")
     game = models.ForeignKey(Game, on_delete=models.PROTECT)
     game_mode = models.ForeignKey(GameMode, on_delete=models.PROTECT)
+
+    @property
+    def prize(self):
+        total = Sponsorship.objects.filter(tournament=self).aggregate(Sum('amount'))
+        return total['amount__sum'] or 0
 
     @property
     def status(self):
@@ -211,7 +214,7 @@ class Team(models.Model):
                              verbose_name='Game focused by the team')
     clan = models.ForeignKey(Clan, on_delete=models.SET_NULL, null=True, blank=True,
                              verbose_name='Related clan')
-    clan_pending = models.ForeignKey(Clan, on_delete=models.SET_NULL, related_name='team_request',
+    clan_pending = models.ForeignKey(Clan, on_delete=models.SET_NULL, related_name='team_requests',
                                      null=True, blank=True)
 
     def as_array(self):

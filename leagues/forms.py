@@ -1,3 +1,5 @@
+from builtins import type
+
 from django import forms
 from django.forms import ModelForm
 from django.core.exceptions import ValidationError
@@ -53,11 +55,20 @@ class SponsorshipForm(ModelForm):
         model = Sponsorship
         fields = ['sponsor', 'tournament', 'type', 'amount']
 
+    def clean(self):
+        cleaned_data = super().clean()
+        tournament = cleaned_data['tournament']
+        sponsorship_type = cleaned_data['type']
+        if sponsorship_type == 'MAIN':
+            if tournament.sponsorship_set.filter(type='MAIN').exists():
+                raise ValidationError('Tournament can have only one main sponsor')
+        return cleaned_data
+
 
 class TournamentForm(ModelForm):
     class Meta:
         model = Tournament
-        fields = ['name', 'prize', 'opening_date', 'end_date', 'description', 'game', 'game_mode']
+        fields = ['name', 'opening_date', 'end_date', 'description', 'game', 'game_mode']
         widgets = {
             'opening_date': CalendarWidget(),
             'end_date': CalendarWidget()

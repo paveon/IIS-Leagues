@@ -150,7 +150,7 @@
                       {% endif %}
                     {% else %}
                       <button onclick="buttonClick(event, {{ team.0.id }}, 'cancel_team');"
-                              class="w3-button w3-orange table_button pending_button">
+                              class="w3-button w3-orange table_button orange_button">
                         <span class="normal">Pending</span>
                         <span class="hover">Cancel</span>
                       </button>
@@ -209,7 +209,7 @@
                     {% else %}
                       {% if clan in clan_pendings %}
                         <button onclick="buttonClick(event, {{ clan.id }}, 'cancel_clan');"
-                                class="w3-button w3-orange table_button pending_button">
+                                class="w3-button w3-orange table_button orange_button">
                           <span class="normal">Pending</span>
                           <span class="hover">Cancel</span>
                         </button>

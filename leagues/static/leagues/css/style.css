@@ -159,11 +159,21 @@ a {
     height: 26px;
 }
 
+.green_button {
+    font-weight: bold;
+    border: 2px solid green !important;
+}
+
 .green_button:hover {
     color: black !important;
     font-weight: bold;
     background-color: white !important;
     border: 2px solid green !important;
+}
+
+.red_button {
+    font-weight: bold;
+    border: 2px solid red !important;
 }
 
 .red_button:hover {
@@ -173,20 +183,27 @@ a {
     border: 2px solid red !important;
 }
 
-.pending_button:hover {
-    color: black !important;
+.orange_button {
     font-weight: bold;
-    border: 2px solid #ff9800!important;
-    background-color: white !important;
+    border: 2px solid #ff9800 !important;
 }
 
-.pending_button .hover {
+.orange_button:hover {
+    color: black !important;
+    font-weight: bold;
+    background-color: white !important;
+    border: 2px solid #ff9800 !important;
+}
+
+.orange_button .hover {
     display: none;
 }
-.pending_button:hover .normal {
+
+.orange_button:hover .normal {
     display: none;
 }
-.pending_button:hover .hover {
+
+.orange_button:hover .hover {
     display: inline;
 }
 
@@ -200,4 +217,12 @@ article p {
 
 .button_bar button {
     width: 125px;
+}
+
+input:required {
+  border: 1px solid red !important;
+}
+
+select:required {
+  border: 1px solid red !important;
 }

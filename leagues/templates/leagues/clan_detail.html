@@ -4,20 +4,20 @@
 
 {% block scripts %}
   <script>
-      function buttonClick(event, player_id, action) {
+      function buttonClick(event, object_id, action) {
           let url = '{% url 'leagues:clan_detail' clan.slug %}';
           let data = {
               'action': action,
-              'player_id': player_id
+              'object_id': object_id
           };
 
           function callback(json) {
               if (json['has_clan_teams']) {
                   openDialog('Do you really wish to leave all clan\'s teams?',
-                      new CallbackConfig([player_id, 'force_leave_clan']));
+                      new CallbackConfig([object_id, 'force_leave_clan']));
               } else if (json['need_clan']) {
                   openDialog('Do you wish to join team\'s clan?',
-                      new CallbackConfig([player_id, 'force_join_team']));
+                      new CallbackConfig([object_id, 'force_join_team']));
               } else {
                   location.reload();
               }
@@ -63,15 +63,17 @@
 
       <div id="info" class="w3-container w3-section section" style="position: relative;">
 
-        <div class="w3-display-topright" style="right: 20px; top:10px">
+        <div class="button_bar" style="position: relative;overflow: auto;">
           {% if user.player.clan == clan %}
             <button type="button" class="w3-button w3-round w3-red"
+                    style="float: right;"
                     onclick="openDialog('Do you really wish to leave this clan?',
                         new CallbackConfig([{{ user.player.id }}, 'leave_clan']));">
               Leave
             </button>
           {% else %}
             <button type="button" class="w3-button w3-round w3-green"
+                    style="float: right;"
                     onclick="buttonClick(event, {{ user.player.id }}, 'join_clan')">
               Join
             </button>
@@ -105,6 +107,57 @@
 
 
       <div id="teams" class="w3-container w3-section section">
+        {% if user.player == clan.leader %}
+          <h3>Team requests</h3>
+          <div class="pagedTable w3-card w3-round w3-margin-bottom">
+            <table class="w3-table w3-striped w3-bordered w3-hoverable">
+              <thead>
+              <tr class="">
+                <th>Name</th>
+                <th>Leader</th>
+                <th>Win ratio</th>
+                <th></th>
+              </tr>
+              </thead>
+
+              <tbody id="team_requests_rows">
+              {% for team in clan.team_requests.all %}
+                <tr style="display: none">
+                  <td>
+                    <a href="{% url 'leagues:team_detail' team.slug %}">
+                      {{ team.name }}
+                    </a>
+                  </td>
+                  <td>
+                    {% if team.leader %}
+                      <a href="{% url 'leagues:player_detail' team.leader.slug %}">
+                        {{ team.leader.nickname }}
+                      </a>
+                    {% else %}
+                      None
+                    {% endif %}
+                  </td>
+                  <td>{{ team.win_ratio|default:"No matches" }}</td>
+
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    <button onclick="buttonClick(event, {{ team.id }}, 'decline_team_request')"
+                            class="w3-button w3-red table_button red_button">
+                      Decline
+                    </button>
+                    <button onclick="buttonClick(event, {{ team.id }}, 'accept_team_request')"
+                            class="w3-button w3-green table_button green_button">
+                      Accept
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            {% include 'leagues/table_footer.html' %}
+          </div>
+        {% endif %}
+
+
         <h3>Teams</h3>
         <div class="pagedTable w3-card w3-round">
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
@@ -112,14 +165,13 @@
             <tr class="">
               <th>Name</th>
               <th>Leader</th>
-              <th>Matches won</th>
-              <th>Matches total</th>
               <th>Win ratio</th>
+              <th></th>
             </tr>
             </thead>
 
             <tbody id="team_rows">
-            {% for team in clan_teams %}
+            {% for team in clan.team_set.all %}
               <tr style="display: none">
                 <td>
                   <a href="{% url 'leagues:team_detail' team.slug %}">
@@ -135,9 +187,14 @@
                     None
                   {% endif %}
                 </td>
-                <td>{{ team.matches_won.count }}</td>
-                <td>{{ team.all_matches.count }}</td>
                 <td>{{ team.win_ratio|default:"No matches" }}</td>
+
+                <td class="w3-padding-3 w3-small table_button_center">
+                  <button onclick="buttonClick(event, {{ team.id }}, 'remove_team')"
+                          class="w3-button w3-red table_button red_button">
+                    Remove
+                  </button>
+                </td>
               </tr>
             {% endfor %}
             </tbody>
@@ -158,7 +215,7 @@
               </tr>
               </thead>
 
-              <tbody id="requests_rows">
+              <tbody id="player_requests_rows">
               {% for player in membership_requests %}
                 <tr style="display: none">
                   <td>
@@ -168,13 +225,13 @@
                   </td>
 
                   <td class="w3-padding-3 w3-small table_button_center">
-                    <button onclick="buttonClick(event, {{ player.id }}, 'accept_request')"
-                            class="w3-button w3-green table_button green_button">
-                      Accept
-                    </button>
-                    <button onclick="buttonClick(event, {{ player.id }}, 'decline_request')"
+                    <button onclick="buttonClick(event, {{ player.id }}, 'decline_player_request')"
                             class="w3-button w3-red table_button red_button">
                       Decline
+                    </button>
+                    <button onclick="buttonClick(event, {{ player.id }}, 'accept_player_request')"
+                            class="w3-button w3-green table_button green_button">
+                      Accept
                     </button>
                   </td>
                 </tr>
