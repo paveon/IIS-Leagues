@@ -3,6 +3,8 @@ from builtins import type
 from django import forms
 from django.forms import ModelForm
 from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 from leagues.models import *
 from leagues.model_actions import *
 
@@ -17,6 +19,40 @@ class CalendarWidget(forms.TextInput):
         js = (
             'leagues/js/date_picker.js',
         )
+
+
+class MyUserForm(UserCreationForm):
+    birth_date = forms.DateField(required=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'password1', 'password2', 'birth_date']
+        widgets = {
+            'birth_date': CalendarWidget(),
+        }
+
+    def save(self, commit=True):
+        if not commit:
+            raise NotImplementedError("Can't create User and UserProfile without database save")
+        user = super(MyUserForm, self).save(commit=True)
+        user_profile = Player(nickname=self.cleaned_data['username'], birth_date=self.cleaned_data['birth_date'], user=user)
+        user_profile.save()
+        user.player = user_profile
+        user.save()
+        return user, user_profile
+
+    def clean(self):
+        cleaned_data = super().clean()
+        born = cleaned_data['birth_date']
+        today = datetime.date.today()
+        if born > today:
+            raise ValidationError('Invalid birth date, can\'t be in future')
+        else:
+            age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+            if age < 15:
+                raise ValidationError('Player must be at least 15 years old!')
+            else:
+                return cleaned_data
 
 
 class PlayerForm(ModelForm):

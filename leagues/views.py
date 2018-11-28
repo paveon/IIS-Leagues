@@ -29,23 +29,17 @@ class SignupView(View):
     template_name = "leagues/signup.html"
 
     def post(self, request):
-        form = UserCreationForm(request.POST)
+        form = MyUserForm(request.POST)
         if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            raw_password = form.cleaned_data.get('password1')
-            new_user = authenticate(username=username, password=raw_password)
-            player = Player.objects.create(nickname=username)
-            player.user = new_user
-            player.save()
+            new_user = form.save(commit=True)
 
-            login(request, new_user)
+            login(request, new_user[0])
             return HttpResponseRedirect(reverse('leagues:index'))
         else:
             return render(request, self.template_name, {'form': form})
 
     def get(self, request):
-        form = UserCreationForm()
+        form = MyUserForm()
         return render(request, self.template_name, {'form': form})
 
 
