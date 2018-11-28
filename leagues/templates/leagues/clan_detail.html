@@ -62,24 +62,24 @@
       </header>
 
       <div id="info" class="w3-container w3-section section" style="position: relative;">
-
-        <div class="button_bar" style="position: relative;overflow: auto;">
-          {% if user.player.clan == clan %}
-            <button type="button" class="w3-button w3-round w3-red"
-                    style="float: right;"
-                    onclick="openDialog('Do you really wish to leave this clan?',
-                        new CallbackConfig([{{ user.player.id }}, 'leave_clan']));">
-              Leave
-            </button>
-          {% else %}
-            <button type="button" class="w3-button w3-round w3-green"
-                    style="float: right;"
-                    onclick="buttonClick(event, {{ user.player.id }}, 'join_clan')">
-              Join
-            </button>
-          {% endif %}
-        </div>
-
+        {% if user.is_authenticated %}
+          <div class="button_bar" style="position: relative;overflow: auto;">
+            {% if user.player.clan == clan %}
+              <button type="button" class="w3-button w3-round w3-red"
+                      style="float: right;"
+                      onclick="openDialog('Do you really wish to leave this clan?',
+                          new CallbackConfig([{{ user.player.id }}, 'leave_clan']));">
+                Leave
+              </button>
+            {% else %}
+              <button type="button" class="w3-button w3-round w3-green"
+                      style="float: right;"
+                      onclick="buttonClick(event, {{ user.player.id }}, 'join_clan')">
+                Join
+              </button>
+            {% endif %}
+          </div>
+        {% endif %}
 
         <h4><b>Active:</b>
           {% if clan.active %}
@@ -166,7 +166,9 @@
               <th>Name</th>
               <th>Leader</th>
               <th>Win ratio</th>
-              <th></th>
+              {% if user.is_authenticated and user.player.clan.leader == user.player %}
+                <th></th>
+              {% endif %}
             </tr>
             </thead>
 
@@ -188,13 +190,14 @@
                   {% endif %}
                 </td>
                 <td>{{ team.win_ratio|default:"No matches" }}</td>
-
-                <td class="w3-padding-3 w3-small table_button_center">
-                  <button onclick="buttonClick(event, {{ team.id }}, 'remove_team')"
-                          class="w3-button w3-red table_button red_button">
-                    Remove
-                  </button>
-                </td>
+                {% if user.is_authenticated and user.player.clan.leader == user.player %}
+                  <td class="w3-padding-3 w3-small table_button_center">
+                    <button onclick="buttonClick(event, {{ team.id }}, 'remove_team')"
+                            class="w3-button w3-red table_button red_button">
+                      Remove
+                    </button>
+                  </td>
+                {% endif %}
               </tr>
             {% endfor %}
             </tbody>

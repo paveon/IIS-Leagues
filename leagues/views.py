@@ -809,11 +809,11 @@ class TournamentView(generic.TemplateView):
         context = self.get_context_data(**kwargs)
         tournaments = Tournament.objects.all()
         form_data = set()
-
-        for tournament in tournaments:
-            teams = RegisteredTeams.objects.filter(tournament=tournament)
-            if teams.count() >= 2 and teams.filter(team__leader=request.user.player):
-                form_data.add(tournament)
+        if request.user.is_authenticated:
+            for tournament in tournaments:
+                teams = RegisteredTeams.objects.filter(tournament=tournament)
+                if teams.count() >= 2 and teams.filter(team__leader=request.user.player):
+                    form_data.add(tournament)
 
         context['match_form_data'] = form_data
         return render(request, self.template_name, context)
