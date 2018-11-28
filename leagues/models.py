@@ -362,6 +362,12 @@ class Player(models.Model):
     matches = models.ManyToManyField(Match, through='PlayedMatch', verbose_name='Played matches')
 
     @property
+    def tournaments(self):
+        registered = self.teams.all()
+        tournaments = RegisteredTeams.objects.filter(team__in=registered)
+        return tournaments
+
+    @property
     def role(self):
         if self.user.is_superuser:
             return UserRole.ADMIN
