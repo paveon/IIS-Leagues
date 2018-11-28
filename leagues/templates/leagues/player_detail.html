@@ -68,7 +68,7 @@
       </header>
 
       <div id="info" class="w3-container w3-section section" style="position: relative;">
-        {% if user.player == player %}
+        {% if user.is_authenticated and user.player == player %}
           <div>
             <button type="button" class="w3-round w3-green w3-button w3-margin-right green_button"
                     onclick="$('#{{ player_form.prefix }}').show()">
@@ -115,7 +115,7 @@
               <th>Name</th>
               <th>Leader</th>
               <th>Win ratio</th>
-              {% if user.player == player %}
+              {% if user.is_authenticated and user.player == player %}
                 <th></th>
               {% endif %}
             </tr>
@@ -140,7 +140,7 @@
                   {{ team.win_ratio }}
                 </td>
 
-                {% if user.player == player %}
+                {% if user.is_authenticated and user.player == player %}
                   <td class="w3-padding-3 w3-small table_button_center">
                     <button onclick="openDialog('Do you really wish to leave team \'{{ team.name }}\'',
                         new CallbackConfig([{{ team.id }}, 'leave_team']));"
@@ -188,9 +188,9 @@
                 </td>
                 <td>
                   {% if match.match.tournament %}
-                  <a href="{% url 'leagues:tournament_detail' match.match.tournament.slug %}">
-                    {{ match.match.tournament }}
-                  </a>
+                    <a href="{% url 'leagues:tournament_detail' match.match.tournament.slug %}">
+                      {{ match.match.tournament }}
+                    </a>
                   {% else %}
                     {{ match.match.tournament }}
                   {% endif %}
@@ -243,67 +243,69 @@
   {% load widget_tweaks %}
 
   <!--  PLAYER INFO FORM !-->
-  <div id="{{ player_form.prefix }}" class="w3-modal" {% if player_form.errors %}
-       style="display: block" {% endif %}>
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Edit '{{ player_form.nickname.value }}'</h3>
+  {% if user.is_authenticated %}
+    <div id="{{ player_form.prefix }}" class="w3-modal" {% if player_form.errors %}
+         style="display: block" {% endif %}>
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Edit '{{ player_form.nickname.value }}'</h3>
 
-        <button onclick="$('#{{ player_form.prefix }}').hide()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <form method="POST" action="{% url 'leagues:player_detail' player.slug %}">
-        <div class="w3-section w3-container">
-          {% csrf_token %}
-          {% include 'leagues/form_errors.html' with errors=player_form.errors %}
-
-          {{ player_form.user.as_hidden }}
-
-          <label><b>{{ player_form.nickname.label_tag }}</b></label>
-          {% render_field player_form.nickname class+="formUnique w3-input w3-border w3-margin-bottom" %}
-
-          <div class="w3-margin-bottom input-flex">
-            <div class="w3-margin-right" style="flex:1 0 0;">
-              <label><b>{{ player_form.first_name.label_tag }}</b></label>
-              {% render_field player_form.first_name class+="w3-input w3-border" %}
-            </div>
-            <div style="flex:1 0 0;">
-              <label><b>{{ player_form.last_name.label_tag }}</b></label>
-              {% render_field player_form.last_name class+="w3-input w3-border" %}
-            </div>
-          </div>
-
-          <label><b>{{ player_form.country.label_tag }}</b></label>
-          {% render_field player_form.country class+="w3-input w3-border w3-margin-bottom" %}
-
-          <label><b>{{ player_form.birth_date.label_tag }}</b></label>
-          <div class='w3-cell-row w3-margin-bottom'>
-            {% render_field player_form.birth_date class+="w3-input w3-border w3-cell" %}
-            <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
-              <span class="fa fa-calendar"></span>
-            </div>
-          </div>
-
-          <label><b>{{ player_form.image_url.label_tag }}</b></label>
-          {% render_field player_form.image_url class+="w3-input w3-border w3-margin-bottom" %}
-
-          <label><b>{{ player_form.description.label_tag }}</b></label>
-          {% render_field player_form.description class+="w3-input w3-border" %}
-        </div>
-
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
           <button onclick="$('#{{ player_form.prefix }}').hide()" type="button"
-                  class="w3-button w3-red">Cancel
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
           </button>
+        </header>
+        <form method="POST" action="{% url 'leagues:player_detail' player.slug %}">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
+            {% include 'leagues/form_errors.html' with errors=player_form.errors %}
 
-          <input class="formAction" type="hidden" name="action" value="player_edit">
-          <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Edit">
-        </div>
-      </form>
+            {{ player_form.user.as_hidden }}
+
+            <label><b>{{ player_form.nickname.label_tag }}</b></label>
+            {% render_field player_form.nickname class+="formUnique w3-input w3-border w3-margin-bottom" %}
+
+            <div class="w3-margin-bottom input-flex">
+              <div class="w3-margin-right" style="flex:1 0 0;">
+                <label><b>{{ player_form.first_name.label_tag }}</b></label>
+                {% render_field player_form.first_name class+="w3-input w3-border" %}
+              </div>
+              <div style="flex:1 0 0;">
+                <label><b>{{ player_form.last_name.label_tag }}</b></label>
+                {% render_field player_form.last_name class+="w3-input w3-border" %}
+              </div>
+            </div>
+
+            <label><b>{{ player_form.country.label_tag }}</b></label>
+            {% render_field player_form.country class+="w3-input w3-border w3-margin-bottom" %}
+
+            <label><b>{{ player_form.birth_date.label_tag }}</b></label>
+            <div class='w3-cell-row w3-margin-bottom'>
+              {% render_field player_form.birth_date class+="w3-input w3-border w3-cell" %}
+              <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
+                <span class="fa fa-calendar"></span>
+              </div>
+            </div>
+
+            <label><b>{{ player_form.image_url.label_tag }}</b></label>
+            {% render_field player_form.image_url class+="w3-input w3-border w3-margin-bottom" %}
+
+            <label><b>{{ player_form.description.label_tag }}</b></label>
+            {% render_field player_form.description class+="w3-input w3-border" %}
+          </div>
+
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#{{ player_form.prefix }}').hide()" type="button"
+                    class="w3-button w3-red">Cancel
+            </button>
+
+            <input class="formAction" type="hidden" name="action" value="player_edit">
+            <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Edit">
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
+  {% endif %}
 
 {% endblock %}
 

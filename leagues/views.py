@@ -397,27 +397,29 @@ class SocialView(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        player = Player.objects.get(pk=self.request.user.player.id)
+        user = self.request.user
+        if user.is_authenticated:
+            # Split all teams into 3 types and create tuple with membership info for each of them
+            player = user.player
+            joined_teams = player.teams.all()
+            pending_teams = player.team_pendings.all()
+            remaining_teams = Team.objects.all().difference(joined_teams).difference(pending_teams)
+            remaining_teams = list(map(lambda x: (x, MembershipStatus.NOT_MEMBER), remaining_teams))
+            joined_teams = list(map(lambda x: (x, MembershipStatus.MEMBER), joined_teams))
+            pending_teams = list(map(lambda x: (x, MembershipStatus.PENDING), pending_teams))
 
-        # Split all teams into 3 types and create tuple with membership info for each of them
-        joined_teams = player.teams.all()
-        pending_teams = player.team_pendings.all()
-        remaining_teams = Team.objects.all().difference(joined_teams).difference(pending_teams)
-        remaining_teams = list(map(lambda x: (x, MembershipStatus.NOT_MEMBER), remaining_teams))
-        joined_teams = list(map(lambda x: (x, MembershipStatus.MEMBER), joined_teams))
-        pending_teams = list(map(lambda x: (x, MembershipStatus.PENDING), pending_teams))
-
-        # Join all 3 types of teams into a single list
-        teams = joined_teams + pending_teams + remaining_teams
+            # Join all 3 types of teams into a single list
+            teams = joined_teams + pending_teams + remaining_teams
+            context['player'] = player
+            context['membership'] = MembershipStatus.__members__
+            context['clan_form'] = ClanForm(prefix='clan_form')
+            context['team_form'] = TeamForm(prefix='team_form')
+        else:
+            teams = list(map(lambda x: (x, MembershipStatus.NOT_MEMBER), Team.objects.all()))
 
         context['player_list'] = Player.objects.all()
-        context['player'] = player
-        context['clan_pendings'] = player.clan_pendings.all()
         context['team_list'] = teams
         context['clan_list'] = Clan.objects.all()
-        context['membership'] = MembershipStatus.__members__
-        context['clan_form'] = ClanForm(prefix='clan_form')
-        context['team_form'] = TeamForm(prefix='team_form')
         return context
 
     def post(self, request, *args, **kwargs):

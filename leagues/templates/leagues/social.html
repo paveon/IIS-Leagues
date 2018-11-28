@@ -94,10 +94,12 @@
       <div id="teams" class="w3-container w3-section section">
         <h3>Teams</h3>
         <div class="pagedTable w3-card w3-round">
-          <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                  onclick="$('#{{ team_form.prefix }}').show()">
-            <i class="fa fa-plus"></i> Create team
-          </button>
+          {% if user.is_authenticated %}
+            <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
+                    onclick="$('#{{ team_form.prefix }}').show()">
+              <i class="fa fa-plus"></i> Create team
+            </button>
+          {% endif %}
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr class="">
@@ -172,7 +174,7 @@
       <div id="clans" class="w3-container w3-section section">
         <h3>Clans</h3>
         <div class="pagedTable w3-card w3-round">
-          {% if not player.clan %}
+          {% if user.is_authenticated and not player.clan %}
             <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
                     onclick="$('#{{ clan_form.prefix }}').show()">
               <i class="fa fa-plus"></i> Create clan
@@ -217,7 +219,7 @@
                         </button>
                       {% endif %}
                     {% else %}
-                      {% if clan in clan_pendings %}
+                      {% if clan in player.clan_pendings %}
                         <button onclick="buttonClick(event, {{ clan.id }}, 'cancel_clan');"
                                 class="w3-button w3-orange table_button orange_button">
                           <span class="normal">Pending</span>
@@ -246,95 +248,99 @@
 
 {% block endpage %}
   {% load widget_tweaks %}
-  <div id="{{ team_form.prefix }}" class="w3-modal" {% if team_form.errors %}style="display: block"{% endif %}>
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Create Team</h3>
+  {% if user.is_authenticated %}
+    <div id="{{ team_form.prefix }}" class="w3-modal" {% if team_form.errors %}style="display: block"{% endif %}>
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Create Team</h3>
 
-        <button onclick="$('#{{ team_form.prefix }}').hide()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <form method="POST" action="{% url 'leagues:social' %}">
-        <div class="w3-section w3-container">
-          {% include 'leagues/form_errors.html' with errors=team_form.errors %}
-          {% csrf_token %}
-          {{ team_form.founded.as_hidden }}
+          <button onclick="$('#{{ team_form.prefix }}').hide()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
+          </button>
+        </header>
+        <form method="POST" action="{% url 'leagues:social' %}">
+          <div class="w3-section w3-container">
+            {% include 'leagues/form_errors.html' with errors=team_form.errors %}
+            {% csrf_token %}
+            {{ team_form.founded.as_hidden }}
 
-          <div class="w3-margin-bottom input-flex">
-            <div style="flex:3 1 0;">
-              <label><b>{{ team_form.name.label_tag }}</b></label>
-              <div class='w3-cell-row'>
-                {% render_field team_form.name class+="formUnique w3-input w3-border w3-cell" %}
+            <div class="w3-margin-bottom input-flex">
+              <div style="flex:3 1 0;">
+                <label><b>{{ team_form.name.label_tag }}</b></label>
+                <div class='w3-cell-row'>
+                  {% render_field team_form.name class+="formUnique w3-input w3-border w3-cell" %}
+                </div>
+              </div>
+              <div style="flex:1 1 0" class="w3-center">
+                <label><b>{{ team_form.active.label_tag }}</b></label>
+                {% render_field team_form.active class+="w3-block w3-check" style="margin-top:3px" %}
               </div>
             </div>
-            <div style="flex:1 1 0" class="w3-center">
-              <label><b>{{ team_form.active.label_tag }}</b></label>
-              {% render_field team_form.active class+="w3-block w3-check" style="margin-top:3px" %}
-            </div>
+
+            <label><b>{{ team_form.game.label_tag }}</b></label>
+            {% render_field team_form.game class+="w3-input w3-border w3-margin-bottom" %}
+
+            <label><b>{{ team_form.description.label_tag }}</b></label>
+            {% render_field team_form.description class+="w3-input w3-border" %}
+
           </div>
 
-          <label><b>{{ team_form.game.label_tag }}</b></label>
-          {% render_field team_form.game class+="w3-input w3-border w3-margin-bottom" %}
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#{{ team_form.prefix }}').hide()" type="button"
+                    class="w3-button w3-red">Cancel
+            </button>
 
-          <label><b>{{ team_form.description.label_tag }}</b></label>
-          {% render_field team_form.description class+="w3-input w3-border" %}
-
-        </div>
-
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button onclick="$('#{{ team_form.prefix }}').hide()" type="button"
-                  class="w3-button w3-red">Cancel
-          </button>
-
-          <input type="hidden" name="player_id" value="{{ user.player.id }}">
-          <input type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="action" value="create_team" onclick="$('#{{ team_form.prefix }}').hide()">
-          <input type="submit" class="formSubmit w3-button w3-green w3-right" value="Create">
-        </div>
-      </form>
+            <input type="hidden" name="player_id" value="{{ user.player.id }}">
+            <input type="hidden" name="object_id" value="">
+            <input class="formAction" type="hidden" name="action" value="create_team"
+                   onclick="$('#{{ team_form.prefix }}').hide()">
+            <input type="submit" class="formSubmit w3-button w3-green w3-right" value="Create">
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <div id="{{ clan_form.prefix }}" class="w3-modal" {% if clan_form.errors %}style="display: block"{% endif %}>
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Create Clan</h3>
+    <div id="{{ clan_form.prefix }}" class="w3-modal" {% if clan_form.errors %}style="display: block"{% endif %}>
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Create Clan</h3>
 
-        <button onclick="$('#{{ clan_form.prefix }}').hide()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <form method="POST" action="{% url 'leagues:social' %}">
-        <div class="w3-section w3-container">
-          {% include 'leagues/form_errors.html' with errors=clan_form.errors %}
-          {% csrf_token %}
-          {{ clan_form.founded.as_hidden }}
-
-          <label><b>{{ clan_form.name.label_tag }}</b></label>
-          {% render_field clan_form.name class+="formUnique w3-input w3-border w3-margin-bottom" %}
-
-          <label><b>{{ clan_form.country.label_tag }}</b></label>
-          {% render_field clan_form.country class+="w3-input w3-border w3-margin-bottom" %}
-
-          <label><b>{{ team_form.description.label_tag }}</b></label>
-          {% render_field clan_form.description class+="w3-input w3-border" %}
-
-        </div>
-
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
           <button onclick="$('#{{ clan_form.prefix }}').hide()" type="button"
-                  class="w3-button w3-red">Cancel
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
           </button>
+        </header>
+        <form method="POST" action="{% url 'leagues:social' %}">
+          <div class="w3-section w3-container">
+            {% include 'leagues/form_errors.html' with errors=clan_form.errors %}
+            {% csrf_token %}
+            {{ clan_form.founded.as_hidden }}
 
-          <input type="hidden" name="player_id" value="{{ user.player.id }}">
-          <input type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="action" value="create_clan" onclick="$('#{{ clan_form.prefix }}').hide()">
-          <input type="submit" class="formSubmit w3-button w3-green w3-right" value="Create">
-        </div>
-      </form>
+            <label><b>{{ clan_form.name.label_tag }}</b></label>
+            {% render_field clan_form.name class+="formUnique w3-input w3-border w3-margin-bottom" %}
+
+            <label><b>{{ clan_form.country.label_tag }}</b></label>
+            {% render_field clan_form.country class+="w3-input w3-border w3-margin-bottom" %}
+
+            <label><b>{{ team_form.description.label_tag }}</b></label>
+            {% render_field clan_form.description class+="w3-input w3-border" %}
+
+          </div>
+
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#{{ clan_form.prefix }}').hide()" type="button"
+                    class="w3-button w3-red">Cancel
+            </button>
+
+            <input type="hidden" name="player_id" value="{{ user.player.id }}">
+            <input type="hidden" name="object_id" value="">
+            <input class="formAction" type="hidden" name="action" value="create_clan"
+                   onclick="$('#{{ clan_form.prefix }}').hide()">
+            <input type="submit" class="formSubmit w3-button w3-green w3-right" value="Create">
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
+  {% endif %}
 {% endblock %}
