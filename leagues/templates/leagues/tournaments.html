@@ -232,10 +232,12 @@
       <div id="matches" class="w3-container w3-section section">
         <h3>Matches</h3>
         <div class="pagedTable w3-card w3-round w3-margin-bottom">
-          <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                  onclick="$('#match_form').show()">
-            <i class="fa fa-plus"></i> Add new
-          </button>
+          {% if user.is_authenticated %}
+            <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
+                    onclick="$('#match_form').show()">
+              <i class="fa fa-plus"></i> Add new
+            </button>
+          {% endif %}
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr class="">
@@ -289,216 +291,218 @@
   </div>
 {% endblock %}
 
-{% block endpage %}
-  <div id="match_form" class="w3-modal">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Create Match</h3>
+{% if user.is_authenticated %}
+  {% block endpage %}
+    <div id="match_form" class="w3-modal">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Create Match</h3>
 
-        <button onclick="$('#match_form').hide(); $('.next').prop('disabled', false);" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <form id="tournament_id" method="POST" action="{% url 'leagues:tournaments' %}">
-        <div class="w3-section w3-container">
-          {% csrf_token %}
-
-          <label><b>{{ match_form.tournament.label_tag }}</b></label>
-          <select class="w3-input w3-border" name="match_create-tournament" id="match_create-tournament">
-            <option value>---------</option>
-            {% for row in match_form_data %}
-              <option value="{{ row.id }}">{{ row.name }}</option>
-            {% endfor %}
-          </select>
-
-        </div>
-
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button onclick="$('#match_form').hide()" type="button"
-                  class="w3-button w3-red">Cancel
+          <button onclick="$('#match_form').hide(); $('.next').prop('disabled', false);" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
           </button>
+        </header>
+        <form id="tournament_id" method="POST" action="{% url 'leagues:tournaments' %}">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
 
-          <button onclick="SendTournament(event)" type="button"
-                  class="w3-button w3-green w3-right next">Next
-          </button>
+            <label><b>{{ match_form.tournament.label_tag }}</b></label>
+            <select class="w3-input w3-border" name="match_create-tournament" id="match_create-tournament">
+              <option value>---------</option>
+              {% for row in match_form_data %}
+                <option value="{{ row.id }}">{{ row.name }}</option>
+              {% endfor %}
+            </select>
 
-        </div>
-      </form>
-    </div>
-  </div>
+          </div>
 
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="$('#match_form').hide()" type="button"
+                    class="w3-button w3-red">Cancel
+            </button>
 
-  <div id="team_pick" class="w3-modal">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Create Match</h3>
-        <button onclick="RemoveTeams()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <div id="team_pick_error" class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large" hidden>
-        <p></p>
+            <button onclick="SendTournament(event)" type="button"
+                    class="w3-button w3-green w3-right next">Next
+            </button>
+
+          </div>
+        </form>
       </div>
-      <form method="POST" action="{% url 'leagues:tournaments' %}" id="teams_id">
-        <div class="w3-section w3-container">
-          {% csrf_token %}
+    </div>
 
-          <label for="id_match_create-team_1"><b>{{ match_form.team_1.label_tag }}</b></label>
-          <select class="w3-input w3-border w3-margin-bottom" name="match_create-team_1" id="id_match_create-team_1">
-          </select>
 
-          <label for="id_match_create-team_2"><b>{{ match_form.team_2.label_tag }}</b></label>
-          <select class="w3-input w3-border w3-margin-bottom" name="match_create-team_2" id="id_match_create-team_2">
-          </select>
-        </div>
-        <input type="hidden" name="tournament" id="tournament">
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+    <div id="team_pick" class="w3-modal">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Create Match</h3>
           <button onclick="RemoveTeams()" type="button"
-                  class="w3-button w3-red">Cancel
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
           </button>
-
-          <button onclick="SendTeams(event)" type="button"
-                  class="w3-button w3-green w3-right next" id="teams_next">Create Match
-          </button>
-
+        </header>
+        <div id="team_pick_error" class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large" hidden>
+          <p></p>
         </div>
-      </form>
+        <form method="POST" action="{% url 'leagues:tournaments' %}" id="teams_id">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
+
+            <label for="id_match_create-team_1"><b>{{ match_form.team_1.label_tag }}</b></label>
+            <select class="w3-input w3-border w3-margin-bottom" name="match_create-team_1" id="id_match_create-team_1">
+            </select>
+
+            <label for="id_match_create-team_2"><b>{{ match_form.team_2.label_tag }}</b></label>
+            <select class="w3-input w3-border w3-margin-bottom" name="match_create-team_2" id="id_match_create-team_2">
+            </select>
+          </div>
+          <input type="hidden" name="tournament" id="tournament">
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button onclick="RemoveTeams()" type="button"
+                    class="w3-button w3-red">Cancel
+            </button>
+
+            <button onclick="SendTeams(event)" type="button"
+                    class="w3-button w3-green w3-right next" id="teams_next">Create Match
+            </button>
+
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <div id="game_pick" class="w3-modal">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Create Match</h3>
-        <button onclick="RemoveAll()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <form method="POST" action="{% url 'leagues:tournaments' %}" id="games_id">
-        <div class="w3-section w3-container">
-          {% csrf_token %}
-
-          <label for="id_match_create-game"><b>{{ match_form.game.label_tag }}</b></label>
-          <select class="w3-input w3-border w3-margin-bottom" name="match_create-game" id="id_match_create-game">
-          </select>
-
-        </div>
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button"
-                  onclick="GoBack('id_match_create-game', 'game_pick', 'match_form')"
-                  class="w3-button w3-red">Back
+    <div id="game_pick" class="w3-modal">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Create Match</h3>
+          <button onclick="RemoveAll()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
           </button>
+        </header>
+        <form method="POST" action="{% url 'leagues:tournaments' %}" id="games_id">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
 
-          <button type="button" onclick="buttonClick(event, 'picked_game', 'games_id')"
-                  class="w3-button w3-green w3-right next">Next
-          </button>
-        </div>
-      </form>
+            <label for="id_match_create-game"><b>{{ match_form.game.label_tag }}</b></label>
+            <select class="w3-input w3-border w3-margin-bottom" name="match_create-game" id="id_match_create-game">
+            </select>
+
+          </div>
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button type="button"
+                    onclick="GoBack('id_match_create-game', 'game_pick', 'match_form')"
+                    class="w3-button w3-red">Back
+            </button>
+
+            <button type="button" onclick="buttonClick(event, 'picked_game', 'games_id')"
+                    class="w3-button w3-green w3-right next">Next
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <div id="game_mode_pick" class="w3-modal">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Create Match</h3>
-        <button onclick="RemoveAll()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <form method="POST" action="{% url 'leagues:tournaments' %}" id="game_mode_id">
-        <div class="w3-section w3-container">
-          {% csrf_token %}
-
-          <label for="id_match_create-game_mode"><b>{{ match_form.game_mode.label_tag }}</b></label>
-          <select class="w3-input w3-border w3-margin-bottom" name="match_create-game_mode"
-                  id="id_match_create-game_mode">
-          </select>
-
-        </div>
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button" onclick="GoBack('id_match_create-game_mode', 'game_mode_pick', 'game_pick')"
-                  class="w3-button w3-red">Back
+    <div id="game_mode_pick" class="w3-modal">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Create Match</h3>
+          <button onclick="RemoveAll()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
           </button>
+        </header>
+        <form method="POST" action="{% url 'leagues:tournaments' %}" id="game_mode_id">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
 
-          <button type="button" onclick="buttonClick(event, 'picked_game_mode', 'game_mode_id')"
-                  class="w3-button w3-green w3-right next">Next
-          </button>
-          <input type="hidden" name="player_id" id="player_id" value="{{ user.player.id }}">
-          <input type="hidden" name="game_mode-game" id="game_mode-game">
-        </div>
-      </form>
+            <label for="id_match_create-game_mode"><b>{{ match_form.game_mode.label_tag }}</b></label>
+            <select class="w3-input w3-border w3-margin-bottom" name="match_create-game_mode"
+                    id="id_match_create-game_mode">
+            </select>
+
+          </div>
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button type="button" onclick="GoBack('id_match_create-game_mode', 'game_mode_pick', 'game_pick')"
+                    class="w3-button w3-red">Back
+            </button>
+
+            <button type="button" onclick="buttonClick(event, 'picked_game_mode', 'game_mode_id')"
+                    class="w3-button w3-green w3-right next">Next
+            </button>
+            <input type="hidden" name="player_id" id="player_id" value="{{ user.player.id }}">
+            <input type="hidden" name="game_mode-game" id="game_mode-game">
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <div id="team1_pick" class="w3-modal">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Create Match</h3>
-        <button onclick="RemoveAll()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <form method="POST" action="{% url 'leagues:tournaments' %}" id="team1_id">
-        <div class="w3-section w3-container">
-          {% csrf_token %}
-
-          <label for="team_1"><b>{{ match_form.team_1.label_tag }}</b></label>
-          <select class="w3-input w3-border w3-margin-bottom" name="team_1" id="team_1">
-          </select>
-
-        </div>
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button" onclick="GoBack('team_1', 'team1_pick', 'game_mode_pick')"
-                  class="w3-button w3-red">Back
+    <div id="team1_pick" class="w3-modal">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Create Match</h3>
+          <button onclick="RemoveAll()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
           </button>
+        </header>
+        <form method="POST" action="{% url 'leagues:tournaments' %}" id="team1_id">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
 
-          <button type="button" onclick="buttonClick(event, 'picked_team1', 'team1_id')"
-                  class="w3-button w3-green w3-right next" id="team1_next">Next
-          </button>
-          <input type="hidden" name="team_1-game" id="team_1-game">
-          <input type="hidden" name="team_1-game_mode" id="team_1-game_mode">
-        </div>
-      </form>
+            <label for="team_1"><b>{{ match_form.team_1.label_tag }}</b></label>
+            <select class="w3-input w3-border w3-margin-bottom" name="team_1" id="team_1">
+            </select>
+
+          </div>
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button type="button" onclick="GoBack('team_1', 'team1_pick', 'game_mode_pick')"
+                    class="w3-button w3-red">Back
+            </button>
+
+            <button type="button" onclick="buttonClick(event, 'picked_team1', 'team1_id')"
+                    class="w3-button w3-green w3-right next" id="team1_next">Next
+            </button>
+            <input type="hidden" name="team_1-game" id="team_1-game">
+            <input type="hidden" name="team_1-game_mode" id="team_1-game_mode">
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <div id="team2_pick" class="w3-modal">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Create Match</h3>
-        <button onclick="RemoveAll()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <form method="POST" action="{% url 'leagues:tournaments' %}" id="team2_id">
-        <div class="w3-section w3-container">
-          {% csrf_token %}
-
-          <label for="team_2"><b>{{ match_form.team_1.label_tag }}</b></label>
-          <select class="w3-input w3-border w3-margin-bottom" name="team_2" id="team_2">
-          </select>
-
-        </div>
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button" onclick="GoBack('team_2', 'team2_pick', 'team1_pick')"
-                  class="w3-button w3-red">Back
+    <div id="team2_pick" class="w3-modal">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Create Match</h3>
+          <button onclick="RemoveAll()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
           </button>
+        </header>
+        <form method="POST" action="{% url 'leagues:tournaments' %}" id="team2_id">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
 
-          <button type="button" onclick="buttonClick(event, 'non_turnament_done', 'team2_id')"
-                  class="w3-button w3-green w3-right next" id="team2_next">Create Match
-          </button>
-          <input type="hidden" name="player_id" value="{{ user.player.id }}">
-          <input type="hidden" name="team_2-game" id="team_2-game">
-          <input type="hidden" name="team_2-game_mode" id="team_2-game_mode">
-          <input type="hidden" name="team_2-team1" id="team_2-team1">
-        </div>
-      </form>
+            <label for="team_2"><b>{{ match_form.team_1.label_tag }}</b></label>
+            <select class="w3-input w3-border w3-margin-bottom" name="team_2" id="team_2">
+            </select>
+
+          </div>
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button type="button" onclick="GoBack('team_2', 'team2_pick', 'team1_pick')"
+                    class="w3-button w3-red">Back
+            </button>
+
+            <button type="button" onclick="buttonClick(event, 'non_turnament_done', 'team2_id')"
+                    class="w3-button w3-green w3-right next" id="team2_next">Create Match
+            </button>
+            <input type="hidden" name="player_id" value="{{ user.player.id }}">
+            <input type="hidden" name="team_2-game" id="team_2-game">
+            <input type="hidden" name="team_2-game_mode" id="team_2-game_mode">
+            <input type="hidden" name="team_2-team1" id="team_2-team1">
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
-{% endblock %}
+  {% endblock %}
+{% endif %}

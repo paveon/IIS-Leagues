@@ -111,7 +111,7 @@
       <div id="teams" class="w3-container w3-section section">
         <h3>Participating teams</h3>
         <div class="pagedTable w3-card w3-round">
-          {% if user.player == user.player.clan.leader %}
+          {% if user.is_authenticated and user.player == user.player.clan.leader %}
             {% if registered != None %}
               <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
                       onclick="teamUnreg(event)">
@@ -232,49 +232,51 @@
   </div>
 {% endblock %}
 
-{% block endpage %}
-  <div id="team_pick" class="w3-modal">
-    <div class="w3-modal-content w3-card-4" style="max-width:600px">
-      <header class="w3-container w3-center w3-light-grey w3-border-bottom">
-        <h3 class="modalTitle">Register team</h3>
-        <button onclick="RemoveTeams()" type="button"
-                class="w3-button w3-display-topright w3-red">
-          <i class="fa fa-times"></i>
-        </button>
-      </header>
-      <div id="team_pick_error" class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large" hidden>
-        <p></p>
+{% if user.is_authenticated %}
+  {% block endpage %}
+    <div id="team_pick" class="w3-modal">
+      <div class="w3-modal-content w3-card-4" style="max-width:600px">
+        <header class="w3-container w3-center w3-light-grey w3-border-bottom">
+          <h3 class="modalTitle">Register team</h3>
+          <button onclick="RemoveTeams()" type="button"
+                  class="w3-button w3-display-topright w3-red">
+            <i class="fa fa-times"></i>
+          </button>
+        </header>
+        <div id="team_pick_error" class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large" hidden>
+          <p></p>
+        </div>
+        <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="team_form">
+          <div class="w3-section w3-container">
+            {% csrf_token %}
+
+            <label for="team_select"><b>Pick team</b></label>
+            <select class="w3-input w3-border w3-margin-bottom" name="team_select" id="team_select">
+            </select>
+
+          </div>
+          <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+            <button type="button" onclick="RemoveTeams()"
+                    class="w3-button w3-red">Cancel
+            </button>
+
+            <button type="button" onclick="buttonClick(event, 'team_selected', 'team_form')"
+                    class="w3-button w3-green w3-right" id="team_reg">Register team
+            </button>
+          </div>
+        </form>
       </div>
-      <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="team_form">
-        <div class="w3-section w3-container">
-          {% csrf_token %}
-
-          <label for="team_select"><b>Pick team</b></label>
-          <select class="w3-input w3-border w3-margin-bottom" name="team_select" id="team_select">
-          </select>
-
-        </div>
-        <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button type="button" onclick="RemoveTeams()"
-                  class="w3-button w3-red">Cancel
-          </button>
-
-          <button type="button" onclick="buttonClick(event, 'team_selected', 'team_form')"
-                  class="w3-button w3-green w3-right" id="team_reg">Register team
-          </button>
-        </div>
-      </form>
     </div>
-  </div>
 
-  <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="set_teams">
-    {% csrf_token %}
-    <input type="hidden" name="clan" value="{{ user.player.clan.id }}">
-  </form>
+    <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="set_teams">
+      {% csrf_token %}
+      <input type="hidden" name="clan" value="{{ user.player.clan.id }}">
+    </form>
 
-  <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="unreg_form">
-    {% csrf_token %}
-    <input type="hidden" name="team" id="team_unreg">
-  </form>
+    <form method="POST" action="{% url 'leagues:tournament_detail' tournament.slug %}" id="unreg_form">
+      {% csrf_token %}
+      <input type="hidden" name="team" id="team_unreg">
+    </form>
 
-{% endblock %}
+  {% endblock %}
+{% endif %}
