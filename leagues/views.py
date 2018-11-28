@@ -4,25 +4,45 @@ from django.urls import reverse
 from django.views import generic, View
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import login, logout, views as auth_views
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseForbidden
 from django.forms.models import model_to_dict
-from django import forms
 from django_countries.fields import Country
-from django.db.models import F, Q
 from random import randint, choice, sample
 from datetime import timedelta
-import json
-from enum import Enum
 from leagues.forms import *
 from leagues.model_actions import *
+import json
 
 
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect(reverse('leagues:games'))
+
+
+class LoginView(auth_views.LoginView):
+    template_name = 'leagues/login.html'
+    authentication_form = AuthenticationForm
+
+    def get(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return HttpResponseRedirect(reverse('leagues:index'))
+        return render(request, self.template_name, self.get_context_data(**kwargs))
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            result = self.form_valid(form)
+        else:
+            if 'inactive' in form.error_messages:
+                form._errors = {}
+                form.add_error(None, 'Your account was suspended')
+            result = self.form_invalid(form)
+        return result
+
+        # return super().post(request, *args, **kwargs)
 
 
 class SignupView(View):
@@ -71,6 +91,15 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         self.object_id = self.request.GET['object_id']
         model_object = self.model_class.objects.get(pk=self.object_id)
         self.response = model_to_dict(model_object)
+
+        if type(model_object) is Player:
+            user = model_object.user
+            self.response['first_name'] = user.first_name
+            self.response['last_name'] = user.last_name
+            if user.is_superuser:
+                self.response['admin'] = True
+            else:
+                self.response['role'] = model_object.role.value
 
         # Convert lists of references (many to many fields) to list of their IDs
         for key, value in self.response.items():
@@ -128,7 +157,7 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
             Game.__name__.lower(): (Game, GameForm),
             Genre.__name__.lower(): (Genre, GenreForm),
             GameMode.__name__.lower(): (GameMode, GameModeForm),
-            Player.__name__.lower(): (Player, PlayerForm),
+            Player.__name__.lower(): (Player, SettingsPlayerForm),
             Team.__name__.lower(): (Team, TeamForm),
             Clan.__name__.lower(): (Clan, ClanForm),
             Tournament.__name__.lower(): (Tournament, TournamentForm),
@@ -150,11 +179,12 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
             self.context[class_name + '_list'] = model_class.objects.all()
 
         self.context['status'] = TournamentStatus.__members__
+        self.context['roles'] = UserRole.__members__
         return self.context
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        if not user.is_staff or not user.is_superuser:
+        if not user.is_staff and not user.is_superuser:
             return HttpResponseForbidden()
         if request.is_ajax():
             # Ajax calls are used to populate opened form with existing data
@@ -653,7 +683,6 @@ class ClanDetailView(generic.DetailView):
             member_stats.append((member, matches_total, matches_won, win_ratio))
 
         # Get played and won matches in each game
-
         clan_matches = self.clan.all_matches
         win_ratio = self.clan.win_ratio
         matches_won = self.clan.matches_won

@@ -318,6 +318,20 @@ class Equipment(models.Model):
         return self.name
 
 
+@template_enum
+class UserRole(Enum):
+    ADMIN = 0
+    STAFF = 1
+    USER = 2
+
+
+UserRoleNames = {
+    UserRole.ADMIN: 'Admin',
+    UserRole.STAFF: 'Staff',
+    UserRole.USER: 'User'
+}
+
+
 class Player(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     nickname = models.CharField(max_length=50, unique=True)
@@ -334,6 +348,18 @@ class Player(models.Model):
     team_pendings = models.ManyToManyField(Team, related_name='team_pendings')
     clan_pendings = models.ManyToManyField(Clan, related_name='clan_pendings')
     matches = models.ManyToManyField(Match, through='PlayedMatch', verbose_name='Played matches')
+
+    @property
+    def role(self):
+        if self.user.is_superuser:
+            return UserRole.ADMIN
+        elif self.user.is_staff:
+            return UserRole.STAFF
+        return UserRole.USER
+
+    @property
+    def role_name(self):
+        return UserRoleNames[self.role]
 
     @property
     def matches_won(self):
@@ -354,8 +380,9 @@ class Player(models.Model):
         last_name = self.user.last_name
         if first_name and last_name:
             return "{0} {1}".format(first_name, last_name)
+        elif not first_name and not last_name:
+            return None
         return first_name or last_name
-
 
     @property
     def age(self):
@@ -369,6 +396,7 @@ class Player(models.Model):
         return self.nickname
 
     def save(self, *args, **kwargs):
+        self.user.save()
         self.slug = slugify(self.nickname)
         super().save(*args, **kwargs)
 

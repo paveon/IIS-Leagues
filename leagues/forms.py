@@ -71,6 +71,13 @@ class PlayerForm(ModelForm):
 
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        player = self.instance
+        if player.pk:
+            self.fields['first_name'].initial = player.user.first_name
+            self.fields['last_name'].initial = player.user.last_name
+
     def clean(self):
         cleaned_data = super().clean()
         born = cleaned_data['birth_date']
@@ -86,21 +93,42 @@ class PlayerForm(ModelForm):
 
     def save(self, commit=True):
         player = super().save(commit=False)
-        first_name = self.cleaned_data['first_name']
-        last_name = self.cleaned_data['last_name']
-        if not player.user:
-            if not commit:
-                raise NotImplementedError('commit=False not supported when creating new player')
-            # Creating new player, create new corresponding user with generic password
-            nickname = self.cleaned_data['nickname']
-            user = User(username=nickname, first_name=first_name, last_name=last_name)
-            user.set_password('1234')
-            user.save()
-            player.user = user
-        else:
+        if player.user:
+            first_name = self.cleaned_data['first_name']
+            last_name = self.cleaned_data['last_name']
             player.user.first_name = first_name
             player.user.last_name = last_name
+        if commit:
+            player.save()
+        return player
 
+
+class SettingsPlayerForm(PlayerForm):
+    ROLES = (
+        (1, 'Staff'),
+        (2, 'User'),
+    )
+
+    role = forms.ChoiceField(choices=ROLES, initial=2)
+
+    class Meta(PlayerForm.Meta):
+        fields = PlayerForm.Meta.fields + ['role']
+
+    def save(self, commit=True):
+        player = super().save(commit=False)
+        if not player.user:
+            # Creating new player, create new corresponding user with generic password
+            nickname = self.cleaned_data['nickname']
+            user = User(username=nickname)
+            user.set_password('1234')
+            player.user = user
+
+        role = int(self.cleaned_data['role'])
+        first_name = self.cleaned_data['first_name']
+        last_name = self.cleaned_data['last_name']
+        player.user.first_name = first_name
+        player.user.last_name = last_name
+        player.user.is_staff = (role == UserRole.STAFF.value)
         if commit:
             player.save()
         return player

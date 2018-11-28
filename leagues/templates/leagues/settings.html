@@ -61,7 +61,9 @@
 
   <!-- Middle Column -->
   <!-- Settings container -->
-  <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 0 auto">
+  <div class="w3-card w3-round-large w3-white"
+       style="max-width: 1000px; flex: 1 0 auto; margin-bottom: 25px">
+
     <ul class="section-bar">
       <li onclick="showSection(event, 'Games');" id="games_tab"
           class="section-tab w3-bottombar w3-hover-light-grey w3-padding w3-border-red">
@@ -198,10 +200,10 @@
           <tr class="">
             <th>Nickname</th>
             <th>Clan</th>
-            <th>First name</th>
-            <th>Last name</th>
+            <th>Name</th>
             <th>Country of birth</th>
             <th>Birth date</th>
+            <th>Role</th>
             <th></th>
           </tr>
           </thead>
@@ -219,10 +221,14 @@
                   None
                 {% endif %}
               </td>
-              <td>{{ player.first_name }}</td>
-              <td>{{ player.last_name }}</td>
+              <td>{{ player.full_name }}</td>
               <td>{{ player.country }}</td>
-              <td>{{ player.birth_date|default:"" }}</td>
+              <td>{{ player.birth_date|default:""|date:"j.n.Y" }}</td>
+
+              <td>
+                {{ player.role_name }}
+              </td>
+
               <td class="edit_object"
                   onclick="OpenEditModal('{{ player_form.prefix }}', {{ player.id }});">
                 Edit<i class="fa fa-pencil-square-o" style="margin-left:10px"></i>
@@ -704,6 +710,11 @@
         <div class="w3-section w3-container">
           {% csrf_token %}
           {% include 'leagues/form_errors.html' with errors=player_form.errors %}
+
+          {% if user.is_superuser %}
+          <label><b>{{ player_form.role.label_tag }}</b></label>
+          {% render_field player_form.role class+="w3-input w3-border w3-margin-bottom" %}
+          {% endif %}
 
           <label><b>{{ player_form.nickname.label_tag }}</b></label>
           {% render_field player_form.nickname class+="formUnique w3-input w3-border w3-margin-bottom" %}

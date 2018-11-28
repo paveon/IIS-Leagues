@@ -133,6 +133,17 @@
                   'object_id': objectID,
               },
               success: function (json) {
+                  let roleField = $('#id_{{ player_form.prefix }}-role');
+                  let roleLabel = $('label[for="id_{{ player_form.prefix }}-role"]');
+                  if ('admin' in json) {
+                      console.log("ADMIN");
+                      roleField.hide();
+                      roleLabel.hide();
+                  } else {
+                      roleField.show();
+                      roleLabel.show();
+                  }
+
                   if (!afterError) {
                       $.each(json, function (key, value) {
                           if (!key.endsWith('_queryset')) {
@@ -344,7 +355,7 @@
       </div>
     </div>
 
-    {% if user.is_authenticated %}
+    {% if user.is_staff or user.is_superuser %}
       <a href="{% url 'leagues:settings' %}"
          class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Management">
         <i class="fa fa-cog"></i>

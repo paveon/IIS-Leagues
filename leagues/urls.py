@@ -8,7 +8,7 @@ app_name = 'leagues'
 urlpatterns = [
     path('', RedirectView.as_view(pattern_name='leagues:index', permanent=False)),
     path('index/', views.GamesView.as_view(), name='index'),
-    path('login/', auth_views.LoginView.as_view(template_name='leagues/login.html'), name='login'),
+    path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('signup/', views.SignupView.as_view(), name='signup'),
     path('genre/<slug:slug>/', views.GenreDetailView.as_view(), name='genre_detail'),

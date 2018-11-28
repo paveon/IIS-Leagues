@@ -45,23 +45,7 @@
     <form method="post" class="w3-container" action="{% url 'leagues:login' %}">
       {% csrf_token %}
       <div class="w3-section w3-border-top" style="padding-top: 20px">
-        {% if form.username.errors %}
-          <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
-            {{ form.username.errors }}
-          </div>
-        {% endif %}
-
-        {% if form.password1.errors %}
-          <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
-            {{ form.password1.errors }}
-          </div>
-        {% endif %}
-
-        {% if form.password2.errors %}
-          <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
-            {{ form.password2.errors }}
-          </div>
-        {% endif %}
+        {% include 'leagues/form_errors.html' with errors=form.errors %}
 
         <label><b>{{ form.username.label_tag }}</b></label>
         {% render_field form.username class+="w3-input w3-border w3-margin-bottom" placeholder="Enter Username" value="test" %}

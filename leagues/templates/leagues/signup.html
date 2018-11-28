@@ -46,14 +46,14 @@
       <h1 class="logoText">Leagues</h1>
       <p>Sign up to access all features of <b>Leagues</b>!</p>
 
-{#      {% if next %}#}
-{#        {% if user.is_authenticated %}#}
-{#          <p>Your account doesn't have access to this page. To proceed,#}
-{#            please login with an account that has access.</p>#}
-{#        {% else %}#}
-{#          <p>Please login to see this page.</p>#}
-{#        {% endif %}#}
-{#      {% endif %}#}
+      {% if next %}
+        {% if user.is_authenticated %}
+          <p>Your account doesn't have access to this page. To proceed,
+            please login with an account that has access.</p>
+        {% else %}
+          <p>Please login to see this page.</p>
+        {% endif %}
+      {% endif %}
     </div>
 
     <form method="POST" class="w3-container" action="{% url 'leagues:signup' %}">
