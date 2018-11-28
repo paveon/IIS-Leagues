@@ -22,6 +22,12 @@ def logout_view(request):
     return HttpResponseRedirect(reverse('leagues:games'))
 
 
+def registered_tournaments(player):
+    registered = player.teams.all()
+    tournaments = RegisteredTeams.objects.filter(team__in=registered)
+    return tournaments
+
+
 class LoginView(auth_views.LoginView):
     template_name = 'leagues/login.html'
     authentication_form = AuthenticationForm
@@ -286,10 +292,7 @@ class GamesView(generic.TemplateView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        return render(request, self.template_name, context)
-
-    def post(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
         return render(request, self.template_name, context)
 
 
@@ -314,6 +317,7 @@ class SocialView(generic.TemplateView):
         self.player.team_pendings.remove(team)
 
     # TODO: zkontrolovat jestli funguje
+    # TODO: kdyz leavne hrac tym a ten tym je registrovany na turnaj a uz nebude dost hracu na turnaj tak co udelat?
     def cancel_clan(self):
         clan = Clan.objects.get(pk=self.object_id)
         self.player.clan_pendings.remove(clan)
@@ -427,6 +431,11 @@ class SocialView(generic.TemplateView):
         context['team_form'] = TeamForm(prefix='team_form')
         return context
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
+
     def post(self, request, *args, **kwargs):
         self.action_key = request.POST['action']
         self.player_id = request.POST['player_id']
@@ -440,6 +449,7 @@ class SocialView(generic.TemplateView):
         self.context = self.get_context_data(**kwargs)
         action()
         context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
         return render(request, self.template_name, context)
 
 
@@ -501,6 +511,11 @@ class PlayerDetailView(generic.DetailView):
             'leave_team': self.leave_team,
             'force_leave_clan': self.force_leave_clan
         }
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -569,6 +584,7 @@ class TeamDetailView(generic.DetailView):
             self.team.clan_pending = clan
             self.team.save()
             return HttpResponseRedirect(reverse("leagues:team_detail", args=[self.team.slug]))
+        self.context['reg_tournaments'] = registered_tournaments(request.user.player)
         return render(request, self.template_name, self.context)
 
     def cancel_clan_request(self):
@@ -582,6 +598,7 @@ class TeamDetailView(generic.DetailView):
             return HttpResponseRedirect(reverse("leagues:team_detail", args=[self.team.slug]))
         self.context['edit_form'] = edit_form
         self.context['team'] = self.get_object()
+        self.context['reg_tournaments'] = registered_tournaments(request.user.player)
         return render(request, self.template_name, self.context)
 
     def __init__(self):
@@ -641,6 +658,11 @@ class TeamDetailView(generic.DetailView):
         context['member_matches'] = member_matches
         context['edit_form'] = edit_form
         return context
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -761,6 +783,11 @@ class ClanDetailView(generic.DetailView):
             'remove_team': self.remove_team
         }
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
+
     def post(self, request, *args, **kwargs):
         self.clan = self.get_object()
         self.action_key = request.POST['action']
@@ -779,8 +806,7 @@ class TournamentView(generic.TemplateView):
         matches = Match.objects.all()
         context['tournaments'] = tournaments
         context['matches'] = matches
-
-        context['match_form'] = MatchForm(prefix='match_create')
+        context['match_form'] = MatchForm()
         return context
 
     def generateStats(self, match, players_1, players_2):
@@ -813,8 +839,21 @@ class TournamentView(generic.TemplateView):
                 assist = Assist(death=death, player_id=assist_player[0], type=assist_type)
                 assist.save()
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        tournaments = Tournament.objects.all()
+        form_data = set()
+
+        for tournament in tournaments:
+            teams = RegisteredTeams.objects.filter(tournament=tournament)
+            if teams.count() >= 2 and teams.filter(team__leader=request.user.player):
+                form_data.add(tournament)
+
+        context['match_form_data'] = form_data
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
+
     def post(self, request, *args, **kwargs):
-        context = super().get_context_data(**kwargs)
         action_key = request.POST['action']
         response_data = {}
         dictionaries = []
@@ -829,7 +868,9 @@ class TournamentView(generic.TemplateView):
                 tournament_id = int(form_data_dict['match_create-tournament'])
                 tournament = Tournament.objects.get(pk=tournament_id)
                 registered_teams = RegisteredTeams.objects.all().filter(tournament=tournament)
-                dictionaries = [team.team.as_array() for team in registered_teams]
+                for team in registered_teams:
+                    if not team.team.is_playing:
+                        dictionaries.append(team.team.as_array())
                 response_data['teams'] = json.dumps({"data": dictionaries})
                 response_data['tournament'] = tournament.id
                 response_data['status'] = "pick_teams"
@@ -855,7 +896,7 @@ class TournamentView(generic.TemplateView):
             possible_teams = Team.objects.filter(game_id=game, active=True)
             for t in possible_teams:
                 if (t.team_members.all().count() >= GameMode.objects.get(pk=game_mode).team_player_count)\
-                        and t.team_members.filter(id=player_id).exists():
+                        and t.team_members.filter(id=player_id).exists() and not t.is_playing:
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)
             response_data['teams_1'] = json.dumps({"data": dictionaries})
@@ -876,7 +917,8 @@ class TournamentView(generic.TemplateView):
                 players1 = len(players1) - players
                 count = GameMode.objects.get(pk=game_mode).team_player_count
                 # if distinct number of player of both teams can make together
-                if (players1 + len(players2)) >= (2 * count) and (players1 + players) >= count:
+                if (players1 + len(players2)) >= (2 * count) and (players1 + players) >= count\
+                        and not t.is_playing:
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)
             response_data['teams_2'] = json.dumps({"data": dictionaries})
@@ -926,7 +968,7 @@ class TournamentView(generic.TemplateView):
 
             self.generateStats(match, p1, p2)
 
-            return JsonResponse(response_data)  # TODO generovani udalosti
+            return JsonResponse(response_data)
         elif action_key == 'match_done':
             team_1_id = int(form_data_dict['match_create-team_1'])
             team_2_id = int(form_data_dict['match_create-team_2'])
@@ -985,6 +1027,11 @@ class MatchDetailView(generic.DetailView):
         # TODO footer tabulky u statistik se jebe (rika ze ukazuje 5 ale je tam vse)
         return context
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
+
 
 class TournamentDetailView(generic.DetailView):
     template_name = "leagues/tournament_detail.html"
@@ -1012,6 +1059,11 @@ class TournamentDetailView(generic.DetailView):
         context['matches'] = matches
         context['sponsors'] = sponsors
         return context
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
         action_key = request.POST['action']
@@ -1064,6 +1116,11 @@ class GameDetailView(generic.DetailView):
         context['players'] = players
         return context
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
+
 
 class GameModeDetailView(generic.DetailView):
     template_name = "leagues/game_mode_detail.html"
@@ -1076,6 +1133,11 @@ class GameModeDetailView(generic.DetailView):
         context['games'] = games
         return context
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
+
 
 class GenreDetailView(generic.DetailView):
     template_name = "leagues/genre_detail.html"
@@ -1087,4 +1149,9 @@ class GenreDetailView(generic.DetailView):
         games = Game.objects.filter(genre=genre)
         context['games'] = games
         return context
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        return render(request, self.template_name, context)
 

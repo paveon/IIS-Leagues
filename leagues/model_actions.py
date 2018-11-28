@@ -1,6 +1,5 @@
 from django.db.models import Q
 
-
 def force_join_team(team, player):
     join_clan(team.clan, player)
     join_team(team, player, None)

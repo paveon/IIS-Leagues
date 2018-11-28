@@ -26,7 +26,6 @@ function TableHandler() {
             });
         }
     });
-
     rows.slice(interval[0], interval[1]).show();
     handleButtons();
     handleText();
