@@ -228,7 +228,7 @@ class Team(models.Model):
     def win_ratio(self):
         matches_total = self.all_matches.count()
         if not matches_total:
-            return None
+            return "No matches"
         matches_won = self.matches_won.count()
         ratio = round((matches_won / matches_total) * 100, 2)
         return str(ratio) + " %"

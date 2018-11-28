@@ -56,6 +56,10 @@
               class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
             Teams
           </li>
+          <li onclick="showSection(event, 'matches');" id="matches_tab"
+              class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
+            Matches
+          </li>
           <li onclick="showSection(event, 'stats');" id="stats_tab"
               class="section-tab w3-bottombar w3-hover-light-grey w3-padding">
             Statistics
@@ -108,7 +112,9 @@
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
             <thead>
             <tr>
-              <th>Team name</th>
+              <th>Name</th>
+              <th>Leader</th>
+              <th>Win ratio</th>
               {% if user.player == player %}
                 <th></th>
               {% endif %}
@@ -123,6 +129,17 @@
                     {{ team.name }}
                   </a>
                 </td>
+
+                <td>
+                  <a href="{% url 'leagues:player_detail' team.leader.slug %}">
+                    {{ team.leader }}
+                  </a>
+                </td>
+
+                <td>
+                  {{ team.win_ratio }}
+                </td>
+
                 {% if user.player == player %}
                   <td class="w3-padding-3 w3-small table_button_center">
                     <button onclick="openDialog('Do you really wish to leave team \'{{ team.name }}\'',
@@ -139,6 +156,56 @@
           {% include 'leagues/table_footer.html' %}
         </div>
       </div>
+
+
+      <div id="matches" class="w3-container w3-section section">
+        <h3>Matches</h3>
+        <div class="pagedTable w3-card w3-round">
+          <table class="w3-table w3-striped w3-bordered w3-hoverable">
+            <thead>
+            <tr class="">
+              <th>Team</th>
+              <th>Winner</th>
+              <th>Tournament</th>
+              <th>Game</th>
+              <th></th>
+            </tr>
+            </thead>
+
+            <tbody id="stat_rows">
+            {% for match in player.playedmatch_set.all %}
+              <tr style="display: none">
+                <td>
+                  <a href="{% url 'leagues:team_detail' match.team.slug %}">
+                    {{ match.team }}
+                  </a>
+
+                </td>
+                <td>
+                  <a href="{% url 'leagues:team_detail' match.match.winner.slug %}">
+                    {{ match.match.winner }}
+                  </a>
+                </td>
+                <td>
+                  {% if match.match.tournament %}
+                  <a href="{% url 'leagues:tournament_detail' match.match.tournament.slug %}">
+                    {{ match.match.tournament }}
+                  </a>
+                  {% else %}
+                    {{ match.match.tournament }}
+                  {% endif %}
+                </td>
+                <td>{{ match.match.game }}</td>
+                <td><a href="{% url 'leagues:match_detail' match.match.id %}"><i class="fa fa-eye"></i></a></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% include 'leagues/table_footer.html' %}
+        </div>
+      </div>
+
+
       <div id="stats" class="w3-container w3-section section">
         <h3>Statistics</h3>
         <div class="pagedTable w3-card w3-round">
