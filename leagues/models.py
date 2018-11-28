@@ -233,6 +233,14 @@ class Team(models.Model):
         ratio = round((matches_won / matches_total) * 100, 2)
         return str(ratio) + " %"
 
+    @property
+    def is_playing(self):
+        match = PlayedMatch.objects.filter(team=self)
+        if not match:
+            return False
+        match = match.latest("id").match
+        return match.in_progress
+
     def all_tournament_matches(self, tournament_id):
         return self.matches_a.filter(tournament_id=tournament_id).union(
             self.matches_b.filter(tournament_id=tournament_id))
@@ -290,6 +298,10 @@ class Match(models.Model):
     @property
     def duration_seconds(self):
         return int(self.duration.total_seconds())
+
+    @property
+    def in_progress(self):
+        return self.beginning <= timezone.now() <= (self.beginning + self.duration)
 
     def save(self, *args, **kwargs):
         self.clan_1 = self.team_1.clan

@@ -334,16 +334,6 @@
       <i class="fa fa-trophy"></i>
     </a>
 
-    <div class="w3-dropdown-hover w3-hide-small">
-      <button class="w3-button w3-padding-large" title="Notifications"><i class="fa fa-bell"></i>
-      </button>
-      <div class="w3-dropdown-content w3-card-4 w3-bar-block" style="width:300px">
-        <a href="#" class="w3-bar-item w3-button">One new friend request</a>
-        <a href="#" class="w3-bar-item w3-button">John Doe posted on your wall</a>
-        <a href="#" class="w3-bar-item w3-button">Jane likes your post</a>
-      </div>
-    </div>
-
     {% if user.is_authenticated %}
       <a href="{% url 'leagues:settings' %}"
          class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Management">
@@ -375,14 +365,14 @@
   <a href="#" class="w3-bar-item w3-button w3-padding-large">My Profile</a>
 </div>
 
-<div class="w3-container" style="flex:1 0 auto;">
+<div class="w3-container" style="flex:1 0 auto; padding: 0;">
 
   <div class="flex-container" style="flex-wrap: nowrap">
 
     <!-- Left Column -->
     {% block left_panel %}
       {% if user.is_authenticated and side_bars_enabled %}
-        <div style="max-width: 300px; flex: 1 1 0">
+        <div style="max-width: 250px; flex: 1 1 0; margin-left: 16px;">
           <!-- Profile -->
           <div class="w3-card w3-round w3-white">
             <div class="w3-container">
@@ -403,77 +393,40 @@
                 {% endif %}
               </p>
               <hr>
-              <p><i class="fas fa-id-card fa-fw w3-margin-right w3-text-theme"></i>
-                <b>{{ user.player.full_name|default:"Name unknown" }}</b>
-              </p>
-              <p><i class="fa fa-home fa-fw w3-margin-right w3-text-theme"></i>
-                <b>{{ user.player.country|default:"Origin unknown" }}</b>
-              </p>
-              <p><i class="fa fa-birthday-cake fa-fw w3-margin-right w3-text-theme"></i>
-                <b>{{ user.player.birth_date|default:"Birthdate unknown"|date:"j.n.Y" }}</b>
-              </p>
+              {% if user.player.full_name %}
+                <p><i class="fas fa-id-card fa-fw w3-margin-right w3-text-theme"></i>
+                  <b>{{ user.player.full_name }}</b>
+                </p>
+              {% endif %}
+              {% if user.player.country %}
+                <p><i class="fa fa-home fa-fw w3-margin-right w3-text-theme"></i>
+                  <b>{{ user.player.country }}</b>
+                </p>
+              {% endif %}
+              {% if user.player.birth_date %}
+                <p><i class="fa fa-birthday-cake fa-fw w3-margin-right w3-text-theme"></i>
+                  <b>{{ user.player.birth_date|date:"j.n.Y" }}</b>
+                </p>
+              {% endif %}
             </div>
           </div>
           <br>
 
           <!-- Accordion -->
-          <div class="w3-card w3-round">
-            <div class="w3-white">
-              <button onclick="myFunction('Demo1')" class="w3-button w3-block w3-theme-l1 w3-left-align">
-                <i
-                    class="fa fa-circle-o-notch fa-fw w3-margin-right"></i> My Groups
-              </button>
-              <div id="Demo1" class="w3-hide w3-container">
-                <p>Some text..</p>
-              </div>
-              <button onclick="myFunction('Demo2')" class="w3-button w3-block w3-theme-l1 w3-left-align">
-                <i
-                    class="fa fa-calendar-check-o fa-fw w3-margin-right"></i> My Events
-              </button>
-              <div id="Demo2" class="w3-hide w3-container">
-                <p>Some other text..</p>
-              </div>
-              <button onclick="myFunction('Demo3')" class="w3-button w3-block w3-theme-l1 w3-left-align">
-                <i
-                    class="fa fa-users fa-fw w3-margin-right"></i> My Photos
-              </button>
-              <div id="Demo3" class="w3-hide w3-container">
-                <div class="w3-row-padding">
-                </div>
+          <div class="w3-card w3-round w3-white">
+            <div class="w3-white w3-center w3-block w3-padding-3"><h5><b>Upcoming tournaments</b></h5></div>
+            {% if reg_tournaments %}
+              {% for tournament in reg_tournaments %}
+                <a href="{% url 'leagues:tournament_detail' tournament.tournament.slug %}"
+                        class="w3-button w3-block w3-theme-l1 w3-left-align">
+                 {{ tournament.tournament.name }} {{ tournament.tournament.opening_date|date:"j.n.Y" }}
+                </a>
+              {% endfor %}
+            {% endif %}
+            <div id="Demo3" class="w3-hide w3-container">
+              <div class="w3-row-padding">
               </div>
             </div>
-          </div>
-          <br>
-
-          <!-- Interests -->
-          <div class="w3-card w3-round w3-white w3-hide-small">
-            <div class="w3-container">
-              <p>Interests</p>
-              <p>
-                <span class="w3-tag w3-small w3-theme-d5">News</span>
-                <span class="w3-tag w3-small w3-theme-d4">W3Schools</span>
-                <span class="w3-tag w3-small w3-theme-d3">Labels</span>
-                <span class="w3-tag w3-small w3-theme-d2">Games</span>
-                <span class="w3-tag w3-small w3-theme-d1">Friends</span>
-                <span class="w3-tag w3-small w3-theme">Games</span>
-                <span class="w3-tag w3-small w3-theme-l1">Friends</span>
-                <span class="w3-tag w3-small w3-theme-l2">Food</span>
-                <span class="w3-tag w3-small w3-theme-l3">Design</span>
-                <span class="w3-tag w3-small w3-theme-l4">Art</span>
-                <span class="w3-tag w3-small w3-theme-l5">Photos</span>
-              </p>
-            </div>
-          </div>
-          <br>
-
-          <!-- Alert Box -->
-          <div
-              class="w3-container w3-display-container w3-round w3-theme-l4 w3-border w3-theme-border w3-margin-bottom w3-hide-small">
-                        <span onclick="$(this).parent().hide()" class="w3-button w3-theme-l3 w3-display-topright">
-                            <i class="fa fa-remove"></i>
-                        </span>
-            <p><strong>Hey!</strong></p>
-            <p>People are looking at your profile. Find out who.</p>
           </div>
         </div>
       {% endif %}
@@ -486,55 +439,6 @@
     {% block content %}
     {% endblock %}
 
-
-
-
-    <!-- Right Column -->
-    {% block right_panel %}
-      {% if user.is_authenticated and side_bars_enabled %}
-        <div style="max-width: 200px; flex: 1 1 0">
-          <div class="w3-card w3-round w3-white w3-center">
-            <div class="w3-container">
-              <p>Upcoming Events:</p>
-              <p><strong>Holiday</strong></p>
-              <p>Friday 15:00</p>
-              <p>
-                <button class="w3-button w3-block w3-theme-l4">Info</button>
-              </p>
-            </div>
-          </div>
-          <br>
-
-          <div class="w3-card w3-round w3-white w3-center">
-            <div class="w3-container">
-              <p>Friend Request</p>
-              <span>Jane Doe</span>
-              <div class="w3-row w3-opacity">
-                <div class="w3-half">
-                  <button class="w3-button w3-block w3-green w3-section" title="Accept"><i
-                      class="fa fa-check"></i></button>
-                </div>
-                <div class="w3-half">
-                  <button class="w3-button w3-block w3-red w3-section" title="Decline"><i
-                      class="fa fa-remove"></i></button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <br>
-
-          <div class="w3-card w3-round w3-white w3-padding-16 w3-center">
-            <p>ADS</p>
-          </div>
-          <br>
-
-          <div class="w3-card w3-round w3-white w3-padding-32 w3-center">
-            <p><i class="fa fa-bug w3-xxlarge"></i></p>
-          </div>
-        </div>
-      {% endif %}
-    {% endblock %}
-    <!-- End Right Column -->
 
     <!-- End Grid -->
   </div>

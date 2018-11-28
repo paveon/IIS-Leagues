@@ -9,7 +9,7 @@
 
 {% block content %}
   <div class="w3-container w3-margin-bottom flex-container" style="flex: 2 1 0;">
-    <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 1 auto;">
+    <div class="w3-card w3-round-large w3-white" style="flex: 1 1 auto;">
       <header>
         <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ genre.name }}</h1>
         <div class="w3-bottombar w3-border-red"></div>
@@ -50,8 +50,3 @@
   </div>
 {% endblock %}
 
-{% block right_panel %}
-  {% with side_bars_enabled=True %}
-    {{ block.super }}
-  {% endwith %}
-{% endblock right_panel %}

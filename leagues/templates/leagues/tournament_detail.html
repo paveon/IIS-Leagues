@@ -56,7 +56,7 @@
 
 {% block content %}
   <div class="w3-container w3-margin-bottom flex-container" style="flex: 2 1 0;">
-    <div class="w3-card w3-round-large w3-white" style="width: 100%; max-width: 1000px">
+    <div class="w3-card w3-round-large w3-white" style="width: 100%;">
       <header>
         <h1 style="text-align: center; font-family: 'Audiowide', cursive;">{{ tournament.name }}</h1>
 
@@ -231,15 +231,6 @@
     </div>
   </div>
 {% endblock %}
-
-
-{% block right_panel %}
-  {% with side_bars_enabled=True %}
-    {{ block.super }}
-  {% endwith %}
-{% endblock right_panel %}
-
-
 
 {% block endpage %}
   <div id="team_pick" class="w3-modal">

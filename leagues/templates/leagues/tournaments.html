@@ -49,7 +49,7 @@
               $('#id_match_create-game').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
           $('#game_pick').show();
-          $('#{{ match_form.prefix }}').hide();
+          $('#match_form').hide();
       }
 
       function FillGameMode(parseData) {
@@ -96,7 +96,7 @@
           }
           $("#teams_next").prop('disabled', i < 2);
           $('#team_pick').show();
-          $('#{{ match_form.prefix }}').hide();
+          $('#match_form').hide();
       }
 
       function RemoveTeams() {
@@ -178,7 +178,7 @@
 
 {% block content %}
   <div class="w3-container flex-container" style="flex: 2 1 0">
-    <div class="w3-card w3-round-large w3-white" style="max-width: 1000px; flex: 1 1 auto;">
+    <div class="w3-card w3-round-large w3-white" style=" flex: 1 1 auto;">
       <header>
         <ul class="section-bar">
           <li onclick="showSection(event, 'tournaments');" id="tournaments_tab"
@@ -233,7 +233,7 @@
         <h3>Matches</h3>
         <div class="pagedTable w3-card w3-round w3-margin-bottom">
           <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
-                  onclick="$('#{{ match_form.prefix }}').show()">
+                  onclick="$('#match_form').show()">
             <i class="fa fa-plus"></i> Add new
           </button>
           <table class="w3-table w3-striped w3-bordered w3-hoverable">
@@ -289,19 +289,13 @@
   </div>
 {% endblock %}
 
-{% block right_panel %}
-  {% with side_bars_enabled=True %}
-    {{ block.super }}
-  {% endwith %}
-{% endblock right_panel %}
-
 {% block endpage %}
-  <div id="{{ match_form.prefix }}" class="w3-modal">
+  <div id="match_form" class="w3-modal">
     <div class="w3-modal-content w3-card-4" style="max-width:600px">
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create Match</h3>
 
-        <button onclick="$('#{{ match_form.prefix }}').hide(); $('.next').prop('disabled', false);" type="button"
+        <button onclick="$('#match_form').hide(); $('.next').prop('disabled', false);" type="button"
                 class="w3-button w3-display-topright w3-red">
           <i class="fa fa-times"></i>
         </button>
@@ -311,12 +305,17 @@
           {% csrf_token %}
 
           <label><b>{{ match_form.tournament.label_tag }}</b></label>
-          {% render_field match_form.tournament class+="w3-input w3-border" %}
+          <select class="w3-input w3-border" name="match_create-tournament" id="match_create-tournament">
+            <option value>---------</option>
+            {% for row in match_form_data %}
+              <option value="{{ row.id }}">{{ row.name }}</option>
+            {% endfor %}
+          </select>
 
         </div>
 
         <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-          <button onclick="$('#{{ match_form.prefix }}').hide()" type="button"
+          <button onclick="$('#match_form').hide()" type="button"
                   class="w3-button w3-red">Cancel
           </button>
 
@@ -389,7 +388,7 @@
         </div>
         <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
           <button type="button"
-                  onclick="GoBack('id_match_create-game', 'game_pick', '{{ match_form.prefix }}')"
+                  onclick="GoBack('id_match_create-game', 'game_pick', 'match_form')"
                   class="w3-button w3-red">Back
           </button>
 
