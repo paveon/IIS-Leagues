@@ -22,10 +22,13 @@ def logout_view(request):
     return HttpResponseRedirect(reverse('leagues:games'))
 
 
-def registered_tournaments(player):
-    registered = player.teams.all()
-    tournaments = RegisteredTeams.objects.filter(team__in=registered)
-    return tournaments
+def registered_tournaments(user):
+    try:
+        registered = user.player.teams.all()
+        tournaments = RegisteredTeams.objects.filter(team__in=registered)
+        return tournaments
+    except:
+        return None
 
 
 class LoginView(auth_views.LoginView):
@@ -292,7 +295,7 @@ class GamesView(generic.TemplateView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
 
@@ -433,7 +436,7 @@ class SocialView(generic.TemplateView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
@@ -449,7 +452,7 @@ class SocialView(generic.TemplateView):
         self.context = self.get_context_data(**kwargs)
         action()
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
 
@@ -514,7 +517,7 @@ class PlayerDetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
@@ -584,7 +587,7 @@ class TeamDetailView(generic.DetailView):
             self.team.clan_pending = clan
             self.team.save()
             return HttpResponseRedirect(reverse("leagues:team_detail", args=[self.team.slug]))
-        self.context['reg_tournaments'] = registered_tournaments(request.user.player)
+        self.context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, self.context)
 
     def cancel_clan_request(self):
@@ -598,7 +601,7 @@ class TeamDetailView(generic.DetailView):
             return HttpResponseRedirect(reverse("leagues:team_detail", args=[self.team.slug]))
         self.context['edit_form'] = edit_form
         self.context['team'] = self.get_object()
-        self.context['reg_tournaments'] = registered_tournaments(request.user.player)
+        self.context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, self.context)
 
     def __init__(self):
@@ -661,7 +664,7 @@ class TeamDetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
@@ -785,7 +788,7 @@ class ClanDetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
@@ -850,7 +853,7 @@ class TournamentView(generic.TemplateView):
                 form_data.add(tournament)
 
         context['match_form_data'] = form_data
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
@@ -1029,7 +1032,7 @@ class MatchDetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
 
@@ -1062,7 +1065,7 @@ class TournamentDetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
@@ -1118,7 +1121,7 @@ class GameDetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
 
@@ -1135,7 +1138,7 @@ class GameModeDetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
 
@@ -1152,6 +1155,6 @@ class GenreDetailView(generic.DetailView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['reg_tournaments'] = registered_tournaments(request.user.player)
+        context['reg_tournaments'] = registered_tournaments(request.user)
         return render(request, self.template_name, context)
 
