@@ -8,10 +8,14 @@
 
   <script src="{% static 'leagues/js/jquery-3.3.1.min.js' %}"></script>
   <link rel="stylesheet" href="{% static 'leagues/css/w3.css' %}">
+
   <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
   <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Audiowide">
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="{% static 'leagues/js/date_picker.js' %}"></script>
   <style>
     html, body, h1, h2, h3, h4, h5 {
       font-family: "Open Sans", sans-serif
@@ -73,7 +77,16 @@
         <label><b>{{ form.password1.label_tag }}</b></label>
         {% render_field form.password1 class+="w3-input w3-border w3-margin-bottom" placeholder="Enter Password" %}
         <label><b>{{ form.password2.label_tag }}</b></label>
-        {% render_field form.password2 class+="w3-input w3-border" placeholder="Repeat Password" %}
+        {% render_field form.password2 class+="w3-input w3-border w3-margin-bottom" placeholder="Repeat Password" %}
+
+
+        <label><b>{{ form.birth_date.label_tag }}</b></label>
+        <div class='w3-cell-row w3-margin-bottom'>
+          {% render_field form.birth_date class+="w3-input w3-border w3-cell date_picker" %}
+          <div class="w3-cell w3-cell-middle w3-center w3-border date_icon">
+            <span class="fa fa-calendar"></span>
+          </div>
+        </div>
 
         <input class="w3-button w3-block w3-green w3-section w3-padding" type="submit" value="Sign up">
         <input type="hidden" name="next" value="{{ next }}">

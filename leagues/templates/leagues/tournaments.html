@@ -67,7 +67,7 @@
           for (; i < data.length; ++i) {
               $('#team_1').append($('<option>', {value: data[i][0], text: data[i][1]}));
           }
-          $("#team1_next").prop('disabled', i < 2);
+          $("#team1_next").prop('disabled', i < 1);
           $('#game_mode_pick').hide();
           $('#team1_pick').show();
       }
@@ -100,12 +100,14 @@
       }
 
       function RemoveTeams() {
+          $('.next').prop('disabled', false);
           $('#id_match_create-team_1').find('option').remove();
           $('#id_match_create-team_2').find('option').remove();
           $('#team_pick').hide()
       }
 
       function RemoveAll() {
+          $('.next').prop('disabled', false);
           $('#team2').find('option').remove();
           $('#team1').find('option').remove();
           $('#id_match_create-game').find('option').remove();
@@ -122,7 +124,10 @@
       }
 
       function GoBack(select_id, form_hide_id, form_show_id) {
-          $('#' + form_show_id).show();
+          let form = $('#' + form_show_id);
+          let button = $(".next", form);
+          button.prop('disabled', false);
+          form.show();
           RemoveOptions(select_id, form_hide_id)
       }
 
@@ -296,7 +301,7 @@
       <header class="w3-container w3-center w3-light-grey w3-border-bottom">
         <h3 class="modalTitle">Create Match</h3>
 
-        <button onclick="$('#{{ match_form.prefix }}').hide()" type="button"
+        <button onclick="$('#{{ match_form.prefix }}').hide(); $('.next').prop('disabled', false);" type="button"
                 class="w3-button w3-display-topright w3-red">
           <i class="fa fa-times"></i>
         </button>
@@ -316,7 +321,7 @@
           </button>
 
           <button onclick="SendTournament(event)" type="button"
-                  class="w3-button w3-green w3-right">Next
+                  class="w3-button w3-green w3-right next">Next
           </button>
 
         </div>
@@ -356,7 +361,7 @@
           </button>
 
           <button onclick="SendTeams(event)" type="button"
-                  class="w3-button w3-green w3-right" id="teams_next">Create Match
+                  class="w3-button w3-green w3-right next" id="teams_next">Create Match
           </button>
 
         </div>
@@ -389,7 +394,7 @@
           </button>
 
           <button type="button" onclick="buttonClick(event, 'picked_game', 'games_id')"
-                  class="w3-button w3-green w3-right">Next
+                  class="w3-button w3-green w3-right next">Next
           </button>
         </div>
       </form>
@@ -421,8 +426,9 @@
           </button>
 
           <button type="button" onclick="buttonClick(event, 'picked_game_mode', 'game_mode_id')"
-                  class="w3-button w3-green w3-right">Next
+                  class="w3-button w3-green w3-right next">Next
           </button>
+          <input type="hidden" name="player_id" id="player_id" value="{{ user.player.id }}">
           <input type="hidden" name="game_mode-game" id="game_mode-game">
         </div>
       </form>
@@ -453,7 +459,7 @@
           </button>
 
           <button type="button" onclick="buttonClick(event, 'picked_team1', 'team1_id')"
-                  class="w3-button w3-green w3-right" id="team1_next">Next
+                  class="w3-button w3-green w3-right next" id="team1_next">Next
           </button>
           <input type="hidden" name="team_1-game" id="team_1-game">
           <input type="hidden" name="team_1-game_mode" id="team_1-game_mode">
@@ -486,8 +492,9 @@
           </button>
 
           <button type="button" onclick="buttonClick(event, 'non_turnament_done', 'team2_id')"
-                  class="w3-button w3-green w3-right" id="team2_next">Create Match
+                  class="w3-button w3-green w3-right next" id="team2_next">Create Match
           </button>
+          <input type="hidden" name="player_id" value="{{ user.player.id }}">
           <input type="hidden" name="team_2-game" id="team_2-game">
           <input type="hidden" name="team_2-game_mode" id="team_2-game_mode">
           <input type="hidden" name="team_2-team1" id="team_2-team1">

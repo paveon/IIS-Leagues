@@ -6,6 +6,8 @@ from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseForbidden
 from django.forms.models import model_to_dict
 from django import forms
 from django_countries.fields import Country
@@ -27,27 +29,22 @@ class SignupView(View):
     template_name = "leagues/signup.html"
 
     def post(self, request):
-        form = UserCreationForm(request.POST)
+        form = MyUserForm(request.POST)
         if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            raw_password = form.cleaned_data.get('password1')
-            new_user = authenticate(username=username, password=raw_password)
-            player = Player.objects.create(nickname=username)
-            player.user = new_user
-            player.save()
+            new_user = form.save(commit=True)
 
-            login(request, new_user)
+            login(request, new_user[0])
             return HttpResponseRedirect(reverse('leagues:index'))
         else:
             return render(request, self.template_name, {'form': form})
 
     def get(self, request):
-        form = UserCreationForm()
+        form = MyUserForm()
         return render(request, self.template_name, {'form': form})
 
 
-class SettingsView(generic.TemplateView):
+class SettingsView(LoginRequiredMixin, generic.TemplateView):
+    login_url = '/login/'
     template_name = "leagues/settings.html"
 
     def get_leader_queryset(self):
@@ -153,6 +150,8 @@ class SettingsView(generic.TemplateView):
         return self.context
 
     def get(self, request, *args, **kwargs):
+        if request.user.player != Player.objects.get(pk=1):
+            return HttpResponseForbidden()
         if request.is_ajax():
             # Ajax calls are used to populate opened form with existing data
             # if editing object or with default data when creating new one
@@ -329,6 +328,27 @@ class SocialView(generic.TemplateView):
         clan = Clan.objects.get(pk=self.object_id)
         force_leave_clan(clan, self.player)
 
+    def create_team(self):
+        team_form = TeamForm(self.request.POST, prefix='team_form')
+        if team_form.is_bound and team_form.is_valid():
+            instance = team_form.save(commit=False)
+            instance.leader = self.player
+            instance.save()
+            self.player.teams.add(instance)
+            return
+
+        self.context['team_form'] = team_form
+
+    def create_clan(self):
+        clan_form = ClanForm(self.request.POST, prefix='clan_form')
+        if clan_form.is_bound and clan_form.is_valid():
+            instance = clan_form.save(commit=False)
+            instance.save()
+            join_clan(instance, self.player)
+            return
+
+        self.context['clan_form'] = clan_form
+
     def __init__(self):
         super().__init__()
         self.player_id = None
@@ -345,11 +365,13 @@ class SocialView(generic.TemplateView):
             'leave_clan': self.leave_clan,
             'force_join_team': self.force_join_team,
             'force_leave_clan': self.force_leave_clan,
+            'create_clan': self.create_clan,
+            'create_team': self.create_team,
         }
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        player = self.request.user.player
+        player = Player.objects.get(pk=self.request.user.player.id)
 
         # Split all teams into 3 types and create tuple with membership info for each of them
         joined_teams = player.teams.all()
@@ -368,6 +390,8 @@ class SocialView(generic.TemplateView):
         context['team_list'] = teams
         context['clan_list'] = Clan.objects.all()
         context['membership'] = MembershipStatus.__members__
+        context['clan_form'] = ClanForm(prefix='clan_form')
+        context['team_form'] = TeamForm(prefix='team_form')
         return context
 
     def post(self, request, *args, **kwargs):
@@ -376,8 +400,14 @@ class SocialView(generic.TemplateView):
         self.object_id = request.POST['object_id']
         self.player = Player.objects.get(pk=self.player_id)
         action = self.actions[self.action_key]
+        if request.is_ajax():
+            action()
+            return JsonResponse(self.response)
+
+        self.context = self.get_context_data(**kwargs)
         action()
-        return JsonResponse(self.response)
+        context = self.get_context_data(**kwargs)
+        return render(request, self.template_name, context)
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -792,9 +822,11 @@ class TournamentView(generic.TemplateView):
         elif action_key == 'picked_game_mode':
             game = int(form_data_dict['game_mode-game'])
             game_mode = int(form_data_dict['match_create-game_mode'])
-            possible_teams = Team.objects.filter(game_id=game)
+            player_id = int(form_data_dict['player_id'])
+            possible_teams = Team.objects.filter(game_id=game, active=True)
             for t in possible_teams:
-                if t.team_members.all().count() >= GameMode.objects.get(pk=game_mode).team_player_count:
+                if (t.team_members.all().count() >= GameMode.objects.get(pk=game_mode).team_player_count)\
+                        and t.team_members.filter(id=player_id).exists():
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)
             response_data['teams_1'] = json.dumps({"data": dictionaries})
@@ -807,16 +839,15 @@ class TournamentView(generic.TemplateView):
             game_mode = int(form_data_dict['team_1-game_mode'])
             team_1 = int(form_data_dict['team_1'])
             team = Team.objects.get(pk=team_1)
-            possible_teams = Team.objects.filter(Q(game_id=game) & ~Q(clan=team.clan))
+            possible_teams = Team.objects.filter(Q(game_id=game) & Q(active=True) & ~Q(clan=team.clan))
             for t in possible_teams:
-                t1 = Team.objects.get(pk=team_1)
-                players1 = t.team_members.all()
-                players2 = t1.team_members.all()
-                players = players1.difference(players2).count()
-                players1 = players1.count() - players
+                players1 = set(t.team_members.all())
+                players2 = set(team.team_members.all())
+                players = len(players1.intersection(players2))
+                players1 = len(players1) - players
                 count = GameMode.objects.get(pk=game_mode).team_player_count
                 # if distinct number of player of both teams can make together
-                if (players1 + players2.count()) >= (2 * count) and (players1 + players) >= count:
+                if (players1 + len(players2)) >= (2 * count) and (players1 + players) >= count:
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)
             response_data['teams_2'] = json.dumps({"data": dictionaries})
@@ -830,6 +861,7 @@ class TournamentView(generic.TemplateView):
             game_mode = int(form_data_dict['team_2-game_mode'])
             team_1_id = int(form_data_dict['team_2-team1'])
             team_2_id = int(form_data_dict['team_2'])
+            player_id = int(form_data_dict['player_id'])
             minutes = randint(20, 59)
             seconds = randint(0, 59)
             mode = GameMode.objects.get(pk=game_mode)
@@ -840,18 +872,25 @@ class TournamentView(generic.TemplateView):
 
             # random players for first team
             team_1 = Team.objects.get(pk=team_1_id)
-            players = set(team_1.team_members.all().values_list('id', flat=True))
+            players_1 = set(team_1.team_members.all().values_list('id', flat=True))
+            player = {Player.objects.get(pk=player_id).id}
+            players_1 -= player
             count = mode.team_player_count
-            p1 = sample(players, count)
-            for i in range(0, count):
+            played = PlayedMatch(player_id=player_id, team=team_1, clan=team_1.clan, match=match)
+            played.save()
+            p1 = sample(players_1, count - 1)
+            for i in range(0, count - 1):
                 played = PlayedMatch(player_id=p1[i], team=team_1, clan=team_1.clan, match=match)
                 played.save()
 
+            p1 = set(p1)
+            p1.add(player_id)
+
             # random players for second team
             team_2 = Team.objects.get(pk=team_2_id)
-            players = set(team_2.team_members.all().values_list('id', flat=True))
-            players.intersection(p1)
-            p2 = sample(players, count)
+            players_2 = set(team_2.team_members.all().values_list('id', flat=True))
+            players_2 -= p1
+            p2 = sample(players_2, count)
             for i in range(0, count):
                 played = PlayedMatch(player_id=p2[i], team=team_2, clan=team_2.clan, match=match)
                 played.save()
@@ -1019,3 +1058,4 @@ class GenreDetailView(generic.DetailView):
         games = Game.objects.filter(genre=genre)
         context['games'] = games
         return context
+
