@@ -989,7 +989,6 @@ class MatchDetailView(generic.DetailView):
         context['assist_num'] = range(1, match.game_mode.team_player_count - 1)
         context['teams'] = (match.team_1, match.team_2)
         context['players'] = players
-        # TODO footer tabulky u statistik se jebe (rika ze ukazuje 5 ale je tam vse)
         return context
 
 
@@ -1000,7 +999,7 @@ class TournamentDetailView(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         tournament = self.get_object()
-        teams = Team.objects.filter(tournaments=tournament)  # TODO u prize a amount nevim jednotku!!
+        teams = Team.objects.filter(tournaments=tournament)
         team_matches = []
         registered = None
         for team in teams:
