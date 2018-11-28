@@ -18,11 +18,15 @@
     html, body, h1, h2, h3, h4, h5 {
       font-family: "Open Sans", sans-serif
     }
+
+    body {
+      padding: 0;
+    }
   </style>
 </head>
 <body>
 {% load widget_tweaks %}
-<div class="w3-content" style="max-width:600px">
+<div class="w3-content" style="width:450px">
   <div class="w3-card-4 w3-round-xlarge">
     <div class="w3-container w3-center"><br>
       <h1 class="logoText">Leagues</h1>
@@ -69,7 +73,7 @@
     </form>
 
     <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-      <span class="w3-right w3-padding w3-hide-small">Don't have <a
+      <span class="w3-right w3-padding w3-hide-small">Don't have an <a
           href="{% url 'leagues:signup' %}">account</a> yet?</span>
     </div>
 

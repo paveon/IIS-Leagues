@@ -39,6 +39,9 @@ class SignupView(View):
             return render(request, self.template_name, {'form': form})
 
     def get(self, request):
+        if request.user.is_authenticated:
+            return HttpResponseRedirect(reverse('leagues:index'))
+
         form = MyUserForm()
         return render(request, self.template_name, {'form': form})
 
@@ -150,7 +153,8 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         return self.context
 
     def get(self, request, *args, **kwargs):
-        if request.user.player != Player.objects.get(pk=1):
+        user = request.user
+        if not user.is_staff or not user.is_superuser:
             return HttpResponseForbidden()
         if request.is_ajax():
             # Ajax calls are used to populate opened form with existing data
@@ -208,8 +212,7 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         # TODO pri vytvareni hry je hra neaktivni a aktivuje se az ma prirazeny gamemode => momentalni kvuli testovani je default true ale ma byt false (doplnit pri vytvareni hry)
         # TODO pri vytvareni hrace se stejnym nickname se chyba zobrazi ale formular zavre takze to vypada jako kdyby se vytvoril
         if create_form.is_bound and create_form.is_valid():
-            instance = create_form.save(commit=False)
-            instance.save()
+            create_form.save(commit=True)
             return HttpResponseRedirect(reverse('leagues:settings'))
 
         self.context[form_prefix] = create_form
@@ -416,12 +419,9 @@ class PlayerDetailView(generic.DetailView):
     model = Player
 
     def edit_player(self):
-        user = self.player.user
         edit_form = PlayerForm(self.request.POST, instance=self.player, prefix='player_form')
         if edit_form.is_bound and edit_form.is_valid():
-            player = edit_form.save(commit=False)
-            player.user = user
-            player.save()
+            edit_form.save()
 
     def leave_clan(self):
         leave_clan(self.player.clan, self.player, self.response)

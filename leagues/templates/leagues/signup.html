@@ -8,6 +8,7 @@
 
   <script src="{% static 'leagues/js/jquery-3.3.1.min.js' %}"></script>
   <link rel="stylesheet" href="{% static 'leagues/css/w3.css' %}">
+  <link rel="stylesheet" href="{% static 'leagues/css/style.css' %}">
 
   <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-blue-grey.css">
   <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Open+Sans'>
@@ -19,6 +20,10 @@
   <style>
     html, body, h1, h2, h3, h4, h5 {
       font-family: "Open Sans", sans-serif
+    }
+
+    body {
+      padding: 0;
     }
 
     .logoText {
@@ -34,51 +39,37 @@
 </head>
 <body>
 {% load widget_tweaks %}
-<div class="w3-container w3-content" style="max-width:600px">
-  <div class="w3-card-4 w3-round-xlarge" style="margin-top:100px">
+<div class="w3-content" style="width:500px">
+  <div class="w3-card-4 w3-round-xlarge">
 
-    <div class="w3-center"><br>
+    <div class="w3-container w3-center"><br>
       <h1 class="logoText">Leagues</h1>
       <p>Sign up to access all features of <b>Leagues</b>!</p>
 
-      {% if next %}
-        {% if user.is_authenticated %}
-          <p>Your account doesn't have access to this page. To proceed,
-            please login with an account that has access.</p>
-        {% else %}
-          <p>Please login to see this page.</p>
-        {% endif %}
-      {% endif %}
+{#      {% if next %}#}
+{#        {% if user.is_authenticated %}#}
+{#          <p>Your account doesn't have access to this page. To proceed,#}
+{#            please login with an account that has access.</p>#}
+{#        {% else %}#}
+{#          <p>Please login to see this page.</p>#}
+{#        {% endif %}#}
+{#      {% endif %}#}
     </div>
 
     <form method="POST" class="w3-container" action="{% url 'leagues:signup' %}">
       {% csrf_token %}
       <div class="w3-section w3-border-top" style="padding-top: 20px">
-        {% if form.username.errors %}
-          <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
-            {{ form.username.errors }}
-          </div>
-        {% endif %}
 
-        {% if form.password1.errors %}
-          <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
-            {{ form.password1.errors }}
-          </div>
-        {% endif %}
-
-        {% if form.password2.errors %}
-          <div class="w3-container w3-padding-16 w3-margin-bottom w3-red w3-round-large">
-            {{ form.password2.errors }}
-          </div>
-        {% endif %}
+        {% include 'leagues/form_errors.html' with errors=form.errors %}
 
         <label><b>{{ form.username.label_tag }}</b></label>
         {% render_field form.username class+="w3-input w3-border w3-margin-bottom" placeholder="Enter Username" %}
+
         <label><b>{{ form.password1.label_tag }}</b></label>
         {% render_field form.password1 class+="w3-input w3-border w3-margin-bottom" placeholder="Enter Password" %}
+
         <label><b>{{ form.password2.label_tag }}</b></label>
         {% render_field form.password2 class+="w3-input w3-border w3-margin-bottom" placeholder="Repeat Password" %}
-
 
         <label><b>{{ form.birth_date.label_tag }}</b></label>
         <div class='w3-cell-row w3-margin-bottom'>
@@ -88,13 +79,24 @@
           </div>
         </div>
 
+        <div class="w3-margin-bottom input-flex">
+          <div class="w3-margin-right" style="flex:1 0 0;">
+            <label><b>{{ form.first_name.label_tag }}</b></label>
+            {% render_field form.first_name class+="w3-input w3-border" %}
+          </div>
+          <div style="flex:1 0 0;">
+            <label><b>{{ form.last_name.label_tag }}</b></label>
+            {% render_field form.last_name class+="w3-input w3-border" %}
+          </div>
+        </div>
+
         <input class="w3-button w3-block w3-green w3-section w3-padding" type="submit" value="Sign up">
         <input type="hidden" name="next" value="{{ next }}">
       </div>
     </form>
 
     <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
-      <span class="w3-right w3-padding w3-hide-small">Already have a <a
+      <span class="w3-right w3-padding w3-hide-small">Already have an <a
           href="{% url 'leagues:login' %}">account</a>?</span>
     </div>
   </div>

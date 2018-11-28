@@ -404,13 +404,13 @@
               </p>
               <hr>
               <p><i class="fas fa-id-card fa-fw w3-margin-right w3-text-theme"></i>
-                <b>{{ user.player.full_name|default:"Unknown" }}</b>
+                <b>{{ user.player.full_name|default:"Name unknown" }}</b>
               </p>
               <p><i class="fa fa-home fa-fw w3-margin-right w3-text-theme"></i>
-                <b>{{ user.player.country|default:"Unknown" }}</b>
+                <b>{{ user.player.country|default:"Origin unknown" }}</b>
               </p>
               <p><i class="fa fa-birthday-cake fa-fw w3-margin-right w3-text-theme"></i>
-                <b>{{ user.player.birth_date|default:"Unknown"|date:"j.n.Y" }}</b>
+                <b>{{ user.player.birth_date|default:"Birthdate unknown"|date:"j.n.Y" }}</b>
               </p>
             </div>
           </div>

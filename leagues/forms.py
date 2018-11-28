@@ -26,7 +26,7 @@ class MyUserForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ['username', 'password1', 'password2', 'birth_date']
+        fields = ['username', 'password1', 'password2', 'birth_date', 'first_name', 'last_name']
         widgets = {
             'birth_date': CalendarWidget(),
         }
@@ -34,8 +34,10 @@ class MyUserForm(UserCreationForm):
     def save(self, commit=True):
         if not commit:
             raise NotImplementedError("Can't create User and UserProfile without database save")
-        user = super(MyUserForm, self).save(commit=True)
-        user_profile = Player(nickname=self.cleaned_data['username'], birth_date=self.cleaned_data['birth_date'], user=user)
+        user = super().save(commit=True)
+        username = self.cleaned_data['username']
+        birth_date = self.cleaned_data['birth_date']
+        user_profile = Player(nickname=username, birth_date=birth_date, user=user)
         user_profile.save()
         user.player = user_profile
         user.save()
@@ -56,10 +58,13 @@ class MyUserForm(UserCreationForm):
 
 
 class PlayerForm(ModelForm):
+    first_name = forms.CharField(required=False)
+    last_name = forms.CharField(required=False)
+
     class Meta:
         model = Player
         fields = ['nickname', 'first_name', 'last_name', 'country',
-                  'birth_date', 'description', 'image_url', 'user'
+                  'birth_date', 'description', 'image_url'
                   ]
         widgets = {
             'birth_date': CalendarWidget(),
@@ -76,8 +81,29 @@ class PlayerForm(ModelForm):
             age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
             if age < 15:
                 raise ValidationError('Player must be at least 15 years old!')
-            else:
-                return cleaned_data
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        player = super().save(commit=False)
+        first_name = self.cleaned_data['first_name']
+        last_name = self.cleaned_data['last_name']
+        if not player.user:
+            if not commit:
+                raise NotImplementedError('commit=False not supported when creating new player')
+            # Creating new player, create new corresponding user with generic password
+            nickname = self.cleaned_data['nickname']
+            user = User(username=nickname, first_name=first_name, last_name=last_name)
+            user.set_password('1234')
+            user.save()
+            player.user = user
+        else:
+            player.user.first_name = first_name
+            player.user.last_name = last_name
+
+        if commit:
+            player.save()
+        return player
 
 
 class SponsorForm(ModelForm):

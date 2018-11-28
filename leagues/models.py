@@ -322,8 +322,6 @@ class Player(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     nickname = models.CharField(max_length=50, unique=True)
     slug = models.SlugField(max_length=50)
-    first_name = models.CharField(max_length=50, blank=True)
-    last_name = models.CharField(max_length=50, blank=True)
     country = CountryField('country of birth', blank=True)
     birth_date = models.DateField('date of birth')
     image_url = models.URLField('profile image url', max_length=500, blank=True)
@@ -352,7 +350,12 @@ class Player(models.Model):
 
     @property
     def full_name(self):
-        return "{0} {1}".format(self.first_name, self.last_name)
+        first_name = self.user.first_name
+        last_name = self.user.last_name
+        if first_name and last_name:
+            return "{0} {1}".format(first_name, last_name)
+        return first_name or last_name
+
 
     @property
     def age(self):

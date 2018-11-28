@@ -705,9 +705,6 @@
           {% csrf_token %}
           {% include 'leagues/form_errors.html' with errors=player_form.errors %}
 
-          <label><b>{{ player_form.user.label_tag }}</b></label>
-          {% render_field player_form.user class+="w3-input w3-border w3-margin-bottom" %}
-
           <label><b>{{ player_form.nickname.label_tag }}</b></label>
           {% render_field player_form.nickname class+="formUnique w3-input w3-border w3-margin-bottom" %}
 
