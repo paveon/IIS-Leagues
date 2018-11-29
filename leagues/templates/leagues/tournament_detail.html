@@ -83,7 +83,7 @@
       <div id="info" class="w3-container w3-section section">
 
         <h4><b>Main sponsor:</b>
-          {{ main_sponsor.sponsor.name }}
+          {{ main_sponsor.sponsor.name|default:"Doesn't have main sponsor" }}
         </h4>
 
         <h4><b>Prize:</b>

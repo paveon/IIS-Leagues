@@ -1018,7 +1018,10 @@ class TournamentDetailView(generic.DetailView):
             team_matches.append((team, all_matches, won_matches, win_rate))
         matches = Match.objects.filter(tournament=tournament)
         sponsors = Sponsorship.objects.filter(tournament=tournament)
-        main_sponsor = sponsors.get(type='MAIN')
+        try:
+            main_sponsor = sponsors.get(type='MAIN')
+        except:
+            main_sponsor = None
         context['registered'] = registered
         context['main_sponsor'] = main_sponsor
         context['team_matches'] = team_matches
