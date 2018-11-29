@@ -197,6 +197,7 @@ class TournamentForm(ModelForm):
         else:
             if begin < tommorow:
                 raise ValidationError('Upcoming tournament can begin tommorow at the earliest')
+
         if end < begin:
             raise ValidationError('Tournament cannot end before it starts')
         elif end == begin:

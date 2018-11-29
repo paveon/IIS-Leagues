@@ -91,11 +91,11 @@
         </h4>
 
         <h4><b>Opening date:</b>
-          {{ tournament.opening_date }}
+          {{ tournament.opening_date|date:'j.n.Y' }}
         </h4>
 
         <h4><b>End date:</b>
-          {{ tournament.end_date }}
+          {{ tournament.end_date|date:'j.n.Y' }}
         </h4>
 
         <h4><b>Game of interest:</b>
