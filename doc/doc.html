@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0067)https://www.fit.vutbr.cz/study/courses/IIS/private/projekt/doc.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-2">
+    
+    <title>Projekt IIS</title>
+    <style type="text/css">
+    	table { border-collapse: collapse; }
+    	td, th { border: 1px solid black; padding: 0.3em 0.5em; text-align: left; }
+    	dt { font-weight: bold; margin-top: 0.5em; }
+
+		div p {
+			text-indent: 2em;
+			text-align: justify;
+			line-height: 135%;
+		}
+    </style>
+</head>
+<body cz-shortcut-listen="true">
+
+<!-- Zkontrolujte prosím nastavení kódování v hlavičce dokumentu 
+     podle použitého editoru -->
+
+<h1>Liga Elektronického Sportu</h1> <!-- Nahradte názvem svého zadání -->
+
+<dl>
+	<dt>Autoři</dt>
+	<dd>Ondřej Pavela <!-- Nahraďte skutečným jménem a e-mailem autora a popisem činnosti -->
+	    <a href="mailto:xpavel34@stud.fit.vutbr.cz">xpavel34@stud.fit.vutbr.cz</a> -
+		Všechny druhy činností (python, návrh modelů, html šablony, javascript)
+	</dd>
+	<dd>Robert Navrátil <!-- Nahraďte skutečným jménem a e-mailem autora a popisem činnosti -->
+	    <a href="mailto:xnavra61@stud.fit.vutbr.cz">xnavra61@stud.fit.vutbr.cz</a> - 
+		Všechny druhy činností (python, návrh modelů, html šablony, javascript)
+	</dd>
+	<dt>URL aplikace</dt>
+	<dd><a href="http://www.stud.fit.vutbr.cz/~xautor01/IIS">http://www.stud.fit.vutbr.cz/~xautor01/IIS</a></dd>
+</dl>
+
+<h2>Uživatelé systému pro testování</h2>
+<p>Uveďte prosím existující zástupce <strong>všech rolí uživatelů</strong>.</p>
+<table>
+<tbody><tr><th>Login</th><th>Heslo</th><th>Role</th></tr>
+<tr><td>admin</td><td>admin</td><td>Administrátor</td></tr>
+<tr><td>staff</td><td>staff</td><td>Správce údajů</td></tr>
+<tr><td>user</td><td>user</td><td>Hráč</td></tr>
+</tbody></table>
+
+<h2>Implementace</h2>
+<div style="width:600px;">
+	<p>
+		Pro implementaci projektu jsme zvolili programovací jazyk python a webový framework Django. 
+		Z toho důvodu se liší použité principy a strukturování projektu. Kód tedy není rozdělen
+		do jednotlivých PHP skriptů, které se starají o jednu činnost. Místo toho tvoří jádro
+		našeho informačního systému tři hlavní python skripty: <i>forms.py</i>, <i>models.py</i> a 
+		<i>views.py</i>. Za zmínku stoji ještě skript <i>model_actions.py</i>. Ten obsahuje
+		implementaci ruzných obecných funkcí operujících nad modely hráčů, klanů a týmů. Zároveň
+		zabraňují duplikaci kódu, jelikož je stejná funkcionalita často potřeba na více místech
+		v informačním systému.
+	</p>
+
+	<h3>Databáze</h3>
+	<p>
+		Django využívá objektově relačního mapování, což nám umožnilo specifikovat strukturu
+		databáze pomocí tzv. Django modelů. Nejedná se o nic jiného než obyčejné python třídy,
+		které dědí z bázové třídy <b>Model</b>, jenž se nachází v modulu <i>django.db.models</i>
+		V každém modelu poté stačí pomocí třídních atributů definovat jednotlivé jeho prvky,
+		které se poté mapují na konkrétní sloupce v databazové tabulce daného modelu. Django
+		poskytuje poměrně širokou škálů základních typů prvků modelu. Typy prvků jsou opět
+		reprezentovány třídami z modulu <i>django.db.models</i>. V našem případě
+		jsme nejčastěji používali např. třídy <b>CharField</b>, <b>TextField</b>, <b>DateTimeField</b>
+		nebo <b>DurationField</b>. Pro definici vztahů mezi modely poté slouží třídy
+		<b>OneToOneField</b> (1:1), <b>ForeignKey</b> (1:n) a <b>ManyToManyField</b> (m:n).
+		Pro vztahy m:n Django automaticky vytváří vazební tabulky, případně lze definovat
+		vlastní model vazební tabulky, pokud potřebujeme uchovávat dodatečné informace u samotného vztahu.
+		Při deklaraci jednotlivých ukládaných prvků modelu je samozřejmě možné specifikovat
+		různá integritní omezení v konstruktorech dříve zmíněných tříd. Je tedy možné
+		určit, zda je povolena prázdná hodnota prvku (<i>null</i>), zda mají být hodnoty prvku
+		unikátní, co se má stát při smazání navázané entity a podobně.
+	</p>
+
+	<p>
+		V našem řešení jsou veškeré používané modely definovány v souboru <i>models.py</i>
+		a mezi ty nejdůležitější se řadí například <b>Player</b>, <b>Team</b>
+		a <b>Clan</b>. V některých případech využíváme python dekorátoru metod <i>@property</i>
+		pro specifikaci vypočítaných atributů modelu, které nejsou uloženy fyzicky v databázi.
+		Dále je možné u modelu předefinovat <b>save</b> metodu volanou vždy, když je
+		objekt ukládán do databáze. Této možnosti jsme téměř výhradně využili pro naplnění
+		tzv. <b>SlugField</b> prvků modelů před samotným uložením objektu. Jedná se
+		o prvky, které v našem případě obsahují například názvy her, týmu a podobně v upravené
+		podobě, která je vhodná pro využití v URL adresách. Tedy původní text, jehož písmena
+		jsou převedena na malá a mezery na pomlčky.
+	</p>
+
+	<h3>Views</h3>
+	<p>
+		Je jádro celého systému, které je tvořeno jednotlivými 'pohledy' s příslušnou šablonou, 
+		nad kterou operují. Views je možné definovat jako funkce, či třídy, a každá z těchto částí
+		určuje operace nad jednou stránkou. V obecných pohledech pracujícími s více daty
+		jsme zdědili <i>TemplateView</i> a pro pohledy jednotlivých prvků, které pracují primárně 
+		nad jedním objektem (např. detail hráče), jsme využili <i>DetailView</i>.
+		Každý z nich obsahuje zděděnou funkci pro přenášení kontextu (<b>get_context_data</b>), 
+		metody <b>get</b> a <b>post</b> a <b>__init__</b>, které je možné předefinovat.
+		Předefinováním funkce <b>get_context_data</b> jsme dosahovali požadované funkcionality a 
+		dosažitelnosti dat v html šablonách, takže je zde většina dotazů do databáze. Data jsou 
+		v šablonách přístupná přes klíče v kontextovém slovníku, který tato funkce vrací. 
+		Dále bylo občas nutné změnit i funkce <b>get</b> a <b>post</b>, ve kterých jsme případně, 
+		dle svého uvážení, zpracovávali přijatá data a reagovali na ně chybou nebo překreslením stránky.
+		Chyba je často odpovědí přes ajax při špatném použití nějakého z formulářů.
+	</p>
+
+	<h3>Formuláře a ošetření uživatelských vstupů</h3>
+	<p>
+		
+	</p>
+
+	<h3>HTML Šablony</h3>
+	<p>
+		Django obsahuje integrovaný systém <b>HTML</b> šablon. Díky tomu se můžou v <b>HTML</b> kódu 
+		vyskytovat i příkazy pro <i>Python</i> jako podmínky, či využívání kontextových proměnných.
+		Syntax pro proměnné je <b>{{ <i>prommena</i> }}</b>, kde <i>promenna</i> je klíč v kontextovém
+		slovníku. Pro podmínky, či cykly, je zápis <b>{% <i>if</i> nebo <i>for</i> %}</b> a po klíčových
+		slovech následuje daná podmínka nebo hlavička cyklu jako v pythonu, avšak nelze využívat 
+		<i>range(x)</i>, protože zápis v šablonách nepodporuje závorky. Dalším prvkem šablon je použití
+		bloků k odstranění redundance. V tomto projektu máme základní šablonu <i>base.html</i>, ve které
+		jsou definovány veškeré společné javascripty a prvky stránky jako patička, či levý panel (ten je
+		ovšem ošetřen podmínkou pro nepřihlášené uživatele). Ostatní šablony tedy použijí <i>include</i>
+		<b>base</b> šablony a není tedy nutná redundance.
+	</p>
+
+	<h3>Integritní omezení</h3>
+	<p>
+		V této podkapitole vysvětlím ty části systému, jejichž funkčnost nemusí být zřejmá z diagramu užití, 
+		a nebo mají složité závislosti a různá integritní omezení. Hlavnimi částmi systému jsou klany, 
+		týmy, hráči, hry, zápasy a turnaje. Všechny tyto objekty je možné vytvořit přes stránku admina. 
+		Pro hry jsou zde také herní módy a žánr, přičemž herní mód definuje počet hráčů v zápase. Dále 
+		jsou zde týmy. Jednotlivé týmy mají herní zaměření a mohou být pod klanem, nebo bez klanu.
+		Týmy bez klanu se nemohou účastnit turnajů. Klany jsou skupinou týmů. Jedním z problémů by mohl být tým,
+		který chce být přizván do klanu. Taková možnost je validní pouze pokud všichni členové týmu patří
+		do klanu, do něhož jde tým. Situace při odcházení velitelů týmů a klanů jsou řešeny výběrem prvního v 
+		databázi, a nebo sám velitel předá svou roli někomu z členů. Pokud odejde poslední hráč, tak je tým 
+		nebo klan bez velitele a první hráč, který vstoupí, je automaticky přijat a je ihned velitelem. Nyní k integritním omezením
+		hráčů. Při tvorbě hráče se automaticky vytvoří uživatel s generickým heslem a naopak při vytvoření
+		uživatele se vytvoří hráč. Hráč může požádat o členství v klanu i v týmech, avšak pokud chce
+		vstoupit do týmu s klanem, tak je automaticky přizván i do daného klanu. Po přijetí do klanu 
+		se zruší všechny pozvánky do ostatních klanů a do všech týmů, které mají jiný klan, než ve kterém
+		se hráč aktuálně nachází. Do týmu klanu nemůže být přijat, dokud není členem klanu. Toto se však
+		nevztahuje na týmy bez klanu. Tato omezení jsou potřebná z důvodu, že hráč může být pouze v 
+		jednom klanu, protože nastávaly problémy se statistikami a různé informace mohly být kvúli 
+		tomu nepřesné. Hráč se tedy může nacházet ve více týmech, ale pouze v jednom klanu, a také může být 
+		zaměřen na více her. Turnaje můžou vytvářet pouze správci dat, nebo admin. Po vytvoření zápasu jsou
+		pro jednoduchost všechna data náhodně vybrána a vygenerována z příslušných týmů a týmy jsou logicky
+		nedostupné, dokud neskončí zápas. Zápasy mohou vytvářet pouze velitelé týmů.
+	</p>
+</div>
+
+<img src="use_case.png" style="width: 1200px; border: 2px solid black;"/>
+<p>Stručná dokumentace k implementaci, která popisuje, které PHP skripty implementují jednotlivé případy použití uvedené v use-case diagramu z IDS. V případě, že bylo nutno při implementaci učinit změny v návrhu, musí být v dokumentaci zdůvodněny.</p>
+
+<h2>Instalace</h2>
+<ul>
+<li>Stručně popište postup instalace na server</li>
+<li>Softwarové požadavky (verze PHP apod.)</li>
+<li>Jak rozbalit, konfigurovat, inicializovat databází, ...</li>
+</ul>
+
+<h2>Známé problémy</h2>
+<p>Zde popište, které body zadání (IDS a IIS) nejsou implementovány a z jakého důvodu. Např. &#8222;Z časových důvodů nebyla implementována správa uživatelů.&#8221; Pomůžete tím zrychlit opravování, když neimplementované funkce nebudeme muset dlouze hledat.</p>
+<div style="width:600px;">
+	<p>
+		Jak již bylo zmíněno v Integritních omezeních, tak při vytváření zápasů jsou veškeré události a všechno generováno ihned, protože vkládání jednotlivých akcí
+		by bylo napojeno na hru a ruční plnění by bylo zbytečně časově náročné. Po vytvoření je tedy známý už budoucí vítěz a čas i vše ostatní.
+		Další odchylkou od zadání je vyhledávání dat. V hlavičkách tabulek měly být implementovány různé filtry, ale už v samotných tabulkách se vcelku dobře hledá a 
+		na filtry, či jiné typy vyhledávání, nám bohužel nezbyl čas.
+	</p>
+</div>
+
+
+</body></html>

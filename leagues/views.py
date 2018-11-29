@@ -814,7 +814,8 @@ class TournamentView(generic.TemplateView):
         if request.user.is_authenticated:
             for tournament in tournaments:
                 teams = RegisteredTeams.objects.filter(tournament=tournament)
-                if teams.count() >= 2 and teams.filter(team__leader=request.user.player):
+                if teams.count() >= 2 and teams.filter(team__leader=request.user.player)\
+                        and tournament.opening_date <= timezone.now().date() <= tournament.end_date:
                     form_data.add(tournament)
 
         context['match_form_data'] = form_data
@@ -982,12 +983,16 @@ class MatchDetailView(generic.DetailView):
         players_1 = list(PlayedMatch.objects.filter(match=match, team=match.team_1))
         players_2 = list(PlayedMatch.objects.filter(match=match, team=match.team_2))
         players = []
+        filtered_deaths = set()
         for i in range(len(players_1)):
             players.append((players_1[i], players_2[i]))
 
         deaths = Death.objects.filter(match=match)
+        for death in deaths:
+            if (match.beginning + death.match_time) <= timezone.now():
+                filtered_deaths.add(death)
 
-        context['deaths'] = deaths
+        context['deaths'] = filtered_deaths
         context['assist_num'] = range(1, match.game_mode.team_player_count - 1)
         context['teams'] = (match.team_1, match.team_2)
         context['players'] = players
@@ -1013,7 +1018,10 @@ class TournamentDetailView(generic.DetailView):
             team_matches.append((team, all_matches, won_matches, win_rate))
         matches = Match.objects.filter(tournament=tournament)
         sponsors = Sponsorship.objects.filter(tournament=tournament)
-        main_sponsor = sponsors.get(type='MAIN')
+        try:
+            main_sponsor = sponsors.get(type='MAIN')
+        except:
+            main_sponsor = None
         context['registered'] = registered
         context['main_sponsor'] = main_sponsor
         context['team_matches'] = team_matches

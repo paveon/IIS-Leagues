@@ -83,7 +83,7 @@
       <div id="info" class="w3-container w3-section section">
 
         <h4><b>Main sponsor:</b>
-          {{ main_sponsor.sponsor.name }}
+          {{ main_sponsor.sponsor.name|default:"Doesn't have main sponsor" }}
         </h4>
 
         <h4><b>Prize:</b>
@@ -111,7 +111,7 @@
       <div id="teams" class="w3-container w3-section section">
         <h3>Participating teams</h3>
         <div class="pagedTable w3-card w3-round">
-          {% if user.is_authenticated and user.player == user.player.clan.leader %}
+          {% if user.is_authenticated and tournament.upcoming and user.player == user.player.clan.leader %}
             {% if registered != None %}
               <button type="button" class="w3-padding-3 w3-button w3-small w3-gray w3-block"
                       onclick="teamUnreg(event)">

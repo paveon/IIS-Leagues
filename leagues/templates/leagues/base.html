@@ -424,21 +424,38 @@
           <br>
 
           <!-- Accordion -->
-          <div class="w3-card w3-round w3-white">
-            <div class="w3-white w3-center w3-block w3-padding-3"><h5><b>Upcoming tournaments</b></h5></div>
-            {% if user.player %}
-              {% for tournament in user.player.tournaments %}
-                <a href="{% url 'leagues:tournament_detail' tournament.tournament.slug %}"
-                   class="w3-button w3-block w3-theme-l1 w3-left-align">
-                  {{ tournament.tournament.name }} {{ tournament.tournament.opening_date|date:"j.n.Y" }}
-                </a>
-              {% endfor %}
-            {% endif %}
-            <div id="Demo3" class="w3-hide w3-container">
-              <div class="w3-row-padding">
+          {% if user.player and user.player.tournaments.1 %}
+            <div class="w3-card w3-round w3-white">
+              <div class="w3-white w3-center w3-block w3-padding-3"><h5><b>Active tournaments</b></h5></div>
+                {% for tournament in user.player.tournaments.1 %}
+                  <a href="{% url 'leagues:tournament_detail' tournament.slug %}"
+                     class="w3-button w3-block w3-theme-l1 w3-left-align">
+                    {{ tournament.name }} {{ tournament.end_date|date:"j.n.Y" }}
+                  </a>
+                {% endfor %}
+              <div id="Demo3" class="w3-hide w3-container">
+                <div class="w3-row-padding">
+                </div>
               </div>
             </div>
-          </div>
+            <br>
+          {% endif %}
+
+          {% if user.player and user.player.tournaments.0 %}
+            <div class="w3-card w3-round w3-white">
+              <div class="w3-white w3-center w3-block w3-padding-3"><h5><b>Upcoming tournaments</b></h5></div>
+                {% for tournament in user.player.tournaments.0 %}
+                  <a href="{% url 'leagues:tournament_detail' tournament.slug %}"
+                     class="w3-button w3-block w3-theme-l1 w3-left-align">
+                    {{ tournament.name }} {{ tournament.opening_date|date:"j.n.Y" }}
+                  </a>
+                {% endfor %}
+              <div id="Demo3" class="w3-hide w3-container">
+                <div class="w3-row-padding">
+                </div>
+              </div>
+            </div>
+          {% endif %}
         </div>
       {% endif %}
     {% endblock %}
