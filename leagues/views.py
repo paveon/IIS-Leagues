@@ -71,7 +71,6 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
     template_name = "leagues/settings.html"
 
     def get_leader_queryset(self):
-        self.object_id = self.request.GET['object_id']
         if self.object_id:
             clan = Clan.objects.get(pk=self.object_id)
             query = Q(clan=clan) | Q(clan__isnull=True)
@@ -88,7 +87,6 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
     # options in HTML select menus based on queryset. We also use single
     # modal form creating and editing which we modify with jquery
     def get_edit_modal_data(self):
-        self.object_id = self.request.GET['object_id']
         model_object = self.model_class.objects.get(pk=self.object_id)
         self.response = model_to_dict(model_object)
 
@@ -134,10 +132,15 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         form_instance = self.form_class()
         form_fields_dict = dict(form_instance.fields)
         # Convert choice fields to list of ids and names
-        for key, value in form_fields_dict.items():
-            if type(value) is forms.ModelChoiceField:
-                choice_list = list(value.choices)
-                self.response[key] = choice_list
+        for field_name, field in form_fields_dict.items():
+            if type(field) is forms.ModelChoiceField:
+                choice_list = list(field.choices)
+                self.response[field_name] = choice_list
+
+    def change_user_acount_state(self, active):
+        player = Player.objects.get(pk=self.object_id)
+        player.user.is_active = active
+        player.user.save()
 
     def __init__(self):
         super().__init__()
@@ -148,10 +151,12 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         self.object_id = None
         self.response = {}
         self.context = []
-        self.get_actions = {
+        self.actions = {
             'open_edit_modal': self.get_edit_modal_data,
             'open_create_modal': self.get_create_modal_data,
-            'clan_changed': self.get_leader_queryset
+            'clan_changed': self.get_leader_queryset,
+            'suspend_user': self.change_user_acount_state,
+            'activate_user': self.change_user_acount_state
         }
         self.used_models = {
             Game.__name__.lower(): (Game, GameForm),
@@ -189,9 +194,12 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         if request.is_ajax():
             # Ajax calls are used to populate opened form with existing data
             # if editing object or with default data when creating new one
+            if 'object_id' in request.POST:
+                self.object_id = request.POST['object_id']
+
             self.class_name = request.GET['modal_type']
             self.action_key = request.GET['action']
-            action = self.get_actions[self.action_key]
+            action = self.actions[self.action_key]
             config = self.used_models[self.class_name]
             self.model_class = config[0]
             self.form_class = config[1]
@@ -206,25 +214,10 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
     # modified data through form
     def process_edit_form(self):
         prefix = self.class_name.lower() + '_form'
-
-        # Get existing object from db
         model_object = self.model_class.objects.get(pk=self.object_id)
-
-        # Fill form with object instance and post data
         edit_form = self.form_class(self.request.POST, instance=model_object, prefix=prefix)
         if edit_form.is_bound and edit_form.is_valid():
             edit_form.save()
-
-            # elif form_name == 'ClanForm':
-            #     # Leader must be a member of clan
-            #     leader = edit_form.cleaned_data['leader']
-            #     if leader:
-            #         clan = model_object
-            #         try:
-            #             clan.clan_members.get(pk=leader.id)
-            #         except Player.DoesNotExist:
-            #             clan.clan_members.add(leader)
-
             return HttpResponseRedirect(reverse('leagues:settings'))
 
         failed = self.form_class(instance=model_object, prefix=prefix)
@@ -248,27 +241,31 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         self.context[form_prefix] = create_form
         raise ValidationError(self.form_class.__name__ + ' validation failed')
 
-    # All posts on management page are synchronous
     def post(self, request, *args, **kwargs):
         self.context = self.get_context_data(**kwargs)
         self.object_id = request.POST['object_id']
-        self.action_key = request.POST['post_action']
-        self.class_name = self.action_key.split('_')[0]
-        config = self.used_models[self.class_name]
-        self.model_class = config[0]
-        self.form_class = config[1]
-        try:
-            if self.action_key.endswith('_create'):
-                action = self.process_create_form
-            else:
-                action = self.process_edit_form
-            return action()
+        self.action_key = request.POST['action']
+        if request.is_ajax():
+            action = self.actions[self.action_key]
+            action(self.action_key == 'activate_user')
+            return JsonResponse(self.response)
+        else:
+            self.class_name = self.action_key.split('_')[0]
+            config = self.used_models[self.class_name]
+            self.model_class = config[0]
+            self.form_class = config[1]
+            try:
+                if self.action_key.endswith('_create'):
+                    action = self.process_create_form
+                else:
+                    action = self.process_edit_form
+                return action()
 
-        except ValidationError:
-            self.context['error_modal'] = self.class_name + '_form'
-            if self.object_id:
-                self.context['object_id'] = self.object_id
-            return render(request, self.template_name, self.context)
+            except ValidationError:
+                self.context['error_modal'] = self.class_name + '_form'
+                if self.object_id:
+                    self.context['object_id'] = self.object_id
+                return render(request, self.template_name, self.context)
 
 
 class GamesView(generic.TemplateView):
@@ -814,7 +811,7 @@ class TournamentView(generic.TemplateView):
         if request.user.is_authenticated:
             for tournament in tournaments:
                 teams = RegisteredTeams.objects.filter(tournament=tournament)
-                if teams.count() >= 2 and teams.filter(team__leader=request.user.player)\
+                if teams.count() >= 2 and teams.filter(team__leader=request.user.player) \
                         and tournament.opening_date <= timezone.now().date() <= tournament.end_date:
                     form_data.add(tournament)
 
@@ -863,7 +860,7 @@ class TournamentView(generic.TemplateView):
             player_id = int(form_data_dict['player_id'])
             possible_teams = Team.objects.filter(game_id=game, active=True)
             for t in possible_teams:
-                if (t.team_members.all().count() >= GameMode.objects.get(pk=game_mode).team_player_count)\
+                if (t.team_members.all().count() >= GameMode.objects.get(pk=game_mode).team_player_count) \
                         and t.team_members.filter(id=player_id).exists() and not t.is_playing:
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)
@@ -885,7 +882,7 @@ class TournamentView(generic.TemplateView):
                 players1 = len(players1) - players
                 count = GameMode.objects.get(pk=game_mode).team_player_count
                 # if distinct number of player of both teams can make together
-                if (players1 + len(players2)) >= (2 * count) and (players1 + players) >= count\
+                if (players1 + len(players2)) >= (2 * count) and (players1 + players) >= count \
                         and not t.is_playing:
                     valid_team = [t.id, t.name]
                     dictionaries.append(valid_team)

@@ -53,7 +53,7 @@
 		do jednotlivých PHP skriptù, které se starají o jednu èinnost. Místo toho tvoøí jádro
 		na¹eho informaèního systému tøi hlavní python skripty: <i>forms.py</i>, <i>models.py</i> a 
 		<i>views.py</i>. Za zmínku stoji je¹tì skript <i>model_actions.py</i>. Ten obsahuje
-		implementaci ruzných obecných funkcí operujících nad modely hráèù, klanù a týmù. Zároveò
+		implementaci rùzných obecných funkcí operujících nad modely hráèù, klanù a týmù. Zároveò
 		zabraòují duplikaci kódu, jeliko¾ je stejná funkcionalita èasto potøeba na více místech
 		v informaèním systému.
 	</p>
@@ -64,8 +64,8 @@
 		databáze pomocí tzv. Django modelù. Nejedná se o nic jiného ne¾ obyèejné python tøídy,
 		které dìdí z bázové tøídy <b>Model</b>, jen¾ se nachází v modulu <i>django.db.models</i>
 		V ka¾dém modelu poté staèí pomocí tøídních atributù definovat jednotlivé jeho prvky,
-		které se poté mapují na konkrétní sloupce v databazové tabulce daného modelu. Django
-		poskytuje pomìrnì ¹irokou ¹kálù základních typù prvkù modelu. Typy prvkù jsou opìt
+		které se poté mapují na konkrétní sloupce v databázové tabulce daného modelu. Django
+		poskytuje pomìrnì ¹irokou ¹kálu základních typù prvkù modelu. Typy prvkù jsou opìt
 		reprezentovány tøídami z modulu <i>django.db.models</i>. V na¹em pøípadì
 		jsme nejèastìji pou¾ívali napø. tøídy <b>CharField</b>, <b>TextField</b>, <b>DateTimeField</b>
 		nebo <b>DurationField</b>. Pro definici vztahù mezi modely poté slou¾í tøídy
@@ -93,86 +93,190 @@
 
 	<h3>Views</h3>
 	<p>
-		Je jádro celého systému, které je tvoøeno jednotlivými 'pohledy' s pøíslu¹nou ¹ablonou, 
-		nad kterou operují. Views je mo¾né definovat jako funkce, èi tøídy, a ka¾dá z tìchto èástí
-		urèuje operace nad jednou stránkou. V obecných pohledech pracujícími s více daty
-		jsme zdìdili <i>TemplateView</i> a pro pohledy jednotlivých prvkù, které pracují primárnì 
-		nad jedním objektem (napø. detail hráèe), jsme vyu¾ili <i>DetailView</i>.
-		Ka¾dý z nich obsahuje zdìdìnou funkci pro pøená¹ení kontextu (<b>get_context_data</b>), 
-		metody <b>get</b> a <b>post</b> a <b>__init__</b>, které je mo¾né pøedefinovat.
-		Pøedefinováním funkce <b>get_context_data</b> jsme dosahovali po¾adované funkcionality a 
-		dosa¾itelnosti dat v html ¹ablonách, tak¾e je zde vìt¹ina dotazù do databáze. Data jsou 
-		v ¹ablonách pøístupná pøes klíèe v kontextovém slovníku, který tato funkce vrací. 
-		Dále bylo obèas nutné zmìnit i funkce <b>get</b> a <b>post</b>, ve kterých jsme pøípadnì, 
-		dle svého uvá¾ení, zpracovávali pøijatá data a reagovali na nì chybou nebo pøekreslením stránky.
-		Chyba je èasto odpovìdí pøes ajax pøi ¹patném pou¾ití nìjakého z formuláøù.
+		Takzvané pohledy tvoøí jádro celého systému a ka¾dý pohled reprezentuje jednu konkrétní
+		stránku informaèního systému. Pohled je mo¾né definovat jako python funkci, nebo tøídu. 
+		Ke ka¾dému pohledu je poté
+		pøiøazena HTML ¹ablona, která je pøi HTTP po¾adavku zpracována a výsledný HTML obsah je zaslán
+		zpìt klientovi. Pro obecné pohledy pracující s více rùznými daty jsme zvolili jako nadtøídu 
+		<i>TemplateView</i> a pro pohledy jednotlivých prvkù, které pracují primárnì 
+		nad jedním objektem (napø. detail hráèe), jsme jako nadtøídu zvolili <i>DetailView</i>.
+		Z tìchto nadtøíd je zdìdìna metoda pro získání kontextu (<b>get_context_data</b>) a
+		metody <b>get</b> a <b>post</b> slou¾ící pro obsluhu tìchto HTTP po¾adavkù. V¹echny tyto metody
+		je mo¾né pøedefinovat a upravit tak pro potøeby konkrétní stránky. Pro vlo¾ení dodateèných
+		dat do kontextového slovníku staèilo pøedefinovat metodu <b>get_context_data</b>, èeho¾ jsme vyu¾ívali
+		pokud bylo na ¹ablonì potøeba nìjakým zpùsobem zobrazit data získaná z databáze. V ¹ablonách
+		je poté mo¾né k datùm ulo¾eným v kontextovém slovníku pøistupovat pomocí jejich klíèù.
+		Ve vìt¹inì pøípadù bylo dále nutné pøedefinovat i funkce <b>get</b> a <b>post</b>, ve kterých jsme
+		zpracovávali pøijatá data a reagovali na nì zasláním dat, nebo chyby.
 	</p>
 
 	<h3>Formuláøe a o¹etøení u¾ivatelských vstupù</h3>
 	<p>
-		
+		Django umo¾òuje definovat formuláøe pøímo v python kódu opìt pomocí tøíd.
+		Pokud ji¾ existuje model, nad kterým má formuláø pracovat, staèí vytvoøit
+		formuláøovou tøídu dìdící z bázové tøídy <b>ModelForm</b> z modulu <i>django.forms</i>.
+		Poté je mo¾né pomocí vnoøené <b>Meta</b> tøídy specifikovat, nad kterým modelem
+		má formuláø operovat, jaké prvky modelu si pøejeme na formuláøi zobrazit, pøípadnì
+		jaký <b>Widget</b> má být pro reprezentaci prvku na formuláøi pou¾it. Ve vìt¹inì
+		pøípadù nebylo potøeba specifikovat <b>Widget</b> tøídy pro jednotlivé prvky
+		formuláøù, jeliko¾ Django je schopné na základì typu prvku modelu odvodit, jakou 
+		<b>Widget</b> tøídu má pro vstupní pole na formuláøi pou¾ít. Výjimku tvoøilo v
+		na¹em pøípadì pou¾ití vlastní tøídy <b>CalendarWidget</b>, která dìdí ze tøídy
+		<b>TextInput</b>, co¾ je <b>Widget</b> bì¾nì reprezentující <b>DateField</b> a
+		<b>DateTimeField</b> prvky modelu. Vlastní tøídu jsme vyu¾ili pro automatické
+		pøidání <i>class</i> atributu u HTML elementu, na základì kterého je rozpoznáno
+		vstupní pole pro zadávání data. Po naètení stránky poté <i>jQuery</i> kód automaticky
+		inicializuje instanci kalendáøe pro ka¾dý tento element.
+	</p>
+
+	<p>
+		Jakmile je definována formuláøová tøída, staèí vytvoøit její instanci a
+		vlo¾it ji do kontextu pohledu. V ¹ablonì se poté mù¾eme
+		na tento formuláø odkazovat a nechat ho pomocí Djanga automaticky sestavit,
+		pøípadnì se odkazovat na konkrétní pole formuláøe a èásteènì si formuláø sestavit
+		sami, pokud potøebujeme vìt¹í flexibilitu.
+		Dále je mo¾né u ka¾dé formuláøové tøídy pøedefinovat metody <b>clean</b> a <b>save</b>.
+		Po odeslání formuláøe jej server zpracuje a to tak, ¾e se nejdøíve zavolá metoda
+		<b>clean</b>, v ní¾ je mo¾né kontrolovat, zda jsou dodr¾ena rùzná slo¾itìj¹í dodateèná 
+		integritní omezení, které není mo¾né specifikovat na databázové úrovni v modelu.
+		Pokud je nìjaké omezení poru¹eno, staèí v metodì vyvolat výjimku <b>ValidationError</b>,
+		která do struktury pro uchování chyb uvnitø formuláøe vlo¾í libovolný text.
+		Ve¹keré chyby spojené s vyplnìným formuláøem se poté zobrazí na HTML formuláøi po
+		neúspì¹ném zpracování.
+	</p>
+
+	<p>
+		Metoda <b>save</b> je volána pouze po úspì¹né validaci formuláøových dat a slou¾í
+		pro ulo¾ení nového / modifikovaného objektu do databáze. Její redefinicí je mo¾né
+		provádìt dodateèné akce pøed / po ulo¾ení objektu do databáze, co¾ se mù¾e z rùzných
+		dùvodù hodit. V na¹em pøípadì pou¾íváme metodu <b>clean</b> pro kontrolu v¹ech
+		dodateèných integritních omezení a metodu <b>save</b> pro ukládání dat hráèù, jeliko¾
+		èást jeho dat je ukládána v tabulce modelu <b>Player</b> a èást v tabulce modelu <b>User</b>
+		(napø. jméno a pøíjmení hráèe je ulo¾eno v tabulce <b>User</b> a pøezdívka v tabulce <b>Player</b>).
 	</p>
 
 	<h3>HTML ©ablony</h3>
 	<p>
-		Django obsahuje integrovaný systém <b>HTML</b> ¹ablon. Díky tomu se mù¾ou v <b>HTML</b> kódu 
-		vyskytovat i pøíkazy pro <i>Python</i> jako podmínky, èi vyu¾ívání kontextových promìnných.
-		Syntax pro promìnné je <b>{{ <i>prommena</i> }}</b>, kde <i>promenna</i> je klíè v kontextovém
-		slovníku. Pro podmínky, èi cykly, je zápis <b>{% <i>if</i> nebo <i>for</i> %}</b> a po klíèových
-		slovech následuje daná podmínka nebo hlavièka cyklu jako v pythonu, av¹ak nelze vyu¾ívat 
-		<i>range(x)</i>, proto¾e zápis v ¹ablonách nepodporuje závorky. Dal¹ím prvkem ¹ablon je pou¾ití
-		blokù k odstranìní redundance. V tomto projektu máme základní ¹ablonu <i>base.html</i>, ve které
-		jsou definovány ve¹keré spoleèné javascripty a prvky stránky jako patièka, èi levý panel (ten je
-		ov¹em o¹etøen podmínkou pro nepøihlá¹ené u¾ivatele). Ostatní ¹ablony tedy pou¾ijí <i>include</i>
-		<b>base</b> ¹ablony a není tedy nutná redundance.
+		Django obsahuje integrovaný systém <b>HTML</b> ¹ablon. Díky tomu se mohou v <b>HTML</b> kódu 
+		vyskytovat napøíklad øídící konstrukce, èi odkazy na kontextové promìnné.
+		Syntax pro odkaz na hodnotu promìnné je <b>{{ <i>prommena</i> }}</b>, kde <i>promenna</i> je klíè 
+		v kontextovém slovníku. Pro podmínky, èi cykly, je zápis <b>{% <i>if</i> nebo <i>for</i> %}</b>, kde
+		po klíèových slovech následuje daná podmínka nebo hlavièka cyklu jako v pythonu. Nelze v¹ak vyu¾ívat
+		napøíklad <i>range(x)</i>, jeliko¾ ¹ablonový jazyk nepodporuje volání metod èi funkcí s parametry. 
+		Dal¹ím prvkem ¹ablonová dìdiènost a s tím související pou¾ití blokù k odstranìní redundance. 
+		Základ vìt¹iny na¹ich ¹ablon tvoøí bázová ¹ablona <i>base.html</i>, ve které
+		jsou definovány ve¹keré spoleèné prvky stránky jako patièka, levý panel (ten je
+		ov¹em o¹etøen podmínkou pro nepøihlá¹ené u¾ivatele), nebo spoleèný javascript kód.
+		Ostatní ¹ablony pak mohou pou¾ít direktivy <i>include</i>, èím¾ zdìdí bloky z bázové ¹ablony,
+		které je následnì mo¾né roz¹íøit. Systém ¹ablonové dìdiènosti umo¾òuje výraznì redukovat
+		redundantní HTML kód.
 	</p>
 
 	<h3>Integritní omezení</h3>
 	<p>
-		V této podkapitole vysvìtlím ty èásti systému, jejich¾ funkènost nemusí být zøejmá z diagramu u¾ití, 
-		a nebo mají slo¾ité závislosti a rùzná integritní omezení. Hlavnimi èástmi systému jsou klany, 
-		týmy, hráèi, hry, zápasy a turnaje. V¹echny tyto objekty je mo¾né vytvoøit pøes stránku admina. 
-		Pro hry jsou zde také herní módy a ¾ánr, pøièem¾ herní mód definuje poèet hráèù v zápase. Dále 
-		jsou zde týmy. Jednotlivé týmy mají herní zamìøení a mohou být pod klanem, nebo bez klanu.
-		Týmy bez klanu se nemohou úèastnit turnajù. Klany jsou skupinou týmù. Jedním z problémù by mohl být tým,
-		který chce být pøizván do klanu. Taková mo¾nost je validní pouze pokud v¹ichni èlenové týmu patøí
-		do klanu, do nìho¾ jde tým. Situace pøi odcházení velitelù týmù a klanù jsou øe¹eny výbìrem prvního v 
-		databázi, a nebo sám velitel pøedá svou roli nìkomu z èlenù. Pokud odejde poslední hráè, tak je tým 
-		nebo klan bez velitele a první hráè, který vstoupí, je automaticky pøijat a je ihned velitelem. Nyní k integritním omezením
-		hráèù. Pøi tvorbì hráèe se automaticky vytvoøí u¾ivatel s generickým heslem a naopak pøi vytvoøení
-		u¾ivatele se vytvoøí hráè. Hráè mù¾e po¾ádat o èlenství v klanu i v týmech, av¹ak pokud chce
-		vstoupit do týmu s klanem, tak je automaticky pøizván i do daného klanu. Po pøijetí do klanu 
-		se zru¹í v¹echny pozvánky do ostatních klanù a do v¹ech týmù, které mají jiný klan, ne¾ ve kterém
-		se hráè aktuálnì nachází. Do týmu klanu nemù¾e být pøijat, dokud není èlenem klanu. Toto se v¹ak
-		nevztahuje na týmy bez klanu. Tato omezení jsou potøebná z dùvodu, ¾e hráè mù¾e být pouze v 
-		jednom klanu, proto¾e nastávaly problémy se statistikami a rùzné informace mohly být kvúli 
-		tomu nepøesné. Hráè se tedy mù¾e nacházet ve více týmech, ale pouze v jednom klanu, a také mù¾e být 
-		zamìøen na více her. Turnaje mù¾ou vytváøet pouze správci dat, nebo admin. Po vytvoøení zápasu jsou
-		pro jednoduchost v¹echna data náhodnì vybrána a vygenerována z pøíslu¹ných týmù a týmy jsou logicky
-		nedostupné, dokud neskonèí zápas. Zápasy mohou vytváøet pouze velitelé týmù.
+			V této podkapitole jsou vysvìtleny ty èásti systému, jejich¾ funkènost nemusí být zøejmá z diagramu u¾ití, 
+			a nebo mají slo¾ité závislosti a rùzná integritní omezení. Hlavními èástmi systému jsou klany, 
+			týmy, hráèi, hry, zápasy a turnaje. V¹echny tyto objekty je mo¾né vytvoøit pøes stránku pro správu systému.
+			Pro hry jsou zde také herní módy a ¾ánry, pøièem¾ herní mód definuje poèet hráèù v zápase. Dále 
+			jsou zde týmy. Jednotlivé týmy mají herní zamìøení a mohou být pod klanem, nebo bez klanu.
+			Týmy bez klanu se nemohou úèastnit turnajù. Klany jsou skupinou týmù. Jedním z problémù by mohl být tým,
+			který chce být pøizván do klanu. Taková mo¾nost je validní pouze pokud v¹ichni èlenové týmu patøí
+			do klanu, do nìho¾ se tým hlásí. Jestli¾e klan èi tým opustí velitel, je role velitele automaticky
+			pøedána	následujícímu èlenu, pøípadnì má velitel mo¾nost sám pøedat roli nìjakému jinému èlenu.
+			Pøi odchodu posledního èlena je tým èi klan bez velitele a první hráè, který za¾ádá o èlenství
+			v takovémto klanu èi týmu je automaticky pøijat a je mu pøedána role velitele.
 	</p>
-</div>
-
-<img src="use_case.png" style="width: 1200px; border: 2px solid black;"/>
-<p>Struèná dokumentace k implementaci, která popisuje, které PHP skripty implementují jednotlivé pøípady pou¾ití uvedené v use-case diagramu z IDS. V pøípadì, ¾e bylo nutno pøi implementaci uèinit zmìny v návrhu, musí být v dokumentaci zdùvodnìny.</p>
-
-<h2>Instalace</h2>
-<ul>
-<li>Struènì popi¹te postup instalace na server</li>
-<li>Softwarové po¾adavky (verze PHP apod.)</li>
-<li>Jak rozbalit, konfigurovat, inicializovat databází, ...</li>
-</ul>
-
-<h2>Známé problémy</h2>
-<p>Zde popi¹te, které body zadání (IDS a IIS) nejsou implementovány a z jakého dùvodu. Napø. &#8222;Z èasových dùvodù nebyla implementována správa u¾ivatelù.&#8221; Pomù¾ete tím zrychlit opravování, kdy¾ neimplementované funkce nebudeme muset dlouze hledat.</p>
-<div style="width:600px;">
 	<p>
-		Jak ji¾ bylo zmínìno v Integritních omezeních, tak pøi vytváøení zápasù jsou ve¹keré události a v¹echno generováno ihned, proto¾e vkládání jednotlivých akcí
-		by bylo napojeno na hru a ruèní plnìní by bylo zbyteènì èasovì nároèné. Po vytvoøení je tedy známý u¾ budoucí vítìz a èas i v¹e ostatní.
-		Dal¹í odchylkou od zadání je vyhledávání dat. V hlavièkách tabulek mìly být implementovány rùzné filtry, ale u¾ v samotných tabulkách se vcelku dobøe hledá a 
-		na filtry, èi jiné typy vyhledávání, nám bohu¾el nezbyl èas.
+			Pøi vytvoøení nového hráèe na stránce správce se automaticky vytvoøí také u¾ivatel s u¾ivatelským 
+			jménem dle pøezdívky hráèe a s generickým heslem 
+			'1234'. Naopak pøi vytvoøení u¾ivatele se automaticky
+			vytvoøí hráè. Hráè mù¾e po¾ádat o èlenství v klanu i v týmech, av¹ak pokud chce
+			vstoupit do týmu s klanem, tak je automaticky pøizván i do daného klanu. Po pøijetí do klanu 
+			se zru¹í v¹echny pozvánky do ostatních klanù a do v¹ech týmù, které mají jiný klan, ne¾ ve kterém
+			se hráè aktuálnì nachází. Do týmu klanu nemù¾e být pøijat, dokud není èlenem klanu. Toto se v¹ak
+			nevztahuje na týmy bez klanu. Hráè se tedy mù¾e nacházet ve více týmech, ale pouze v jednom klanu,
+			a také mù¾e být zamìøen na více her. Turnaje mohou vytváøet pouze správci dat, nebo admin. Po vytvoøení zápasu jsou
+			pro jednoduchost v¹echna data náhodnì vybrána a vygenerována z pøíslu¹ných týmù a týmy jsou logicky
+			nedostupné, dokud neskonèí zápas. Zápasy mohou vytváøet pouze velitelé týmù.
 	</p>
+
+	<h3>Use-case diagram</h3>
+	<img src="use_case.png" style="width: 1200px; border: 2px solid black;"/>
+	<p>
+		Témìø v¹echny pøípady pou¾ití jsou implementovány v python skriptu <i>views.py</i>.
+		Akce spojené s vstupem a odchodem hráèù do/z týmù a klanù jsou poté implementovány jako funkce
+		ve skriptu <i>model_actions.py</i>. Hlavní zmìny oproti uvedenému use-case diagramu jsou spojené s
+		odbìrem informací o turnajích, archivací starých zápasù, tisknutím statistik a vyhledáváním hráèù
+		na základì rùzných kritérií.
+		<ul>
+			<li><b>Odbìr informací:</b>
+				<p>
+					Odbìr informací je ve výsledném informaèním systému øe¹en jinak a nejedná se pøímo o pøípad
+					pou¾ití. Není tedy mo¾né se k odbìru pøihlásit nebo se z nìj odhlásit, ale závisí na tom,
+					v jakých týmech se hráè nachází. V levém panelu se poté automaticky zobrazují v¹echny turnaje,
+					do kterých je nìjaký z jeho týmù pøihlá¹en, pøièem¾ panel obsahuje zvlá¹» sekce pro nadcházející
+					a právì probíhající turnaje. Turnaje, které ji¾ skonèily se zde nijak nezobrazují, ale je mo¾né
+					je nalézt na jiných místech v informaèním systému. V¹echny nadcházející turnaje je poté
+					mo¾né zobrazit pøímo na turnajové stránce nezávisle na tom, v jakých týmech se hráè nachází.
+				</p>
+			</li>
+			<li><b>Archivace starých zápasù:</b>
+				<p>
+					Jedná se z na¹eho pohledu o nesmyslný use-case ve výsledném informaèním systému,
+					který byl do diagramu pøidán v prvním roèníku v pøedmìtu IUS a v pøedmìtu IDS
+					nebyl odstranìn. Nesmyslný je z toho dùvodu, ¾e chceme, aby bylo v systému mo¾né
+					prohlí¾et jakkoliv staré zápasy, na základì kterých se navíc poèítají rùzné
+					dodateèné statistiky, a je tedy potøeba aby se tyto informace v¾dy nacházely v systému.
+					Pøípadné zálohování starých zápasu by u¾ asi smysl dávalo, ale tuto funkci
+					jsme ji¾ neimplementovali, jeliko¾ bychom stejnì nemìli k dispozici ¾ádné médium,
+					na které bychom mohli data zálohovat. Archivaci starých zápasu tedy výsledný
+					systém nepodporuje.
+				</p>
+			</li>
+			<li><b>Tisknutí statistik:</b>
+				<p>
+					Vytváøení napøíklad PDF souborù na základì statistik by vy¾adovalo
+					pou¾ití dodateèných knihoven a i tak by se nejednalo o triviální
+					zále¾itost. Z èasových dùvodù jsme se tedy rozhodli tento pøípad
+					pou¾ití neimplementovat. Ve¹keré statistiky jsou ov¹em stále k
+					dispozici k prohlí¾ení pøímo v informaèním systému a to z pohledu
+					hráèe, týmu i klanu.
+				</p>
+			</li>
+			<li><b>Vyhledávání hráèù:</b>
+				<p>
+					Výsledný informaèní systém umo¾òuje vyhledávat hráèe dle rùzných
+					parametrù, konceptuálnì se ov¹em v na¹em øe¹ení nejedná o klasický
+					vyhledávací øádek. Místo toho je mo¾né zobrazit existující hráèe
+					na jednotlivých stránkách (tam, kde to dává smysl) informaèního systému,
+					pøièem¾ je tento výbìr filtrován na základì stránky, kde se data zobrazují.
+					Na stránce hry je tedy napøíklad mo¾né zobrazit si hráèe, kteøí se na tuto
+					hru zamìøují, na stránce týmu hráèe, kteøí jsou jeho èleny, na stránce
+					klanu hráèe, kteøí jsou èleny klanu a tak podobnì.
+				</p>
+			</li>
+		</ul>
+	</p>
+
+
+	<h2>Instalace</h2>
+	<ul>
+		<li>Struènì popi¹te postup instalace na server</li>
+		<li>Softwarové po¾adavky (verze PHP apod.)</li>
+		<li>Jak rozbalit, konfigurovat, inicializovat databází, ...</li>
+	</ul>
+
+	<h2>Známé problémy</h2>
+	<p>
+		Jak ji¾ bylo zmínìno v podkapitole o integritních omezeních, 
+		tak pøi vytváøení zápasù jsou ve¹keré události automaticky generovány ihned. V reálném
+		systému by bylo automatické vkládání dat událostí do databáze realizováno pomocí napojení
+		na nìjaký druh API jednotlivých her, co¾ ov¹em v na¹em pøípadì nebylo mo¾né. Po vytvoøení
+		zápasu je tedy do databáze okam¾itì ulo¾en budoucí vítìz, délka zápasu i v¹e ostatní. 
+		Dal¹í odchylkou od zadání je vyhledávání dat. V hlavièkách tabulek mìly být implementovány 
+		rùzné filtry, ale u¾ v samotných tabulkách se vcelku dobøe hledá a na filtry, èi jiné typy vyhledávání, 
+		nám bohu¾el nezbyl èas.
+	</p>
+
 </div>
-
-
 </body></html>

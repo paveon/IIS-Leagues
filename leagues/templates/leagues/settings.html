@@ -40,6 +40,19 @@
           });
       }
 
+      function buttonClick(event, object_id, action) {
+          let url = '{% url 'leagues:settings' %}';
+          let data = {
+              'action': action,
+              'object_id': object_id
+          };
+
+          function callback(json) {
+              location.reload();
+          }
+
+          baseButtonClick(event, data, url, callback);
+      }
 
       $(document).ready(function () {
           {% if error_modal %}
@@ -203,6 +216,7 @@
             <th>Birth date</th>
             <th>Role</th>
             <th></th>
+            <th></th>
           </tr>
           </thead>
 
@@ -230,6 +244,22 @@
               <td class="edit_object"
                   onclick="OpenEditModal('{{ player_form.prefix }}', {{ player.id }});">
                 Edit<i class="fa fa-pencil-square-o" style="margin-left:10px"></i>
+              </td>
+
+              <td class="w3-padding-3 w3-small table_button_center">
+                {% if user.is_superuser and player.role != roles.ADMIN or user.is_staff and player.role == roles.USER %}
+                  {% if player.user.is_active %}
+                    <button onclick="buttonClick(event, {{ player.id }}, 'suspend_user')"
+                            class="w3-button w3-red table_button red_button">
+                      Suspend
+                    </button>
+                  {% else %}
+                    <button onclick="buttonClick(event, {{ player.id }}, 'activate_user')"
+                            class="w3-button w3-green table_button green_button">
+                      Activate
+                    </button>
+                  {% endif %}
+                {% endif %}
               </td>
             </tr>
           {% endfor %}
@@ -476,7 +506,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create sponsorship">
         </div>
       </form>
@@ -509,7 +539,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create sponsor">
         </div>
       </form>
@@ -575,7 +605,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create tournament">
         </div>
       </form>
@@ -625,7 +655,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create clan">
         </div>
       </form>
@@ -686,7 +716,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create team">
         </div>
       </form>
@@ -710,8 +740,8 @@
           {% include 'leagues/form_errors.html' with errors=player_form.errors %}
 
           {% if user.is_superuser %}
-          <label><b>{{ player_form.role.label_tag }}</b></label>
-          {% render_field player_form.role class+="w3-input w3-border w3-margin-bottom" %}
+            <label><b>{{ player_form.role.label_tag }}</b></label>
+            {% render_field player_form.role class+="w3-input w3-border w3-margin-bottom" %}
           {% endif %}
 
           <label><b>{{ player_form.nickname.label_tag }}</b></label>
@@ -752,7 +782,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create player">
         </div>
       </form>
@@ -794,7 +824,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create gamemode">
         </div>
       </form>
@@ -833,7 +863,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create genre">
         </div>
       </form>
@@ -890,7 +920,7 @@
           </button>
 
           <input class="formID" type="hidden" name="object_id" value="">
-          <input class="formAction" type="hidden" name="post_action" value="">
+          <input class="formAction" type="hidden" name="action" value="">
           <input class="formSubmit w3-button w3-green w3-right" type="submit" value="Create game">
         </div>
       </form>
