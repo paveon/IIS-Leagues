@@ -127,7 +127,7 @@ class Tournament(models.Model):
 
     @property
     def in_progress(self):
-        return (self.opening_date < date.today() < self.end_date)
+        return (self.opening_date <= date.today() <= self.end_date)
 
     @property
     def upcoming(self):
