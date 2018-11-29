@@ -365,7 +365,14 @@ class Player(models.Model):
     def tournaments(self):
         registered = self.teams.all()
         tournaments = RegisteredTeams.objects.filter(team__in=registered)
-        return tournaments
+        upcoming = set()
+        active = set()
+        for tournament in tournaments:
+            if tournament.tournament.opening_date > timezone.now().date():
+                upcoming.add(tournament.tournament)
+            elif tournament.tournament.opening_date <= timezone.now().date() <= tournament.tournament.end_date:
+                active.add(tournament.tournament)
+        return (upcoming, active)
 
     @property
     def role(self):

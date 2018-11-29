@@ -38,7 +38,11 @@
         </h4>
 
         <h4><b>Duration:</b>
-          {{ match.duration_fmt }}
+          {% if match.in_progress %}
+            In progress
+          {% else %}
+            {{ match.duration_fmt }}
+          {% endif %}
         </h4>
 
         <h4><b>Tournament:</b>
@@ -65,7 +69,11 @@
         </h4>
 
         <h4><b>Winner:</b>
-          <a href="{% url 'leagues:team_detail' match.winner.slug %} ">{{ match.winner.name }}</a>
+          {% if match.in_progress %}
+            Not ended yet
+          {% else %}
+            <a href="{% url 'leagues:team_detail' match.winner.slug %} ">{{ match.winner.name }}</a>
+          {% endif %}
         </h4>
 
       </div>
