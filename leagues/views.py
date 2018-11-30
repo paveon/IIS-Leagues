@@ -194,8 +194,8 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         if request.is_ajax():
             # Ajax calls are used to populate opened form with existing data
             # if editing object or with default data when creating new one
-            if 'object_id' in request.POST:
-                self.object_id = request.POST['object_id']
+            if 'object_id' in request.GET:
+                self.object_id = request.GET['object_id']
 
             self.class_name = request.GET['modal_type']
             self.action_key = request.GET['action']
