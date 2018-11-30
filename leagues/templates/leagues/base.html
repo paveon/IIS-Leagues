@@ -146,6 +146,7 @@
                   }
 
                   if (!afterError) {
+                      console.log(json);
                       $.each(json, function (key, value) {
                           if (!key.endsWith('_queryset')) {
                               let field = $('#id_' + modalID + '-' + key);
@@ -168,11 +169,17 @@
                                               .text(option.value));
                                       });
                                   }
-                                  {#console.log(field);#}
-                                  {#console.log(value);#}
+                                  $('option', field).prop('selected', false);
                                   if (value) {
-                                      let option = $('option[value="' + value + '"]', field);
-                                      option.prop('selected', true);
+                                      if ($.isArray(value)) {
+                                          $.each(value, function (idx, value) {
+                                              let option = $('option[value="' + value + '"]', field);
+                                              option.prop('selected', true);
+                                          });
+                                      } else {
+                                          let option = $('option[value="' + value + '"]', field);
+                                          option.prop('selected', true);
+                                      }
                                   } else {
                                       let nullOption = field.children().first();
                                       nullOption.prop('selected', true);

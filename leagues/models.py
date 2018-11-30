@@ -396,7 +396,7 @@ class Player(models.Model):
         games_total = self.matches.count()
         if not games_total:
             return None
-        games_won = self.matches.filter(playedmatch__team=models.F('playedmatch__match_winner')).count()
+        games_won = self.matches.filter(playedmatch__team=F('playedmatch__match__winner')).count()
         return str(round((games_won / games_total) * 100, 2)) + " %"
 
     @property

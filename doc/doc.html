@@ -33,7 +33,7 @@
 		V¹echny druhy èinností (python, návrh modelù, html ¹ablony, javascript)
 	</dd>
 	<dt>URL aplikace</dt>
-	<dd><a href="http://www.stud.fit.vutbr.cz/~xautor01/IIS">http://www.stud.fit.vutbr.cz/~xautor01/IIS</a></dd>
+	<dd><a href="https://radim.josefkolar.cz/">https://radim.josefkolar.cz/</a></dd>
 </dl>
 
 <h2>U¾ivatelé systému pro testování</h2>
@@ -260,11 +260,43 @@
 
 
 	<h2>Instalace</h2>
+	<p>
+		Instalace na server byla velmi jednoduchá díky kamarádovi, který nám stìdøe poskytl
+		hosting a VPS s ve¹kerým potøebným softwarem pro spu¹tìní
+		python serveru. Konkrétnì se jedná o kombinaci webového serveru <i>Nginx</i>
+		a python HTTP serveru <i>Gunicorn</i>.
+		Osobnì jsme se tedy nemuseli starat o vytvoøení architektury a její konfiguraci, ale
+		staèilo pouze nahrát data na server a stáhnout do virtuálního prostøedí pythonu
+		balíèky potøebné pro bìh na¹eho informaèního systému.
+	</p>
+
+	<h3>Softwarové po¾adavky</h3>
 	<ul>
-		<li>Struènì popi¹te postup instalace na server</li>
-		<li>Softwarové po¾adavky (verze PHP apod.)</li>
-		<li>Jak rozbalit, konfigurovat, inicializovat databází, ...</li>
+		<li>Python, minimálnì verze 3.5</li>
+		<li>Python balíèky <i>Django</i>, <i>django-widget-tweaks</i> a <i>django-countries</i>.
+			V¹echny tyto balíèky lze jednodu¹e stáhnout a nainstalovat pomocí balíèkovacího systému
+			<i>PIP</i>
+		</li>
 	</ul>
+
+	<h3>Spu¹tìní</h3>
+	<p>
+		Pro lokální spu¹tìní lze vyu¾ít vestavìného vývojáøského HTTP serveru,
+		který poskytuje samotné <i>Django</i>. Nejprve je potøeba mít nainstalovaný
+		Python 3.5 (nebo novìj¹í). Poté je potøeba mít ve virtuálním prostøedí Pythonu, 
+		nebo na globální úrovni interpretu nainstalovány døíve zmínìné balíèky.
+		Pokud je k dispozici balíèkovací systém PIP a nachází se v systémových cestách, 
+		lze v¹echny balíèky nainstalovat
+		pomocí následujícího pøíkazu:
+		<i>pip install Django django-widget-tweaks django-countries</i>.
+		Jakmile je v¹e potøebné nainstalováno, staèí spustit skript 
+		<i>manage.py</i>, který se nachází v koøenovém adresáøi.
+		Konkrétnì je potøeba skript spustit takto: 
+		<i>python manage.py runserver</i>.
+		Tento skript automaticky spustí na loopback adrese
+		http://127.0.0.1:8000/ vývojáøský python server. Následnì je ji¾ mo¾né
+		na této adrese zobrazit úvodní stránku na¹eho informaèního systému.
+	</p>
 
 	<h2>Známé problémy</h2>
 	<p>
