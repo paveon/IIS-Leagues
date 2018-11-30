@@ -421,7 +421,9 @@ class Player(models.Model):
         return self.nickname
 
     def save(self, *args, **kwargs):
-        self.user.save()
+        user = self.user
+        user.save()
+        self.user = user
         self.slug = slugify(self.nickname)
         super().save(*args, **kwargs)
 

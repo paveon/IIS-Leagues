@@ -229,7 +229,6 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         form_prefix = self.class_name.lower() + '_form'
         create_form = self.form_class(self.request.POST, prefix=form_prefix)
         # TODO nejde pridat klan k tymu pokud uz odehral hru
-        # TODO omezit vybery leader tymu muze byt jen nekdo kdo je v tom tymu (stejne klan), hry pro tymy omezeny podle her klanu (nebo se ke specializacim klanu potom prida ta hra tymu?)
         # TODO add new nevytvori novy formular pokud v predchozim byla chyba takze bud clear tlacitko a nebo to nejak vyresit at se udela prazdny formular po kliknuti na new pri predchozim erroru
         # TODO pri vytvareni tournamentu to hodi error a potom po refreshi je to tam, ale hodi to prvni chybu
         # TODO pri vytvareni hry je hra neaktivni a aktivuje se az ma prirazeny gamemode => momentalni kvuli testovani je default true ale ma byt false (doplnit pri vytvareni hry)
