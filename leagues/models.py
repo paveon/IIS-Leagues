@@ -261,7 +261,7 @@ class Team(models.Model):
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
-        if not self.leader and self.active:
+        if not self.leader:
             self.active = False
         super().save(*args, **kwargs)
 
@@ -313,23 +313,6 @@ class Match(models.Model):
         return "Match ({0}): {1} vs {2}".format(self.id, self.team_1, self.team_2)
 
 
-class Equipment(models.Model):
-    EQUIPMENT_TYPES = (
-        ('KEYBOARD', 'Keyboard'),
-        ('MOUSE', 'Mouse'),
-        ('MONITOR', 'Monitor'),
-        ('MOUSE_PAD', 'Mouse pad'),
-        ('HEADSET', 'Headset'),
-    )
-    name = models.CharField(max_length=200, unique=True)
-    type = models.CharField('Kind of equipment', max_length=20, choices=EQUIPMENT_TYPES)
-    manufacturer = models.CharField('Equipment manufacturer', max_length=200, blank=True)
-    brand = models.CharField('Brand of equipment', max_length=200, blank=True)
-
-    def __str__(self):
-        return self.name
-
-
 @template_enum
 class UserRole(Enum):
     ADMIN = 0
@@ -352,8 +335,6 @@ class Player(models.Model):
     birth_date = models.DateField('date of birth')
     image_url = models.URLField('profile image url', max_length=500, blank=True)
     description = models.TextField('description', blank=True, help_text="Description of player")
-    equipment = models.ManyToManyField(Equipment, verbose_name='Equipment used by player')
-    games = models.ManyToManyField(Game, verbose_name='Games focused by the player')
     teams = models.ManyToManyField(Team, verbose_name='Team memberships', related_name='team_members')
     clan = models.ForeignKey(Clan, on_delete=models.PROTECT, verbose_name='Clan membership',
                              related_name='clan_members', null=True, blank=True, )

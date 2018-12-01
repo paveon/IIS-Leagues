@@ -86,14 +86,14 @@
 
         {% if player.image_url %}
           <div class="w3-border w3-padding" style="float: right;">
-            <img src="{{ player.image_url }}" class="w3-circle"
-                 style="height:100px;width:100px" alt="Avatar">
+            <img src="{{ player.image_url }}"
+                 style="width:150px" alt="Avatar">
           </div>
         {% endif %}
 
         <!-- PLAYER INFO !-->
-        <h4><b>First name:</b> {{ player.first_name }}</h4>
-        <h4><b>Last name:</b> {{ player.last_name }}</h4>
+        <h4><b>First name:</b> {{ player.user.first_name }}</h4>
+        <h4><b>Last name:</b> {{ player.user.last_name }}</h4>
         <h4><b>Age:</b> {{ player.age }}</h4>
         <h4><b>Birth date:</b> {{ player.birth_date|date:"j.n.Y" }}</h4>
         <h4><b>Country of origin:</b> {{ player.country.name }}</h4>

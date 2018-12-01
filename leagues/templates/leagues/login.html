@@ -48,9 +48,9 @@
         {% include 'leagues/form_errors.html' with errors=form.errors %}
 
         <label><b>{{ form.username.label_tag }}</b></label>
-        {% render_field form.username class+="w3-input w3-border w3-margin-bottom" placeholder="Enter Username" value="test" %}
+        {% render_field form.username class+="w3-input w3-border w3-margin-bottom" placeholder="Enter Username" value="admin" %}
         <label><b>{{ form.password.label_tag }}</b></label>
-        {% render_field form.password class+="w3-input w3-border" placeholder="Enter Password" value="test_password_123" %}
+        {% render_field form.password class+="w3-input w3-border" placeholder="Enter Password" value="admin" %}
         <input class="w3-button w3-block w3-green w3-section w3-padding" type="submit" value="Login">
         <input type="hidden" name="next" value="{{ next }}">
       </div>
