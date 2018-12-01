@@ -40,6 +40,43 @@
           });
       }
 
+      function gameSelected(event) {
+          let menu = $(event.target);
+          let selected = $('option:selected', menu);
+          $.ajax({
+              type: 'GET',
+              url: {% url 'leagues:settings' %},
+              data: {
+                  'csrfmiddlewaretoken': '{{ csrf_token }}',
+                  'action': 'game_changed',
+                  'modal_type': 'tournament',
+                  'object_id': selected.prop('value'),
+              },
+              dataType: "json",
+              async: true,
+              success: function (json) {
+                  let field = $('#id_{{ tournament_form.prefix }}-game_mode');
+                  let nullOption = field.children().first();
+                  field.empty();
+                  if (nullOption.text().includes('---')) {
+                      nullOption.prop('selected', false);
+                      field.append(nullOption);
+                  }
+                  $.each(json.gamemodes, function (idx, option) {
+                      field.append($("<option></option>")
+                          .prop('value', option.id)
+                          .text(option.value));
+                  });
+                  field.children().first().prop('selected', true);
+              },
+              error: function (xhr, error) {
+                  console.log("AJAX failure");
+                  console.log(xhr);
+                  console.log(error);
+              }
+          });
+      }
+
       function buttonClick(event, object_id, action) {
           let url = '{% url 'leagues:settings' %}';
           let data = {
@@ -64,6 +101,7 @@
           {% endif %}
 
           $('#id_{{ team_form.prefix }}-clan').change(clanSelected)
+          $('#id_{{ tournament_form.prefix }}-game').change(gameSelected)
       });
   </script>
 {% endblock %}

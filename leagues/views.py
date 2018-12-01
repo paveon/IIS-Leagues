@@ -81,6 +81,16 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
         queryset = queryset.annotate(value=F('nickname')).values('id', 'value')
         self.response['leaders'] = list(queryset)
 
+    def get_gamemode_queryset(self):
+        if self.object_id:
+            game = Game.objects.get(pk=self.object_id)
+            queryset = GameMode.objects.filter(game=game)
+        else:
+            queryset = GameMode.objects.all()
+
+        queryset = queryset.annotate(value=F('name')).values('id', 'value')
+        self.response['gamemodes'] = list(queryset)
+
     # Fills json response with object data. Data is then
     # used on the client side to populate editing form with
     # current object data. This allows us to dynamically change
@@ -155,6 +165,7 @@ class SettingsView(LoginRequiredMixin, generic.TemplateView):
             'open_edit_modal': self.get_edit_modal_data,
             'open_create_modal': self.get_create_modal_data,
             'clan_changed': self.get_leader_queryset,
+            'game_changed': self.get_gamemode_queryset,
             'suspend_user': self.change_user_acount_state,
             'activate_user': self.change_user_acount_state
         }
