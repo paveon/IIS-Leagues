@@ -316,7 +316,7 @@
                     Finished
                   {% endif %}
                 </td>
-                {% if user.player == user.player.clan.leader %}
+                {% if user.is_authenticated and user.player == user.player.clan.leader %}
                   {% if tournament.upcoming %}
                     <td class="w3-padding-3 w3-small table_button_center">
                       <button class="w3-button w3-red table_button red_button"
