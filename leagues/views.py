@@ -642,6 +642,7 @@ class TeamDetailView(generic.DetailView):
         context['non_registered'] = non_registered
         context['member_matches'] = member_matches
         context['edit_form'] = edit_form
+        context['status'] = TournamentStatus.__members__
         return context
 
     def post(self, request, *args, **kwargs):
