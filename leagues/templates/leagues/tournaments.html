@@ -151,8 +151,7 @@
 
       function SendTeams() {
           if ($('#id_match_create-team_1 option[value="0"]:selected').length !== 0 ||
-              $('#id_match_create-team_2 option[value="0"]:selected').length !== 0)
-          {
+              $('#id_match_create-team_2 option[value="0"]:selected').length !== 0) {
               $('#team_pick_error').show();
               $('#team_pick_error p').text("You have to select teams before ...");
           } else {
@@ -200,6 +199,7 @@
             <tr>
               <th>Name</th>
               <th>Main sponsor</th>
+              <th>Status</th>
               <th>Opening date</th>
               <th>End date</th>
               <th>Prize</th>
@@ -211,15 +211,10 @@
               <tr style="display: none">
                 <td><a href="{% url 'leagues:tournament_detail' tournament.slug %}">{{ tournament.name }}</a>
                 </td>
-                <td>
-                  {% for record in tournament.sponsorship_set.all %}
-                    {% if record.type == 'MAIN' %}
-                      {{ record.sponsor.name }}
-                    {% endif %}
-                  {% endfor %}
-                </td>
-                <td>{{ tournament.opening_date }}</td>
-                <td>{{ tournament.end_date }}</td>
+                <td>{{ tournament.main_sponsor|default:"" }}</td>
+                <td>{{ tournament.status_string }}</td>
+                <td>{{ tournament.opening_date|date:"j.n.Y" }}</td>
+                <td>{{ tournament.end_date|date:"j.n.Y" }}</td>
                 <td>{{ tournament.prize }} $</td>
               </tr>
             {% endfor %}
@@ -242,7 +237,7 @@
             <thead>
             <tr class="">
               <th>Versus</th>
-              <th>Start</th>
+              <th>Date</th>
               <th>Duration</th>
               <th>Winner</th>
               <th>Tournament</th>
@@ -258,14 +253,16 @@
                   vs <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
                 <td>{{ match.beginning|date:"j.n.Y" }}</td>
                 <td>
-                  {% if match.duration %}
-                    {{ match.duration_fmt }}
+                  {% if match.in_progress %}
+                    In progress
                   {% else %}
-                    Not ended yet
+                    {{ match.duration_fmt }}
                   {% endif %}
                 </td>
                 <td>
-                  {% if match.duration %}
+                  {% if match.in_progress %}
+                    In progress
+                  {% else %}
                     {{ match.winner }}
                   {% endif %}
                 </td>

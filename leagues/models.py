@@ -60,6 +60,10 @@ class Game(models.Model):
     description = models.TextField('description', blank=True, help_text="Description of game")
     game_modes = models.ManyToManyField(GameMode, verbose_name='available game modes')
 
+    @property
+    def players(self):
+        return Player.objects.filter(playedmatch__match__game=self)
+
     def as_array(self):
         return [self.id, self.name]
 
@@ -100,6 +104,13 @@ class TournamentStatus(Enum):
     FINISHED = 2
 
 
+TournamentStatusString = {
+    TournamentStatus.UPCOMING: 'Upcoming',
+    TournamentStatus.IN_PROGRESS: 'In progress',
+    TournamentStatus.FINISHED: 'Finished'
+}
+
+
 class Tournament(models.Model):
     name = models.CharField('tournament name', max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True)
@@ -124,6 +135,17 @@ class Tournament(models.Model):
             return TournamentStatus.FINISHED
         else:
             return TournamentStatus.IN_PROGRESS
+
+    @property
+    def status_string(self):
+        return TournamentStatusString[self.status]
+
+    @property
+    def main_sponsor(self):
+        try:
+            return self.sponsorship_set.get(type='MAIN').sponsor
+        except Sponsorship.DoesNotExist:
+            return None
 
     @property
     def in_progress(self):
@@ -341,6 +363,21 @@ class Player(models.Model):
     team_pendings = models.ManyToManyField(Team, related_name='team_pendings')
     clan_pendings = models.ManyToManyField(Clan, related_name='clan_pendings')
     matches = models.ManyToManyField(Match, through='PlayedMatch', verbose_name='Played matches')
+
+    def game_stats(self, game):
+        game_deaths = Death.objects.filter(match__game=game)
+        game_assists = Assist.objects.filter(death__match__game=game)
+        player_kills = game_deaths.filter(killer=self).count()
+        player_deaths = game_deaths.filter(victim=self).count()
+        player_assists = game_assists.filter(player=self).count()
+        player_kda = round((player_kills + player_assists) / max(1, player_deaths), 2)
+        matches = PlayedMatch.objects.filter(player=self, match__game=game)
+        if matches.exists():
+            won_count = matches.filter(match__winner__in=self.teams.all()).count()
+            win_ratio = round((won_count / matches.count()) * 100, 2)
+        else:
+            win_ratio = None
+        return player_kda, str(win_ratio) + "%"
 
     @property
     def tournaments(self):

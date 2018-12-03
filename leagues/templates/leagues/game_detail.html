@@ -32,7 +32,7 @@
       <div id="info" class="w3-container w3-section section">
 
         <h4><b>Release date:</b>
-          {{ game.release_date|default:"None" }}
+          {{ game.release_date|date:"j.n.Y" }}
         </h4>
 
         <h4><b>Publisher:</b>
@@ -53,8 +53,8 @@
           {% endfor %}
         </ul>
 
-        <h4><b>Number of players:</b>
-          {{ game.player_set.count }}
+        <h4><b>Active players:</b>
+          {{ game.players.count }}
         </h4>
 
         <h4><b>Description:</b></h4>
@@ -70,27 +70,27 @@
             <thead>
             <tr class="">
               <th>Nickname</th>
-              <th>First name</th>
-              <th>Last name</th>
               <th>Clan</th>
+              <th>KDA</th>
+              <th>Win ratio</th>
             </tr>
             </thead>
 
             <tbody id="member_rows">
-            {% for player in players %}
+            {% for record in player_stats %}
               <tr style="display: none">
                 <td>
-                  <a href="{% url 'leagues:player_detail' player.slug %}">
-                    {{ player.nickname }}
+                  <a href="{% url 'leagues:player_detail' record.0.slug %}">
+                    {{ record.0.nickname }}
                   </a>
                 </td>
-                <td>{{ player.first_name }}</td>
-                <td>{{ player.last_name }}</td>
                 <td>
-                  <a href="{% url 'leagues:clan_detail' player.clan.slug %}">
-                    {{ player.clan.name }}
+                  <a href="{% url 'leagues:clan_detail' record.0.clan.slug %}">
+                    {{ record.0.clan }}
                   </a>
                 </td>
+                <td>{{ record.1 }}</td>
+                <td>{{ record.2 }}</td>
               </tr>
             {% endfor %}
             </tbody>

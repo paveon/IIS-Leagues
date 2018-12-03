@@ -414,9 +414,11 @@
           <thead>
           <tr class="">
             <th>Name</th>
-            <th>Prize</th>
+            <th>Main sponsor</th>
+            <th>Status</th>
             <th>Opening date</th>
             <th>End date</th>
+            <th>Prize</th>
             <th></th>
           </tr>
           </thead>
@@ -424,10 +426,16 @@
           <tbody>
           {% for tournament in tournament_list %}
             <tr style="display: none">
-              <td>{{ tournament.name }}</td>
-              <td>{{ tournament.prize }}</td>
+              <td>
+                <a href="{% url 'leagues:tournament_detail' tournament.slug %}">
+                  {{ tournament.name }}
+                </a>
+              </td>
+              <td>{{ tournament.main_sponsor|default:"" }}</td>
+              <td>{{ tournament.status_string }}</td>
               <td>{{ tournament.opening_date|default:"" }}</td>
               <td>{{ tournament.end_date|default:"" }}</td>
+              <td>{{ tournament.prize }} $</td>
               <td class="edit_object"
                   onclick="OpenEditModal('{{ tournament_form.prefix }}', {{ tournament.id }});">
                 Edit<i class="fa fa-pencil-square-o" style="margin-left:10px"></i>
@@ -490,7 +498,7 @@
                   <td>{{ sponsorship.sponsor }}</td>
                   <td>{{ sponsorship.tournament }}</td>
                   <td>{{ sponsorship.type }}</td>
-                  <td>{{ sponsorship.amount }}</td>
+                  <td>{{ sponsorship.amount }} $</td>
                   <td class="edit_object"
                       onclick="OpenEditModal('{{ sponsorship_form.prefix }}', {{ sponsorship.id }});">
                     Edit<i class="fa fa-pencil-square-o" style="margin-left:10px"></i>

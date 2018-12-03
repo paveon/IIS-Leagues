@@ -31,8 +31,11 @@
 
       <div id="info" class="w3-container w3-section section">
 
-        <h4><b>Start:</b>
-          {{ match.beginning|date:"j.n.Y, G:m:s" }}
+        <h4><b>Date:</b>
+          {{ match.beginning|date:"j.n.Y" }}
+        </h4>
+        <h4><b>Time</b>
+          {{ match.beginning|date:"G:m:s" }}
         </h4>
 
         <h4><b>Duration:</b>
@@ -45,9 +48,9 @@
 
         <h4><b>Tournament:</b>
           {% if match.tournament %}
-          <a href="{% url 'leagues:tournament_detail' match.tournament.slug %} ">
-            {{ match.tournament }}
-          </a>
+            <a href="{% url 'leagues:tournament_detail' match.tournament.slug %} ">
+              {{ match.tournament }}
+            </a>
           {% else %}
             Not part of any tournament
           {% endif %}
@@ -95,7 +98,7 @@
             <tbody id="team_rows">
             {% for player in players %}
               <tr>
-                <td  style="text-align: center;">
+                <td style="text-align: center;">
                   <a href="{% url 'leagues:player_detail' player.0.player.slug %}">
                     {{ player.0.player.nickname }}
                   </a>
@@ -143,13 +146,14 @@
                     {{ death.victim.nickname }}
                   </a>
                 </td>
-  {#              {% for i in assist_num %}#}
-  {#                <td>Assist{{ i }}</td>#}
-  {#              {% endfor %}#}
+                {#              {% for i in assist_num %}#}
+                {#                <td>Assist{{ i }}</td>#}
+                {#              {% endfor %}#}
                 {% for assist in death.assist_set.all %}
                   <td>
                     <a href="{% url 'leagues:player_detail' assist.player.slug %}">
-                      {{ assist.player.nickname }}</a> [{{ assist.type }}]</td>
+                      {{ assist.player.nickname }}</a> [{{ assist.type }}]
+                  </td>
                 {% endfor %}
               </tr>
             {% endfor %}

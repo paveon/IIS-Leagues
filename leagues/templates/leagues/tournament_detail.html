@@ -160,7 +160,7 @@
             <thead>
             <tr class="">
               <th>Versus</th>
-              <th>Start</th>
+              <th>Date</th>
               <th>Duration</th>
               <th>Winner</th>
               <th>Tournament</th>
@@ -174,16 +174,18 @@
               <tr style="display: none;">
                 <td><a href="{% url 'leagues:team_detail' match.team_1.slug %}">{{ match.team_1.name }}</a>
                   VS <a href="{% url 'leagues:team_detail' match.team_2.slug %}">{{ match.team_2.name }}</a></td>
-                <td>{{ match.beginning }}</td>
+                <td>{{ match.beginning|date:"j.n.Y" }}</td>
                 <td>
-                  {% if match.duration %}
-                    {{ match.duration }}
+                  {% if match.in_progress %}
+                    In progress
                   {% else %}
-                    Not ended yet
+                    {{ match.duration_fmt }}
                   {% endif %}
                 </td>
                 <td>
-                  {% if match.duration %}
+                  {% if match.in_progress %}
+                    In progress
+                  {% else %}
                     {{ match.winner }}
                   {% endif %}
                 </td>

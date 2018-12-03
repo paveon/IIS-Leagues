@@ -353,7 +353,7 @@
       <i class="fa fa-trophy"></i>
     </a>
 
-    {% if user.is_authenticated %}
+    {% if user.is_superuser or user.is_staff %}
       <a href="{% url 'leagues:settings' %}"
          class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white" title="Management">
         <i class="fa fa-cog"></i>
@@ -405,10 +405,10 @@
               <p class="w3-center">
                 {% if user.player.image_url %}
                   <img src="{{ user.player.image_url }}" class="w3-circle"
-                       style="height:106px;width:106px" alt="Avatar">
+                       style="width:128px" alt="Avatar">
                 {% else %}
                   <img src="{% static 'leagues/images/default_avatar.png' %}" class="w3-circle"
-                       style="height:106px;width:106px" alt="Avatar">
+                       style="height:128px;width:128px" alt="Avatar">
                 {% endif %}
               </p>
               <hr>
@@ -419,7 +419,7 @@
               {% endif %}
               {% if user.player.country %}
                 <p><i class="fa fa-home fa-fw w3-margin-right w3-text-theme"></i>
-                  <b>{{ user.player.country }}</b>
+                  <b>{{ user.player.country.name }}</b>
                 </p>
               {% endif %}
               {% if user.player.birth_date %}
