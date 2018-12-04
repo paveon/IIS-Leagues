@@ -373,7 +373,7 @@ class Player(models.Model):
         player_kda = round((player_kills + player_assists) / max(1, player_deaths), 2)
         matches = PlayedMatch.objects.filter(player=self, match__game=game)
         if matches.exists():
-            won_count = matches.filter(match__winner__in=self.teams.all()).count()
+            won_count = matches.filter(team=F('match__winner')).count()
             win_ratio = round((won_count / matches.count()) * 100, 2)
         else:
             win_ratio = None
